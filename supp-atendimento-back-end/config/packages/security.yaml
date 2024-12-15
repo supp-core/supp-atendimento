@@ -1,0 +1,88 @@
+# config/packages/security.yaml
+security:
+    enable_authenticator_manager: true
+
+    # Password hashing configuration
+    password_hashers:
+        Symfony\Component\Security\Core\User\PasswordAuthenticatedUserInterface: 'auto'
+        App\Entity\User:
+            algorithm: auto
+        App\Entity\Attendant:
+            algorithm: auto
+
+    # User provider configuration
+    # This defines how Symfony loads user information from your database
+    providers:
+        app_user_provider:
+            entity:
+                class: App\Entity\User
+                property: email  # We use email as the unique identifier for authentication
+        app_attendant_provider:
+            entity:
+                class: App\Entity\Attendant
+                property: email
+
+    # Firewall configuration
+    # This defines the security system's behavior for different parts of your application
+    firewalls:
+        # Development tools firewall - no security for dev routes
+        dev:
+            pattern: ^/(_(profiler|wdt)|css|images|js)/
+            security: false
+
+        attendant_login:
+            pattern: ^/api/attendant/login
+            stateless: true
+            provider: app_attendant_provider
+            json_login:
+                check_path: api_attendant_login
+                username_path: email
+                password_path: password
+                success_handler: lexik_jwt_authentication.handler.authentication_success
+                failure_handler: lexik_jwt_authentication.handler.authentication_failure
+
+
+        # Login firewall - handles authentication
+        auth:  # Changed from 'login' to 'auth' for clarity
+            pattern: ^/api/(login|register)
+            stateless: true  # No session management - pure JWT
+            provider: app_user_provider
+            json_login:
+                check_path: /api/login
+                username_path: email    # Explicitly tell Symfony to use email field
+                password_path: password # Explicitly specify password field
+                success_handler: lexik_jwt_authentication.handler.authentication_success
+                failure_handler: lexik_jwt_authentication.handler.authentication_failure
+
+        # API firewall - protects all other API routes
+        api:
+            pattern: ^/api
+            stateless: true
+            provider: app_user_provider
+            jwt: ~    # Use JWT authentication for API routes
+
+        # Remove the 'main' firewall since we're building an API-only application
+        # All routes are either under /api or development tools
+
+    # Access control - defines who can access what
+    access_control:
+        # Public routes - no authentication needed
+        - { path: ^/api/login, roles: PUBLIC_ACCESS }
+        - { path: ^/api/register, roles: PUBLIC_ACCESS }
+        # Protected routes - require authentication
+        - { path: ^/api, roles: IS_AUTHENTICATED_FULLY }
+
+         # Attendant routes
+        - { path: ^/api/attendant, roles: ROLE_ATTENDANT }
+        # Protected routes
+        - { path: ^/api, roles: IS_AUTHENTICATED_FULLY }
+
+# Test environment configuration
+when@test:
+    security:
+        password_hashers:
+            Symfony\Component\Security\Core\User\PasswordAuthenticatedUserInterface:
+                algorithm: auto
+                cost: 4      # Minimum bcrypt cost for testing
+                time_cost: 3 # Minimum argon time cost for testing
+                memory_cost: 10 # Minimum argon memory cost for testing

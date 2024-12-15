@@ -1,0 +1,68 @@
+{# templates/emails/ticket_conclusion.html.twig #}
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            line-height: 1.6;
+            color: #333;
+            max-width: 600px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        .header {
+            background-color: #4a90e2;
+            color: white;
+            padding: 20px;
+            text-align: center;
+            border-radius: 5px 5px 0 0;
+        }
+        .content {
+            padding: 20px;
+            border: 1px solid #ddd;
+            border-top: none;
+            border-radius: 0 0 5px 5px;
+        }
+        .ticket-info {
+            background-color: #f9f9f9;
+            padding: 15px;
+            margin: 10px 0;
+            border-radius: 5px;
+        }
+        .footer {
+            text-align: center;
+            margin-top: 20px;
+            font-size: 12px;
+            color: #666;
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>Chamado Concluído</h1>
+    </div>
+    <div class="content">
+        <p>Olá {{ requester.name }},</p>
+        
+        <p>Seu chamado foi concluído com sucesso!</p>
+        
+        <div class="ticket-info">
+            <p><strong>Número do Chamado:</strong> #{{ service.id }}</p>
+            <p><strong>Título:</strong> {{ service.title }}</p>
+            <p><strong>Setor:</strong> {{ service.sector.name }}</p>
+            <p><strong>Data de Abertura:</strong> {{ service.dateCreate|date('d/m/Y H:i:s') }}</p>
+            <p><strong>Data de Conclusão:</strong> {{ service.dateConclusion|date('d/m/Y H:i:s') }}</p>
+            <p><strong>Atendente Responsável:</strong> {{ service.reponsible ? service.reponsible.name : 'Não atribuído' }}</p>
+        </div>
+        
+        <p>Se você precisar de qualquer assistência adicional, não hesite em abrir um novo chamado.</p>
+        
+        <p>Atenciosamente,<br>Equipe de Suporte</p>
+    </div>
+    <div class="footer">
+        <p>Este é um email automático, por favor não responda.</p>
+    </div>
+</body>
+</html>
