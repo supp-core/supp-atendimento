@@ -1,40 +1,22 @@
-import { Component } from '@angular/core';
+// app.component.ts
+import { Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { RouterModule } from '@angular/router';
-
-// Import all necessary Material modules
-import { MatSidenavModule } from '@angular/material/sidenav';
-import { MatToolbarModule } from '@angular/material/toolbar';
-import { MatIconModule } from '@angular/material/icon';
-import { MatListModule } from '@angular/material/list';
-import { MatMenuModule } from '@angular/material/menu';
-import { MatBadgeModule } from '@angular/material/badge';
-import { MatButtonModule } from '@angular/material/button';
+import { Title } from '@angular/platform-browser';
 
 @Component({
   selector: 'app-root',
-  templateUrl: './app.component.html',
-  styleUrls: ['./app.component.css'],
   standalone: true,
-  // Include all necessary modules in the imports array
-  imports: [
-    CommonModule,
-    RouterModule,
-    MatSidenavModule,     // For mat-sidenav-container, mat-sidenav, mat-sidenav-content
-    MatToolbarModule,     // For mat-toolbar
-    MatIconModule,        // For mat-icon
-    MatListModule,        // For mat-nav-list, mat-list-item
-    MatMenuModule,        // For mat-menu, mat-menu-item
-    MatBadgeModule,       // For matBadge directive
-    MatButtonModule       // For mat-button, mat-icon-button
-  ]
+  imports: [CommonModule, RouterModule],
+  template: `
+    <router-outlet></router-outlet>
+  `,
+  styles: []
 })
-export class AppComponent {
-  userName = 'Usuário';
-  userEmail = 'usuario@exemplo.com';
-  notificationCount = 0;
-  
-  logout() {
-    console.log('Logout clicked');
+export class AppComponent { 
+  constructor(private titleService: Title) {}
+
+  ngOnInit() {
+    this.titleService.setTitle('PGMBH SUPP Atendimentos');
   }
 }

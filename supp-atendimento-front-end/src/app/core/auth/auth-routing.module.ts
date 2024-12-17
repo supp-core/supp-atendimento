@@ -1,27 +1,19 @@
+// auth-routing.module.ts
 import { NgModule } from '@angular/core';
 import { RouterModule, Routes } from '@angular/router';
-import { AuthGuard } from './core/auth/guards/auth.guard';
+import { LoginComponent } from './login/login.component';
 
 const routes: Routes = [
   {
-    path: 'auth',
-    loadChildren: () => import('./core/auth/auth.module').then(m => m.AuthModule)
-  },
-  {
     path: '',
-    canActivate: [AuthGuard],
     children: [
       {
-        path: 'admin',
-        loadChildren: () => import('./modules/admin/admin.module').then(m => m.AdminModule)
-      },
-      {
-        path: 'tickets',
-        loadChildren: () => import('./modules/ticket/ticket.module').then(m => m.TicketModule)
+        path: 'login',
+        component: LoginComponent
       },
       {
         path: '',
-        redirectTo: 'tickets',
+        redirectTo: 'login',
         pathMatch: 'full'
       }
     ]
@@ -29,7 +21,8 @@ const routes: Routes = [
 ];
 
 @NgModule({
-  imports: [RouterModule.forRoot(routes)],
+  imports: [RouterModule.forChild(routes)],
   exports: [RouterModule]
 })
-export class AppRoutingModule { }
+export class AuthRoutingModule { }
+
