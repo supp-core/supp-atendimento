@@ -67,7 +67,7 @@ security:
     # Access control - defines who can access what
     access_control:
         # Public routes - no authentication needed
-        - { path: ^/api/login, roles: PUBLIC_ACCESS }
+        - { path: ^/api/login, roles: PUBLIC_ACCESS, methods: [POST, OPTIONS]  }
         - { path: ^/api/register, roles: PUBLIC_ACCESS }
         # Protected routes - require authentication
         - { path: ^/api, roles: IS_AUTHENTICATED_FULLY }

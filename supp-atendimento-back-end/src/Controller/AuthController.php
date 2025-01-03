@@ -60,34 +60,49 @@ class AuthController extends AbstractController
     }
 
     #[Route('/login', name: 'api_login', methods: ['POST'])]
-    public function login(): JsonResponse
-    
+    public function login(Request $request): JsonResponse
     {
-       /** @var User $user */
-        $user = $this->getUser();
-
-
-    return new JsonResponse([
-        'success' => true,
-        'data' => [
-            'user' => [
-                'id' => $user->getId(),
-                'email' => $user->getEmail(),
-                'name' => $user->getName(),
-                'roles' => $user->getRoles()
-            ],
-        'token' => $this->jwtManager->create($user)
-        ]
-    ]);
-    }
+        try {
+            $data = json_decode($request->getContent(), true);
+                  // Buscar o usuário pelo email
+        $user = $this->entityManager->getRepository(User::class)->findOneBy(['email' => $data['email']]);            
+            if (!$user || !$this->passwordHasher->isPasswordValid($user, $data['password'])) {
+                return new JsonResponse([
+                    'success' => false,
+                    'message' => 'Credenciais inválidas'
+                ], Response::HTTP_UNAUTHORIZED);
+            }
     
+            // Gerar o token JWT
+          //  $token = $this->jwtManager->create($user);
+    
+            // Estrutura correta da resposta
+            return new JsonResponse([
+                'success' => true,
+                'data' => [
+                    'token' => $this->jwtManager->create($user),
+                    'user' => [
+                        'id' => $user->getId(),
+                        'email' => $user->getEmail(),
+                        'name' => $user->getName(),
+                        'roles' => $user->getRoles()
+                    ]
+                ]
+            ]);
+        } catch (\Exception $e) {
+            return new JsonResponse([
+                'success' => false,
+                'message' => 'Erro interno do servidor: ' . $e->getMessage()
+            ], Response::HTTP_INTERNAL_SERVER_ERROR);
+        }
+    }
 
     #[Route('/logout', name: 'api_logout', methods: ['POST'])]
     public function logout(Request $request): JsonResponse
     {
         // Invalidate the token
         $this->tokenStorage->setToken(null);
-        
+
         return new JsonResponse(['message' => 'Logged out successfully']);
     }
 }
