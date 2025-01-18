@@ -244,4 +244,23 @@ public function transferTicket(Service $service, int $newAttendantId, string $co
     $this->entityManager->persist($history);
     $this->entityManager->flush();
 }
+
+public function getAllServices(): array
+{
+    $serviceRepository = $this->entityManager->getRepository(Service::class);
+
+    $queryBuilder = $serviceRepository->createQueryBuilder('s')
+        // Join with sector
+        ->leftJoin('s.sector', 'sect')
+        // Join with requester to get user information
+        ->leftJoin('s.requester', 'u')
+        // Join with responsible attendant
+        ->leftJoin('s.reponsible', 'a')
+        // Select necessary fields
+        ->select('s', 'sect', 'u', 'a')
+        // Order by creation date, newest first
+        ->orderBy('s.date_create', 'DESC');
+
+    return $queryBuilder->getQuery()->getResult();
+}
 }

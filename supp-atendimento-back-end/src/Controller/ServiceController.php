@@ -63,13 +63,16 @@ class ServiceController extends AbstractController
     }
 
    // In ServiceController.php
-#[Route('/sector/{sector}', methods: ['GET'])]
-public function listBySector(string $sector): JsonResponse
+// In ServiceController.php
+
+#[Route('/sector/{sector?}', methods: ['GET'])]
+public function listBySector(?string $sector = null): JsonResponse
 {
     try {
-        // Get services for the specified sector
-        
-        $services = $this->serviceManager->getServicesBySector($sector);
+        // Get services based on whether a sector was specified
+        $services = $sector 
+            ? $this->serviceManager->getServicesBySector($sector)
+            : $this->serviceManager->getAllServices();
     
         // Transform the services into a format suitable for JSON response
         $response = array_map(function ($service) {
@@ -78,6 +81,10 @@ public function listBySector(string $sector): JsonResponse
                 'title' => $service->getTitle(),
                 'description' => $service->getDescription(),
                 'status' => $service->getStatus(),
+                'sector' => [
+                    'id' => $service->getSector()?->getId(),
+                    'name' => $service->getSector()?->getName(),
+                ],
                 'requester' => [
                     'id' => $service->getRequester()?->getId(),
                     'name' => $service->getRequester()?->getName(),
