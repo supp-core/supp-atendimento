@@ -1,47 +1,84 @@
 <template>
-    <header class="header">
-      <div class="logo">
-        <img src="/assets/supp.png" alt="SUPP/PBH" class="logo-img">
-      </div>
-      <div class="user-info">
-        <span>{{ username }}</span>
-      </div>
-    </header>
-  </template>
-  
-  <script setup>
-  import { ref } from 'vue';
-  
-  const username = ref('Usuário');
-  </script>
-  
-  <style scoped>
-  .header {
-    position: fixed; /* Fixa o cabeçalho no topo */
-  top: 0;
-  left: 0;
-  right: 0; /* Garante que ocupe toda a largura */
-  background: white;
-  padding: 1rem;
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  box-shadow: 0 1px 3px rgba(0,0,0,0.1);
-  z-index: 1000; /* Garante que fique acima dos outros elementos */
-  height: 60px; /* Altura fixa para alinhar com a sidebar */
-  }
-  
-  .logo-img {
-    height: 40px;
-    width: auto;
-  }
+  <header class="header">
+    <div class="logo">
+      <img src="/assets/supp.png" alt="SUPP/PBH" class="logo-img">
+    </div>
+    <div class="user-actions">
+      <span class="username">{{ nomeUsuario }}</span>
+      <button @click="fazerLogout" class="logout-button">
+        Sair
+      </button>
+    </div>
+  </header>
+</template>
 
+<script setup>
+import { ref, onMounted } from 'vue'
+import { useRouter } from 'vue-router'
+import { authService } from '@/services/auth.service'
 
-  .dashboard {
-  padding-top: 60px; /* Mesma altura do header */
-  min-height: 100vh;
-  background-color: #f3f4f6;
+const router = useRouter()
+const nomeUsuario = ref('')
+
+const fazerLogout = async () => {
+    try {
+        await authService.logout()
+        // Redireciona para a página de login após o logout
+        window.location.href = '/login'
+    } catch (error) {
+        console.error('Erro no logout:', error)
+        // Mesmo com erro, redireciona
+        window.location.href = '/login'
+    }
 }
 
-  </style>
-  
+onMounted(() => {
+    const usuario = authService.getUser()
+    nomeUsuario.value = usuario?.name || 'Usuário'
+})
+</script>
+
+<style scoped>
+.header {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 60px;
+    background: white;
+    padding: 0 20px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    z-index: 1000;
+}
+
+.logo-img {
+    height: 40px;
+}
+
+.user-actions {
+    display: flex;
+    align-items: center;
+    gap: 15px;
+}
+
+.username {
+    font-weight: 500;
+    color: #333;
+}
+
+.logout-button {
+    padding: 8px 16px;
+    background-color: #1a237e;
+    color: white;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+}
+
+.logout-button:hover {
+    background-color: #0d47a1;
+}
+</style>
