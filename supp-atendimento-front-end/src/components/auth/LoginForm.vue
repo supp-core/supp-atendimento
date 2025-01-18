@@ -85,7 +85,7 @@ const handleSubmit = async () => {
   
   try {
     await authService.login(email.value, password.value)
-    router.push('/tickets')
+    router.push('/dashboard')
   } catch (err) {
     error.value = err.message || 'Erro ao fazer login'
   } finally {

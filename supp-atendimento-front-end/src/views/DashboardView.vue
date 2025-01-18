@@ -1,131 +1,167 @@
+<script setup>
+import { ref, onMounted } from 'vue';
+import AppHeader from '@/components/common/AppHeader.vue';
+import AppSidebar from '@/components/common/AppSidebar.vue';
+import { Line } from 'vue-chartjs';
+import {
+  Chart as ChartJS,
+  Title,
+  Tooltip,
+  Legend,
+  LineElement,
+  LinearScale,
+  CategoryScale,
+  PointElement
+} from 'chart.js';
+
+// Registrando os componentes necessários do Chart.js
+ChartJS.register(
+  Title,
+  Tooltip,
+  Legend,
+  LineElement,
+  LinearScale,
+  CategoryScale,
+  PointElement
+);
+
+// Dados para o gráfico
+const chartData = ref({
+  labels: ['28/12', '04/01', '11/01', '18/01'],
+  datasets: [{
+    label: 'Distribuição',
+    data: [0, 0, 0, 2],
+    borderColor: '#4F46E5',
+    tension: 0.4,
+    fill: false
+  }]
+});
+
+// Opções do gráfico
+const chartOptions = ref({
+  responsive: true,
+  maintainAspectRatio: false,
+  scales: {
+    y: {
+      beginAtZero: true
+    }
+  }
+});
+
+// Outros dados
+const totalTasks = ref(2);
+
+// Função de inicialização
+onMounted(() => {
+  // Por enquanto, deixaremos vazio para testar
+  console.log('Dashboard montado');
+});
+</script>
+
 <template>
-    <v-container>
-      <v-row>
-        <v-col>
-          <h1 class="text-h4 mb-4">Chamados</h1>
-          
-          <!-- Botão para criar novo chamado -->
-          <v-btn
-            color="primary"
-            class="mb-4"
-            @click="createTicket"
-          >
-            Novo Chamado
-          </v-btn>
-  
-          <!-- Lista de chamados -->
-          <v-card>
-            <v-table>
-              <thead>
-                <tr>
-                  <th>ID</th>
-                  <th>Título</th>
-                  <th>Status</th>
-                  <th>Setor</th>
-                  <th>Data de Criação</th>
-                  <th>Ações</th>
-                </tr>
-              </thead>
-              <tbody>
-                <tr v-for="ticket in tickets" :key="ticket.id">
-                  <td>#{{ ticket.id }}</td>
-                  <td>{{ ticket.title }}</td>
-                  <td>
-                    <v-chip
-                      :color="getStatusColor(ticket.status)"
-                      text-color="white"
-                    >
-                      {{ ticket.status }}
-                    </v-chip>
-                  </td>
-                  <td>{{ ticket.sector?.name }}</td>
-                  <td>{{ formatDate(ticket.dates.created) }}</td>
-                  <td>
-                    <v-btn
-                      icon
-                      variant="text"
-                      @click="viewTicket(ticket.id)"
-                    >
-                      <v-icon>mdi-eye</v-icon>
-                    </v-btn>
-                  </td>
-                </tr>
-              </tbody>
-            </v-table>
-          </v-card>
-        </v-col>
-      </v-row>
-    </v-container>
-  </template>
-  
-  <script setup>
-  import { ref, onMounted } from 'vue'
-  import { useRouter } from 'vue-router'
-  import { format } from 'date-fns'
-  import { ptBR } from 'date-fns/locale'
-  import { authService } from '@/services/auth.service'
-  
-  const router = useRouter()
-  const tickets = ref([])
-  
-  // Função para formatar data
-  const formatDate = (dateString) => {
-    if (!dateString) return ''
-    return format(new Date(dateString), "dd/MM/yyyy 'às' HH:mm", {
-      locale: ptBR
-    })
-  }
-  
-  // Função para determinar cor do status
-  const getStatusColor = (status) => {
-    const colors = {
-      'NEW': 'blue',
-      'OPEN': 'orange',
-      'IN_PROGRESS': 'purple',
-      'RESOLVED': 'green',
-      'CONCLUDED': 'grey'
-    }
-    return colors[status] || 'grey'
-  }
-  
-  // Navegação para criar novo chamado
-  const createTicket = () => {
-    router.push('/tickets/create')
-  }
-  
-  // Visualizar detalhes do chamado
-  const viewTicket = (id) => {
-    router.push(`/tickets/${id}`)
-  }
-  
-  // Carregar lista de chamados
-  onMounted(async () => {
-    if (!authService.isAuthenticated()) {
-      router.push('/login')
-      return
-    }
-    
-    try {
-      // Aqui você fará a chamada para sua API
-      // Por enquanto, usando dados mockados
-      tickets.value = [
-        {
-          id: 1,
-          title: 'Problema com impressora',
-          status: 'NEW',
-          sector: { name: 'Infraestrutura' },
-          dates: { created: '2024-01-17T10:00:00' }
-        },
-        {
-          id: 2,
-          title: 'Erro no sistema',
-          status: 'IN_PROGRESS',
-          sector: { name: 'Desenvolvimento' },
-          dates: { created: '2024-01-17T09:30:00' }
-        }
-      ]
-    } catch (error) {
-      console.error('Erro ao carregar chamados:', error)
-    }
-  })
-  </script>
+  <div class="dashboard">
+    <AppHeader />
+    <div class="dashboard-content">
+      <AppSidebar />
+      <div class="main-content">
+        <!-- Cards de Estatísticas -->
+        <div class="stats-grid">
+          <!-- Card de Avisos -->
+          <div class="stats-card">
+            <div class="card-header">
+              <h3>Avisos</h3>
+              <p>Informações relevantes</p>
+            </div>
+            <div class="card-content">
+              <p>Nenhum aviso disponível</p>
+            </div>
+          </div>
+
+          <!-- Card do Gráfico -->
+          <div class="stats-card">
+            <div class="card-header">
+              <h3>Distribuição</h3>
+              <p>Últimas 4 semanas</p>
+            </div>
+            <div class="card-content chart">
+              <Line 
+                :data="chartData"
+                :options="chartOptions"
+                class="chart-container"
+              />
+            </div>
+          </div>
+
+          <!-- Card de Tarefas -->
+          <div class="stats-card">
+            <div class="card-header">
+              <h3>Minhas Tarefas</h3>
+              <p>Pendentes de conclusão</p>
+            </div>
+            <div class="card-content">
+              <div class="big-number">{{ totalTasks }}</div>
+              <p>Todas as espécies</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</template>
+
+<style scoped>
+.dashboard {
+  min-height: 100vh;
+  background-color: #f3f4f6;
+}
+
+.dashboard-content {
+  display: flex;
+  padding: 20px;
+  gap: 20px;
+}
+
+.main-content {
+  flex: 1;
+}
+
+.stats-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 20px;
+  margin-bottom: 20px;
+}
+
+.stats-card {
+  background: white;
+  border-radius: 8px;
+  padding: 20px;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+}
+
+.card-header {
+  margin-bottom: 1rem;
+}
+
+.card-header h3 {
+  color: #1a237e;
+  margin-bottom: 0.25rem;
+}
+
+.card-header p {
+  color: #666;
+  font-size: 0.875rem;
+}
+
+.chart-container {
+  height: 200px;
+  width: 100%;
+}
+
+.big-number {
+  font-size: 2.5rem;
+  font-weight: bold;
+  color: #4F46E5;
+  margin: 10px 0;
+}
+</style>
