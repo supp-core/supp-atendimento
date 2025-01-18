@@ -1,6 +1,6 @@
-import { createVuetify } from 'vuetify'
-import '@mdi/font/css/materialdesignicons.css'; // Importe o CSS aqui
 import 'vuetify/styles'
+import '@mdi/font/css/materialdesignicons.css'  // Adicione esta linha se não existir
+import { createVuetify } from 'vuetify'
 
 export default createVuetify({
   theme: {
@@ -8,17 +8,20 @@ export default createVuetify({
     themes: {
       light: {
         colors: {
-          primary: '#6044ec',      // Cor principal (roxo/azul)
-          secondary: '#2196F3',    // Azul secundário
-          background: '#f5f5f5',   // Fundo cinza claro
-          surface: '#FFFFFF',      // Superfícies brancas
-          error: '#FF5252',        // Vermelho para erros
-          success: '#4CAF50',      // Verde para sucesso
-          warning: '#FFC107',      // Amarelo para avisos
+          primary: '#6044ec',
+          secondary: '#2196F3',
+          background: '#f5f5f5',
+          surface: '#FFFFFF',
+          error: '#FF5252',
+          success: '#4CAF50',
+          warning: '#FFC107',
           'primary-darken-1': '#3700B3',
           'grey-lighten-1': '#f8f9fa'
         }
       }
     }
+  },
+  icons: {
+    defaultSet: 'mdi'  // Adicione esta configuração
   }
 })

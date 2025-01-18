@@ -46,10 +46,14 @@
                   <td class="px-4 py-3">{{ formatDate(ticket.dates.created) }}</td>
                   <td class="px-4 py-3">
                     <div class="d-flex gap-2">
-                      <v-btn icon="mdi-eye" variant="text" density="comfortable" size="small"
-                        @click="viewTicket(ticket.id)" class="action-button"></v-btn>
-                      <v-btn icon="mdi-pencil" variant="text" density="comfortable" size="small"
-                        @click="editTicket(ticket.id)" class="action-button"></v-btn>
+                      <v-btn variant="text" density="comfortable" size="small" @click="viewTicket(ticket.id)"
+                        class="action-button">
+                        <span class="icon-text">📄</span>
+                      </v-btn>
+                      <v-btn variant="text" density="comfortable" size="small" @click="editTicket(ticket.id)"
+                        class="action-button">
+                        <span class="icon-text">✏️</span>
+                      </v-btn>
                     </div>
                   </td>
                 </tr>
@@ -198,5 +202,31 @@ onMounted(() => {
 :deep(.v-table td) {
   font-size: 0.875rem;
   color: #333;
+}
+
+.action-button {
+  min-width: 36px !important;
+  padding: 0 8px !important;
+  cursor: pointer !important;
+  /* Adiciona o cursor de mãozinha */
+}
+
+.icon-text {
+  font-size: 1.2rem;
+  line-height: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  /* Adiciona também ao texto do ícone para garantir */
+}
+
+.action-button:hover {
+  background-color: rgba(0, 0, 0, 0.04) !important;
+}
+
+/* Ajuste de alinhamento vertical */
+.d-flex {
+  align-items: center;
 }
 </style>
