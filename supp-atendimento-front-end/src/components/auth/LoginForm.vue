@@ -1,33 +1,47 @@
 <template>
-  <div class="login-container">
-    <div class="login-card">
-      <div class="login-header">
-        <h1>Você está no SUPP/PBH</h1>
-        <p class="environment">PRODUÇÃO</p>
-        <p class="version">1.19.5 f/1.19.0b</p>
+  <div class="login-card">
+    <!-- Header com logo ao lado -->
+    <div class="login-header">
+      <div class="logo-text-container">
+        <div class="logo-wrapper">
+          <img src="/assets/supp.png" alt="SUPP/PBH" class="logo">
+        </div>
+        <div class="text-wrapper">
+          <p class="supp-text">SUPP/PBH</p>
+          <p class="environment">Atendimentos</p>
+        </div>
       </div>
+    </div>
 
-      <h2>Login de Usuário com CPF</h2>
+    <div class="login-form">
 
       <form @submit.prevent="handleSubmit">
         <div class="form-group">
-          <label>CPF</label>
-          <input
-            type="text"
-            v-model="cpf"
-            placeholder="Digite seu CPF"
-            class="form-input"
-          >
+          <label for="email">Email<span class="required">*</span></label>
+          <div class="input-with-icon">
+            <input
+              id="email"
+              type="text"
+              v-model="email"
+              placeholder="Digite seu Email"
+              class="form-input"
+              required
+            >
+            <span class="input-icon">👤</span>
+          </div>
+          <p class="input-helper">Email é obrigatório</p>
         </div>
 
         <div class="form-group">
-          <label>Senha</label>
-          <div class="password-field">
+          <label for="password">Senha<span class="required">*</span></label>
+          <div class="input-with-icon">
             <input
+              id="password"
               :type="showPassword ? 'text' : 'password'"
               v-model="password"
               placeholder="Digite sua senha"
               class="form-input"
+              required
             >
             <button 
               type="button"
@@ -42,7 +56,7 @@
         <a href="#" class="forgot-password">Esqueceu a senha?</a>
 
         <button type="submit" class="login-button" :disabled="loading">
-          {{ loading ? 'Carregando...' : 'Entrar' }}
+          {{ loading ? 'Entrando...' : 'Entrar' }}
         </button>
       </form>
 
@@ -59,7 +73,7 @@ import { useRouter } from 'vue-router'
 import { authService } from '@/services/auth.service'
 
 const router = useRouter()
-const cpf = ref('')
+const email = ref('')
 const password = ref('')
 const showPassword = ref(false)
 const loading = ref(false)
@@ -70,7 +84,7 @@ const handleSubmit = async () => {
   error.value = ''
   
   try {
-    await authService.login(cpf.value, password.value)
+    await authService.login(email.value, password.value)
     router.push('/tickets')
   } catch (err) {
     error.value = err.message || 'Erro ao fazer login'
@@ -81,77 +95,114 @@ const handleSubmit = async () => {
 </script>
 
 <style scoped>
-.login-container {
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  min-height: 100vh;
-  background-color: #f5f5f5;
-  padding: 1rem;
-}
-
 .login-card {
   background: white;
-  padding: 2rem;
-  border-radius: 4px;
-  width: 100%;
-  max-width: 400px;
-  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+  padding: 2.5rem;
+  border-radius: 8px;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+  width: 800px;
+  max-width: 600px; /* Largura máxima do card */
 }
 
 .login-header {
-  text-align: center;
   margin-bottom: 2rem;
 }
 
-.login-header h1 {
-  font-size: 1.25rem;
+.logo-text-container {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+.logo-wrapper {
+  flex-shrink: 0;
+}
+
+.logo {
+  width: 80px;
+  height: auto;
+}
+
+.text-wrapper {
+  flex-grow: 1;
+}
+
+.supp-text {
+  font-size: 1.2rem;
+  color: #1a237e;
   font-weight: 500;
-  color: #333;
-  margin-bottom: 0.5rem;
+  margin: 0 0 0.25rem 0;
 }
 
 .environment {
-  color: #666;
-  margin: 0;
-  font-size: 1rem;
+  color: #1a237e;
+  font-weight: 500;
+  margin: 0 0 0.25rem 0;
 }
 
 .version {
-  color: #888;
-  margin: 0;
+  color: #666;
   font-size: 0.875rem;
+  margin: 0;
 }
 
-h2 {
-  font-size: 1.125rem;
+.login-form h2 {
+  color: #1a237e;
+  font-size: 1.25rem;
+  margin-bottom: 2rem;
+  text-align: center;
   font-weight: 500;
-  color: #333;
-  margin-bottom: 1.5rem;
 }
 
 .form-group {
-  margin-bottom: 1rem;
+  margin-bottom: 1.5rem;
 }
 
 label {
   display: block;
-  color: #666;
+  color: #333;
   margin-bottom: 0.5rem;
   font-size: 0.875rem;
+  font-weight: 500;
+}
+
+.required {
+  color: #f44336;
+  margin-left: 2px;
+}
+
+.input-with-icon {
+  position: relative;
 }
 
 .form-input {
   width: 100%;
   padding: 0.75rem;
-  border: 1px solid #ddd;
+  padding-left: 2.5rem;
+  border: 1px solid #e0e0e0;
   border-radius: 4px;
-  background-color: #fff9c4;
-  font-size: 0.875rem;
+  font-size: 1rem;
+  transition: border-color 0.2s;
+  box-sizing: border-box;
 }
 
-.password-field {
-  position: relative;
+.form-input:focus {
+  border-color: #1a237e;
+  outline: none;
+}
+
+.input-icon {
+  position: absolute;
+  left: 0.75rem;
+  top: 50%;
+  transform: translateY(-50%);
+  color: #666;
+}
+
+.input-helper {
+  color: #f44336;
+  font-size: 0.75rem;
+  margin-top: 0.25rem;
 }
 
 .password-toggle {
@@ -162,19 +213,13 @@ label {
   background: none;
   border: none;
   cursor: pointer;
-  padding: 0;
   color: #666;
-}
-
-.eye-icon {
-  font-size: 1rem;
-  opacity: 0.6;
 }
 
 .forgot-password {
   display: block;
   text-align: right;
-  color: #2196f3;
+  color: #1a237e;
   text-decoration: none;
   font-size: 0.875rem;
   margin: 1rem 0;
@@ -182,22 +227,23 @@ label {
 
 .login-button {
   width: 100%;
-  padding: 0.75rem;
-  background-color: #2196f3;
+  padding: 0.875rem;
+  background-color: #1a237e;
   color: white;
   border: none;
   border-radius: 4px;
   font-size: 1rem;
   cursor: pointer;
   transition: background-color 0.2s;
+  font-weight: 500;
 }
 
 .login-button:hover {
-  background-color: #1976d2;
+  background-color: #0d47a1;
 }
 
 .login-button:disabled {
-  background-color: #90caf9;
+  background-color: #9fa8da;
   cursor: not-allowed;
 }
 
