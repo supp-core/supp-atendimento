@@ -1,72 +1,64 @@
 <template>
-  <div class="tickets-page">
-    <!-- Cabeçalho da página -->
-    <div class="d-flex justify-space-between align-center mb-4">
-      <h2 class="text-h5 font-weight-medium">Chamados</h2>
-      <v-btn
-        color="primary"
-        prepend-icon="mdi-plus"
-        @click="createTicket"
-      >
-        Novo Chamado
-      </v-btn>
+  <div class="dashboard">
+    <AppHeader />
+    <div class="dashboard-layout">
+      <AppSidebar />
+      <div class="dashboard-content" :style="{ marginLeft: sidebarCollapsed ? '60px' : '250px' }">
+        <div class="tickets-page">
+          <div class="d-flex justify-space-between align-center mb-4">
+            <h2 class="text-h5 font-weight-medium">Atendimentos</h2>
+            <v-btn color="primary" prepend-icon="mdi-plus" @click="createTicket">
+              Novo Chamado
+            </v-btn>
+          </div>
+
+          <v-progress-linear v-if="loading" indeterminate color="primary" class="mb-4"></v-progress-linear>
+
+          <v-card class="tickets-table">
+            <v-table hover>
+              <thead>
+                <tr>
+                  <th class="px-4 py-3">ID</th>
+                  <th class="px-4 py-3">Título</th>
+                  <th class="px-4 py-3">Status</th>
+                  <th class="px-4 py-3">Setor</th>
+                  <th class="px-4 py-3">Solicitante</th>
+                  <th class="px-4 py-3">Responsável</th>
+                  <th class="px-4 py-3">Data de Criação</th>
+                  <th class="px-4 py-3">Ações</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr v-for="ticket in tickets" :key="ticket.id">
+                  <td class="px-4 py-3">
+                    <span class="id-prefix">#</span>{{ ticket.id }}
+                  </td>
+                  <td class="px-4 py-3">{{ ticket.title }}</td>
+                  <td class="px-4 py-3">
+                    <v-chip :color="getStatusColor(ticket.status)" :class="['status-chip', ticket.status.toLowerCase()]"
+                      size="small">
+                      {{ translateStatus(ticket.status) }}
+                    </v-chip>
+                  </td>
+                  <td class="px-4 py-3">{{ ticket.sector?.name }}</td>
+                  <td class="px-4 py-3">{{ ticket.requester?.name }}</td>
+                  <td class="px-4 py-3">{{ ticket.responsible?.name || 'Não atribuído' }}</td>
+                  <td class="px-4 py-3">{{ formatDate(ticket.dates.created) }}</td>
+                  <td class="px-4 py-3">
+                    <div class="d-flex gap-2">
+                      <v-btn icon="mdi-eye" variant="text" density="comfortable" size="small"
+                        @click="viewTicket(ticket.id)" class="action-button"></v-btn>
+                      <v-btn icon="mdi-pencil" variant="text" density="comfortable" size="small"
+                        @click="editTicket(ticket.id)" class="action-button"></v-btn>
+                    </div>
+                  </td>
+                </tr>
+              </tbody>
+            </v-table>
+          </v-card>
+        </div>
+      </div>
     </div>
-
-    <!-- Loading state -->
-    <v-progress-linear
-      v-if="loading"
-      indeterminate
-      color="primary"
-      class="mb-4"
-    ></v-progress-linear>
-
-    <!-- Tabela de chamados -->
-    <v-card class="tickets-table">
-      <v-table hover>
-        <thead>
-          <tr>
-            <th>ID</th>
-            <th>Título</th>
-            <th>Status</th>
-            <th>Setor</th>
-            <th>Solicitante</th>
-            <th>Responsável</th>
-            <th>Data de Criação</th>
-            <th>Ações</th>
-          </tr>
-        </thead>
-        <tbody>
-          <tr v-for="ticket in tickets" :key="ticket.id">
-            <td>
-              <span class="id-prefix">#</span>{{ ticket.id }}
-            </td>
-            <td>{{ ticket.title }}</td>
-            <td>
-              <v-chip
-                :color="getStatusColor(ticket.status)"
-                :class="['status-chip', ticket.status.toLowerCase()]"
-                size="small"
-              >
-                {{ translateStatus(ticket.status) }}
-              </v-chip>
-            </td>
-            <td>{{ ticket.sector?.name }}</td>
-            <td>{{ ticket.requester?.name }}</td>
-            <td>{{ ticket.responsible?.name || 'Não atribuído' }}</td>
-            <td>{{ formatDate(ticket.dates.created) }}</td>
-            <td>
-              <v-btn
-                icon="mdi-eye"
-                variant="text"
-                density="comfortable"
-                size="small"
-                @click="viewTicket(ticket.id)"
-              ></v-btn>
-            </td>
-          </tr>
-        </tbody>
-      </v-table>
-    </v-card>
   </div>
 </template>
 
@@ -76,24 +68,26 @@ import { useRouter } from 'vue-router';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import api from '@/services/api';
+import AppHeader from '@/components/common/AppHeader.vue';
+import AppSidebar from '@/components/common/AppSidebar.vue';
+import { useSidebar } from '@/composables/useSidebar';
 
+const { sidebarCollapsed } = useSidebar();
 const router = useRouter();
 const tickets = ref([]);
 const loading = ref(false);
 
-// Tradução de status
 const translateStatus = (status) => {
   const translations = {
     'NEW': 'Novo',
     'OPEN': 'Aberto',
     'IN_PROGRESS': 'Em Andamento',
     'RESOLVED': 'Resolvido',
-    'CLOSED': 'CLOSED'
+    'CLOSED': 'Fechado'
   };
   return translations[status] || status;
 };
 
-// Cores dos status
 const getStatusColor = (status) => {
   const colors = {
     'NEW': 'info',
@@ -105,7 +99,6 @@ const getStatusColor = (status) => {
   return colors[status] || 'grey';
 };
 
-// Formatação de data no padrão brasileiro
 const formatDate = (dateString) => {
   if (!dateString) return '';
   return format(new Date(dateString), "dd/MM/yyyy 'às' HH:mm", {
@@ -113,7 +106,6 @@ const formatDate = (dateString) => {
   });
 };
 
-// Carregar chamados
 const loadTickets = async () => {
   loading.value = true;
   try {
@@ -128,9 +120,9 @@ const loadTickets = async () => {
   }
 };
 
-// Navegação
 const createTicket = () => router.push('/tickets/create');
 const viewTicket = (id) => router.push(`/tickets/${id}`);
+const editTicket = (id) => router.push(`/tickets/${id}/edit`);
 
 onMounted(() => {
   loadTickets();
@@ -138,6 +130,21 @@ onMounted(() => {
 </script>
 
 <style scoped>
+.dashboard {
+  min-height: 100vh;
+  background-color: #f3f4f6;
+}
+
+.dashboard-layout {
+  padding-top: 60px;
+  min-height: calc(100vh - 60px);
+}
+
+.dashboard-content {
+  transition: margin-left 0.3s ease;
+  padding: 24px;
+}
+
 .tickets-page {
   padding: 24px;
   background-color: #f8f9fa;
@@ -147,7 +154,7 @@ onMounted(() => {
 .tickets-table {
   background: white;
   border-radius: 8px;
-  box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
 }
 
 .id-prefix {
@@ -160,13 +167,22 @@ onMounted(() => {
   font-weight: 500;
 }
 
-/* Status específicos */
-.status-chip.new { background-color: #E3F2FD !important; }
-.status-chip.open { background-color: #FFF3E0 !important; }
-.status-chip.closed { background-color: #EEEEEE !important; }
-.status-chip.resolved { background-color: #E8F5E9 !important; }
+.status-chip.new {
+  background-color: #E3F2FD !important;
+}
 
-/* Estilos da tabela */
+.status-chip.open {
+  background-color: #FFF3E0 !important;
+}
+
+.status-chip.closed {
+  background-color: #EEEEEE !important;
+}
+
+.status-chip.resolved {
+  background-color: #E8F5E9 !important;
+}
+
 :deep(.v-table) {
   background: transparent;
 }
@@ -176,6 +192,7 @@ onMounted(() => {
   color: #666;
   font-weight: 500;
   text-transform: none;
+  background-color: #f5f5f5;
 }
 
 :deep(.v-table td) {
