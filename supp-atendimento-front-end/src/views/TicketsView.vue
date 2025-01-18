@@ -7,8 +7,9 @@
         <div class="tickets-page">
           <div class="d-flex justify-space-between align-center mb-4">
             <h2 class="text-h5 font-weight-medium">Atendimentos</h2>
-            <v-btn color="primary" prepend-icon="mdi-plus" @click="createTicket">
-              Novo Chamado
+            <v-btn color="primary" @click="createTicket" class="create-button">
+              <span class="icon-text me-2">➕</span>
+              Novo Atendimento
             </v-btn>
           </div>
 
@@ -134,6 +135,20 @@ onMounted(() => {
 </script>
 
 <style scoped>
+
+.create-button {
+  display: flex !important;
+  align-items: center !important;
+  gap: 4px !important;
+}
+
+.create-button .icon-text {
+  font-size: 1rem;
+  line-height: 1;
+  display: flex;
+  align-items: center;
+}
+
 .dashboard {
   min-height: 100vh;
   background-color: #f3f4f6;
