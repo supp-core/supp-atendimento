@@ -104,7 +104,7 @@
     title: '',
     description: '',
     sector_id: '',
-    requester_id: 1 // Temporário - deve vir do usuário logado
+   // requester_id: 1 // Temporário - deve vir do usuário logado
   });
   
   const feedback = ref({
