@@ -33,3 +33,9 @@ yarn build
 ```sh
 yarn lint
 ```
+
+No arquivo supp-atendimento-front-end/src/views/CreateTicket.vue adicionar o codigo do sector admin 
+const dataToSubmit = {
+      ...formData.value,
+      sector_id: 1 // ID do setor Admin
+    };

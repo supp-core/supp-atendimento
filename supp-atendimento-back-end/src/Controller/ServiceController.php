@@ -47,6 +47,7 @@ class ServiceController extends AbstractController
                         'id' => $service->getSector()->getId(),
                         'name' => $service->getSector()->getName()
                     ],
+                    'priority' => $service->getPriority(),
                     'requester' => [
                         'id' => $service->getRequester()->getId(),
                         'name' => $service->getRequester()->getName(),

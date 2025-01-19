@@ -21,7 +21,7 @@ final class Version20250119110052 extends AbstractMigration
     {
         $this->addSql('ALTER TABLE service ADD priority VARCHAR(20) DEFAULT \'NORMAL\' NOT NULL');
         // Add a check constraint to ensure only valid priorities are entered
-        $this->addSql('ALTER TABLE service ADD CONSTRAINT service_priority_check CHECK (priority IN (\'LOW\', \'NORMAL\', \'HIGH\', \'URGENT\'))');
+        $this->addSql('ALTER TABLE service ADD CONSTRAINT service_priority_check CHECK (priority IN (\'BAIXA\', \'NORMAL\', \'ALTA\', \'URGENTE\'))');
 
 
     }
