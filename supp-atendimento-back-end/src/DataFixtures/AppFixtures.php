@@ -25,7 +25,7 @@ class AppFixtures extends Fixture
     // Definição dos status possíveis do sistema
     private const SERVICE_STATUSES = ['NEW', 'OPEN', 'IN_PROGRESS', 'RESOLVED', 'CLOSED'];
     private const ATTENDANT_STATUSES = ['AVAILABLE', 'BUSY', 'OFFLINE'];
-    
+
     // Categorias de problemas de infraestrutura com títulos concisos
     private const INFRASTRUCTURE_ISSUES = [
         'Rede' => [
@@ -50,7 +50,7 @@ class AppFixtures extends Fixture
             'Email fora'
         ]
     ];
-    
+
     // Categorias de problemas de desenvolvimento
     private const DEVELOPMENT_ISSUES = [
         'Bugs' => [
@@ -76,17 +76,60 @@ class AppFixtures extends Fixture
         ]
     ];
 
+    private const ADMIN_ISSUES = [
+        'Permissões' => [
+            'Acesso negado',
+            'Reset de senha',
+            'Novo usuário',
+            'Alterar perfil',
+            'Bloqueio de conta'
+        ],
+        'Sistema' => [
+            'Config geral',
+            'Auditoria',
+            'Backup dados',
+            'Manutenção',
+            'Atualização'
+        ]
+
+
+    ];
+
+    private const DEVOPS_ISSUES = [
+        'Infraestrutura' => [
+            'Pipeline quebrado',
+            'Deploy falhou',
+            'Container erro',
+            'Kubernetes pod',
+            'Load Balancer'
+        ],
+        'Automação' => [
+            'CI/CD erro',
+            'Script falha',
+            'Build quebrado',
+            'Teste falhou',
+            'Auto-scale'
+        ],
+        'Monitoramento' => [
+            'Alerta crítico',
+            'Logs ausentes',
+            'Métricas erro',
+            'Trace falha',
+            'Grafana down'
+        ]
+    ];
+
     public function load(ObjectManager $manager): void
     {
         // Carrega os dados básicos do sistema
         $sectors = $this->loadSectors($manager);
         $users = $this->loadUsers($manager);
         $attendants = $this->loadAttendants($manager, $sectors);
-        
+
         // Carrega os chamados e seus históricos
         $services = $this->createServices($manager, $sectors, $users, $attendants);
         $this->loadServiceHistory($manager, $services, $attendants);
-        
+
         // Persiste todas as alterações no banco
         $manager->flush();
     }
@@ -94,7 +137,7 @@ class AppFixtures extends Fixture
     private function loadSectors(ObjectManager $manager): array
     {
         $sectors = [];
-        foreach (['Infra', 'Dev'] as $name) {
+        foreach (['Infra', 'Dev', 'Admin', 'DevOps'] as $name) {
             $sector = new Sector();
             $sector->setName($name);
             $manager->persist($sector);
@@ -117,20 +160,20 @@ class AppFixtures extends Fixture
             ['Rita Gomes', 'rita@teste.com', ['ROLE_ADMIN']]
         ];
 
-        foreach ($userData as [$name, $email,$roles]) {
+        foreach ($userData as [$name, $email, $roles]) {
             $user = new User();
             $user->setName($name)
-                 ->setEmail($email)
-                 ->setRoles($roles)
-                 ->setPassword('senha123');
-                 $hashedPassword = $this->passwordHasher->hashPassword(
-                    $user,
-                    'senha123'
-                );
-                $user->setPassword($hashedPassword);
-                
-                $manager->persist($user);
-                $users[] = $user;
+                ->setEmail($email)
+                ->setRoles($roles)
+                ->setPassword('senha123');
+            $hashedPassword = $this->passwordHasher->hashPassword(
+                $user,
+                'senha123'
+            );
+            $user->setPassword($hashedPassword);
+
+            $manager->persist($user);
+            $users[] = $user;
         }
 
         return $users;
@@ -140,16 +183,26 @@ class AppFixtures extends Fixture
     {
         $attendants = [];
         $attendantData = [
+            // Setor Infra (index 0)
             ['Alex Silva', 'Suporte N1', 0, 'alex.silva@supp.com'],
             ['Bia Tech', 'Admin', 0, 'bia.tech@supp.com'],
             ['Carlos TI', 'Suporte N2', 0, 'carlos.ti@supp.com'],
             ['Diana Inf', 'Redes', 0, 'diana.inf@supp.com'],
+            // Setor Dev (index 1)
             ['Edu Dev', 'Frontend', 1, 'edu.dev@supp.com'],
             ['Fabi Sys', 'Backend', 1, 'fabi.sys@supp.com'],
             ['Gil Pro', 'FullStack', 1, 'gil.pro@supp.com'],
-            ['Hugo Dev', 'DevOps', 1, 'hugo.dev@supp.com']
+            ['Hugo Dev', 'DevOps', 1, 'hugo.dev@supp.com'],
+            // Setor Admin (index 2)
+            ['Admin Master', 'Administrador', 2, 'admin.master@supp.com'],
+            ['Super User', 'Supervisor', 2, 'super.user@supp.com'],
+            // Setor DevOps (index 3)
+            ['Julia Ops', 'DevOps Engineer', 3, 'julia.ops@supp.com'],
+            ['Leo Cloud', 'Cloud Architect', 3, 'leo.cloud@supp.com'],
+            ['Mia Deploy', 'Release Engineer', 3, 'mia.deploy@supp.com'],
+            ['Noah SRE', 'Site Reliability', 3, 'noah.sre@supp.com']
         ];
-
+    
         foreach ($attendantData as [$name, $function, $sectorIndex, $email]) {
             $attendant = new Attendant();
             $attendant->setName($name)
@@ -159,15 +212,14 @@ class AppFixtures extends Fixture
                 ->setEmail($email)
                 ->setPassword($this->passwordHasher->hashPassword($attendant, '123456'))
                 ->setRoles(['ROLE_ATTENDANT']);
-
+    
             $manager->persist($attendant);
             $attendants[] = $attendant;
         }
-
+    
         return $attendants;
     }
 
-    
     private function createServices(
         ObjectManager $manager,
         array $sectors,
@@ -208,7 +260,39 @@ class AppFixtures extends Fixture
                 $services[] = $service;
             }
         }
-
+    
+        // Cria chamados para o setor administrativo
+        foreach (self::ADMIN_ISSUES as $category => $issues) {
+            foreach ($issues as $issue) {
+                $service = $this->createServiceTicket(
+                    $sectors[2], // Setor Admin
+                    $issue,
+                    $this->generateDescription($issue),
+                    $users,
+                    array_slice($attendants, 8, 2),
+                    $baseDate,
+                    $manager
+                );
+                $services[] = $service;
+            }
+        }
+    
+        // Cria chamados para o setor de DevOps
+        foreach (self::DEVOPS_ISSUES as $category => $issues) {
+            foreach ($issues as $issue) {
+                $service = $this->createServiceTicket(
+                    $sectors[3], // Setor DevOps
+                    $issue,
+                    $this->generateDescription($issue),
+                    $users,
+                    array_slice($attendants, 10, 4), // Últimos 4 atendentes (devops)
+                    $baseDate,
+                    $manager
+                );
+                $services[] = $service;
+            }
+        }
+    
         return $services;
     }
 
@@ -225,14 +309,14 @@ class AppFixtures extends Fixture
         $status = self::SERVICE_STATUSES[array_rand(self::SERVICE_STATUSES)];
         $dateCreate = clone $baseDate;
         $dateCreate->add(new DateInterval('P' . rand(0, 30) . 'D'));
-        
+
         $service->setTitle($title)
-               ->setDescription($description)
-               ->setSector($sector)
-               ->setStatus($status)
-               ->setRequester($users[array_rand($users)])
-               ->setDateCreate($dateCreate)
-               ->setDateUpdate($dateCreate);
+            ->setDescription($description)
+            ->setSector($sector)
+            ->setStatus($status)
+            ->setRequester($users[array_rand($users)])
+            ->setDateCreate($dateCreate)
+            ->setDateUpdate($dateCreate);
 
         // Atribui um atendente se o status não for NEW
         if ($status !== 'NEW') {
@@ -263,7 +347,7 @@ class AppFixtures extends Fixture
 
     private function getImpactDescription(string $priority): string
     {
-        return match($priority) {
+        return match ($priority) {
             'Alta' => 'Afeta múltiplos usuários.',
             'Média' => 'Tem solução temporária.',
             'Baixa' => 'Não é crítico.',
@@ -281,17 +365,17 @@ class AppFixtures extends Fixture
             'RESOLVED' => 'Solução aplicada',
             'CLOSED' => 'Validado'
         ];
-    
+
         foreach ($services as $service) {
             if ($service->getStatus() !== 'NEW') {
                 $history = new ServiceHistory();
                 $history->setStatusPrev('NEW')
-                       ->setStatusPost($service->getStatus())
-                       ->setDateHistory($service->getDateUpdate())
-                       ->setComment($statusComments[$service->getStatus()] ?? 'Status atualizado')
-                       ->setResponsible($service->getReponsible())
-                       ->setService($service);  // Definindo a relação correta
-                
+                    ->setStatusPost($service->getStatus())
+                    ->setDateHistory($service->getDateUpdate())
+                    ->setComment($statusComments[$service->getStatus()] ?? 'Status atualizado')
+                    ->setResponsible($service->getReponsible())
+                    ->setService($service);  // Definindo a relação correta
+
                 $manager->persist($history);
             }
         }
