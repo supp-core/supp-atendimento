@@ -263,4 +263,52 @@ public function getAllServices(): array
 
     return $queryBuilder->getQuery()->getResult();
 }
+
+
+public function getServicesByRequester($user): array
+    {
+
+        
+        // Get the repository for Service entity
+        $serviceRepository = $this->entityManager->getRepository(Service::class);
+
+        // Create a QueryBuilder instance for complex query construction
+        $queryBuilder = $serviceRepository->createQueryBuilder('s');
+
+        // Build the query with necessary joins and conditions
+        $queryBuilder
+            // Join with sector table to get sector information
+            ->leftJoin('s.sector', 'sect')
+            ->addSelect('sect')
+
+            // Join with requester (user) table to get requester information
+            ->leftJoin('s.requester', 'u')
+            ->addSelect('u')
+
+            // Join with attendant table to get responsible attendant information
+            ->leftJoin('s.reponsible', 'a')
+            ->addSelect('a')
+
+            // Join with service history to get the ticket history
+            ->leftJoin('s.histories', 'h')
+            ->addSelect('h')
+
+            // Filter tickets by the requester's user ID
+            ->where('s.requester = :userId')
+            ->setParameter('userId', $user)
+
+            // Order tickets by creation date, newest first
+            ->orderBy('s.date_create', 'DESC');
+
+        try {
+            // Execute the query and return results
+            return $queryBuilder->getQuery()->getResult();
+        } catch (\Exception $e) {
+            // Log the error for debugging (you should configure proper logging)
+            error_log("Error fetching services for user {$user}: " . $e->getMessage());
+            
+            // Re-throw the exception to be handled by the controller
+            throw $e;
+        }
+    }
 }

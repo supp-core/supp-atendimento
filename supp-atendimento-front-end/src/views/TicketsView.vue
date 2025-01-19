@@ -114,7 +114,7 @@ const formatDate = (dateString) => {
 const loadTickets = async () => {
   loading.value = true;
   try {
-    const response = await api.get('/service/sector');
+    const response = await api.get('/service/my-tickets');
     if (response.data.success) {
       tickets.value = response.data.data;
     }

@@ -311,4 +311,86 @@ class ServiceController extends AbstractController
             ], 500);
         }
     }
+
+
+
+
+    // In ServiceManager.php
+
+public function getServicesByRequester(int $userId): array
+{
+    $serviceRepository = $this->entityManager->getRepository(Service::class);
+
+    $queryBuilder = $serviceRepository->createQueryBuilder('s')
+        ->leftJoin('s.sector', 'sect')
+        ->leftJoin('s.requester', 'u')
+        ->leftJoin('s.reponsible', 'a')
+        ->select('s', 'sect', 'u', 'a')
+        ->where('u.id = :userId')
+        ->setParameter('userId', $userId)
+        ->orderBy('s.date_create', 'DESC');
+
+    return $queryBuilder->getQuery()->getResult();
+}
+
+// Then modify the ServiceController.php to use this new method:
+
+#[Route('/my-tickets', methods: ['GET'])]
+public function listUserTickets(): JsonResponse
+{
+    try {
+        $user = $this->getUser();
+        
+
+       
+        if (!$user) {
+            return new JsonResponse([
+                'success' => false,
+                'message' => 'User not authenticated'
+            ], 401);
+        }
+
+        $services = $this->serviceManager->getServicesByRequester($user);
+
+        // Transform the services into a format suitable for JSON response
+        $response = array_map(function ($service) {
+            return [
+                'id' => $service->getId(),
+                'title' => $service->getTitle(),
+                'description' => $service->getDescription(),
+                'status' => $service->getStatus(),
+                'sector' => [
+                    'id' => $service->getSector()?->getId(),
+                    'name' => $service->getSector()?->getName(),
+                ],
+                'requester' => [
+                    'id' => $service->getRequester()?->getId(),
+                    'name' => $service->getRequester()?->getName(),
+                    'email' => $service->getRequester()?->getEmail(),
+                ],
+                'responsible' => [
+                    'id' => $service->getReponsible()?->getId(),
+                    'name' => $service->getReponsible()?->getName(),
+                    'function' => $service->getReponsible()?->getFunction(),
+                ],
+                'dates' => [
+                    'created' => $service->getDateCreate()?->format('Y-m-d H:i:s'),
+                    'updated' => $service->getDateUpdate()?->format('Y-m-d H:i:s'),
+                    'concluded' => $service->getDateConclusion()?->format('Y-m-d H:i:s'),
+                ],
+            ];
+        }, $services);
+
+        return new JsonResponse([
+            'success' => true,
+            'data' => $response,
+            'count' => count($response)
+        ]);
+    } catch (\Exception $e) {
+        return new JsonResponse([
+            'success' => false,
+            'message' => 'Error fetching tickets: ' . $e->getMessage()
+        ], 500);
+    }
+}
 }
