@@ -23,7 +23,6 @@
                   <th class="px-4 py-3">Título</th>
                   <th class="px-4 py-3">Status</th>
                   <th class="px-4 py-3">Setor</th>
-                  <th class="px-4 py-3">Solicitante</th>
                   <th class="px-4 py-3">Responsável</th>
                   <th class="px-4 py-3">Data de Criação</th>
                   <th class="px-4 py-3">Ações</th>
@@ -42,19 +41,19 @@
                     </v-chip>
                   </td>
                   <td class="px-4 py-3">{{ ticket.sector?.name }}</td>
-                  <td class="px-4 py-3">{{ ticket.requester?.name }}</td>
+                 <!-- <td class="px-4 py-3">{{ ticket.requester?.name }}</td> -->
                   <td class="px-4 py-3">{{ ticket.responsible?.name || 'Não atribuído' }}</td>
                   <td class="px-4 py-3">{{ formatDate(ticket.dates.created) }}</td>
                   <td class="px-4 py-3">
                     <div class="d-flex gap-2">
                       <v-btn variant="text" density="comfortable" size="small" @click="viewTicket(ticket.id)"
-                        class="action-button">
+                        class="action-button"
+                         title="Acompanhar Ticket"
+                        >
                         <span class="icon-text">📄</span>
+                      
                       </v-btn>
-                      <v-btn variant="text" density="comfortable" size="small" @click="editTicket(ticket.id)"
-                        class="action-button">
-                        <span class="icon-text">✏️</span>
-                      </v-btn>
+                      
                     </div>
                   </td>
                 </tr>
@@ -84,7 +83,7 @@ const loading = ref(false);
 
 const translateStatus = (status) => {
   const translations = {
-    'NEW': 'Novo',
+    'new': 'Novo',
     'OPEN': 'Aberto',
     'IN_PROGRESS': 'Em Andamento',
     'RESOLVED': 'Resolvido',
