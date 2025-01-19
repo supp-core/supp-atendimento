@@ -25,6 +25,9 @@ class Service
     #[ORM\Column(length: 30)]
     private ?string $status = null;
 
+    #[ORM\Column(length: 20, options: ['default' => 'NORMAL'])]
+    private ?string $priority = 'NORMAL';
+
     #[ORM\ManyToOne(inversedBy: 'id_service')]
     #[ORM\JoinColumn(nullable: false)]
     private ?Sector $sector = null;
@@ -221,6 +224,18 @@ class Service
                 $history->setService(null);
             }
         }
+
+        return $this;
+    }
+
+    public function getPriority(): ?string
+    {
+        return $this->priority;
+    }
+
+    public function setPriority(string $priority): static
+    {
+        $this->priority = $priority;
 
         return $this;
     }
