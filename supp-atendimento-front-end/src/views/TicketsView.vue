@@ -41,24 +41,48 @@
                     </v-chip>
                   </td>
                   <td class="px-4 py-3">{{ ticket.sector?.name }}</td>
-                 <!-- <td class="px-4 py-3">{{ ticket.requester?.name }}</td> -->
+                  <!-- <td class="px-4 py-3">{{ ticket.requester?.name }}</td> -->
                   <td class="px-4 py-3">{{ ticket.responsible?.name || 'Não atribuído' }}</td>
                   <td class="px-4 py-3">{{ formatDate(ticket.dates.created) }}</td>
                   <td class="px-4 py-3">
                     <div class="d-flex gap-2">
                       <v-btn variant="text" density="comfortable" size="small" @click="viewTicket(ticket.id)"
-                        class="action-button"
-                         title="Acompanhar Ticket"
-                        >
+                        class="action-button" title="Acompanhar Ticket">
                         <span class="icon-text">📄</span>
-                      
+
                       </v-btn>
-                      
+
                     </div>
                   </td>
                 </tr>
               </tbody>
             </v-table>
+            <div class="pagination-wrapper">
+              <div class="pagination-info">
+                Mostrando {{ meta.per_page }} de {{ meta.total }} registros
+              </div>
+              <div class="pagination-controls">
+                <!-- Botão Anterior -->
+                <v-btn :disabled="currentPage === 1" @click="handlePageChange(currentPage - 1)" size="small"
+                  variant="text" class="pagination-button">
+                  Anterior
+                </v-btn>
+
+                <!-- Números das páginas -->
+                <v-btn v-for="page in meta.last_page" :key="page" :color="currentPage === page ? 'primary' : ''"
+                  :variant="currentPage === page ? 'flat' : 'text'" size="small" @click="handlePageChange(page)"
+                  class="pagination-button">
+                  {{ page }}
+                </v-btn>
+
+                <!-- Botão Próximo -->
+                <v-btn :disabled="currentPage === meta.last_page" @click="handlePageChange(currentPage + 1)"
+                  size="small" variant="text" class="pagination-button">
+                  Próximo
+                </v-btn>
+              </div>
+            </div>
+
           </v-card>
         </div>
       </div>
@@ -80,6 +104,20 @@ const { sidebarCollapsed } = useSidebar();
 const router = useRouter();
 const tickets = ref([]);
 const loading = ref(false);
+
+
+const currentPage = ref(1);
+const meta = ref({
+  current_page: 1,
+  last_page: 1,
+  per_page: 5,
+  total: 0
+});
+
+const handlePageChange = async (page) => {
+  await loadTickets(page);
+};
+
 
 const translateStatus = (status) => {
   const translations = {
@@ -110,12 +148,13 @@ const formatDate = (dateString) => {
   });
 };
 
-const loadTickets = async () => {
+const loadTickets = async (page = 1) => {
   loading.value = true;
   try {
-    const response = await api.get('/service/my-tickets');
+    const response = await api.get(`/service/my-tickets?page=${page}`);
     if (response.data.success) {
       tickets.value = response.data.data;
+      meta.value = response.data.meta;
     }
   } catch (error) {
     console.error('Erro ao carregar chamados:', error);
@@ -134,7 +173,6 @@ onMounted(() => {
 </script>
 
 <style scoped>
-
 .create-button {
   display: flex !important;
   align-items: center !important;
@@ -242,5 +280,79 @@ onMounted(() => {
 /* Ajuste de alinhamento vertical */
 .d-flex {
   align-items: center;
+}
+
+
+.pagination-container {
+  border-top: 1px solid #e0e0e0;
+}
+
+:deep(.v-pagination__item) {
+  color: #1a237e;
+}
+
+:deep(.v-pagination__item--active) {
+  background-color: #1a237e !important;
+}
+
+
+.pagination-wrapper {
+  padding: 16px 24px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  border-top: 1px solid rgba(0, 0, 0, 0.12);
+  background-color: #ffffff;
+}
+
+.pagination-info {
+  color: rgba(0, 0, 0, 0.6);
+  font-size: 0.875rem;
+  font-weight: 400;
+  letter-spacing: 0.15px;
+}
+
+.pagination-controls {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+.pagination-button {
+  min-width: 40px !important;
+  height: 40px !important;
+  border-radius: 20px !important;
+  font-weight: 500 !important;
+  letter-spacing: 0.0892857143em !important;
+  text-transform: none !important;
+  transition: background-color 0.2s ease-in-out !important;
+  cursor: pointer !important;
+  /* Adiciona a maozinha em todos os botões */
+}
+
+/* Estilo para o botão da página atual */
+.pagination-button.v-btn--variant-flat {
+  background-color: #1a237e !important;
+  color: #ffffff !important;
+  box-shadow: 0 3px 1px -2px rgba(0, 0, 0, .2), 0 2px 2px 0 rgba(0, 0, 0, .14), 0 1px 5px 0 rgba(0, 0, 0, .12) !important;
+  cursor: default !important;
+  /* Remove a maozinha do botão ativo */
+
+}
+
+.pagination-button:hover {
+  background-color: rgba(26, 35, 126, 0.04) !important;
+}
+
+.pagination-button:disabled {
+  color: rgba(0, 0, 0, 0.38) !important;
+  background-color: rgba(0, 0, 0, 0.12) !important;
+  cursor: default !important;
+}
+
+.pagination-button:hover:not(:disabled):not(.v-btn--variant-flat) {
+  background-color: rgba(26, 35, 126, 0.04) !important;
+  transform: translateY(-1px);
+  /* Leve efeito de elevação ao passar o mouse */
 }
 </style>
