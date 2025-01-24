@@ -216,59 +216,59 @@ class ServiceManager
 
     // Em ServiceManager.php
 
-public function transferTicket(Service $service, int $newAttendantId, string $comment): void 
-{
-    // Buscar novo atendente
-    $newAttendant = $this->entityManager->getRepository(Attendant::class)->find($newAttendantId);
-    
-    if (!$newAttendant) {
-        throw new BadRequestException('New attendant not found');
+    public function transferTicket(Service $service, int $newAttendantId, string $comment): void
+    {
+        // Buscar novo atendente
+        $newAttendant = $this->entityManager->getRepository(Attendant::class)->find($newAttendantId);
+
+        if (!$newAttendant) {
+            throw new BadRequestException('New attendant not found');
+        }
+
+        // Registrar atendente anterior
+        $previousAttendant = $service->getReponsible();
+
+        // Atualizar o atendente responsável
+        $service->setReponsible($newAttendant);
+        $service->setDateUpdate(new DateTime());
+
+        // Criar histórico da transferência
+        $history = new ServiceHistory();
+        $history->setService($service);
+        $history->setStatusPrev($service->getStatus());
+        $history->setStatusPost($service->getStatus());
+        $history->setComment($comment);
+        $history->setDateHistory(new DateTime());
+        $history->setResponsible($previousAttendant);
+
+        $this->entityManager->persist($history);
+        $this->entityManager->flush();
     }
-    
-    // Registrar atendente anterior
-    $previousAttendant = $service->getReponsible();
-    
-    // Atualizar o atendente responsável
-    $service->setReponsible($newAttendant);
-    $service->setDateUpdate(new DateTime());
-    
-    // Criar histórico da transferência
-    $history = new ServiceHistory();
-    $history->setService($service);
-    $history->setStatusPrev($service->getStatus());
-    $history->setStatusPost($service->getStatus());
-    $history->setComment($comment);
-    $history->setDateHistory(new DateTime());
-    $history->setResponsible($previousAttendant);
-    
-    $this->entityManager->persist($history);
-    $this->entityManager->flush();
-}
 
-public function getAllServices(): array
-{
-    $serviceRepository = $this->entityManager->getRepository(Service::class);
+    public function getAllServices(): array
+    {
+        $serviceRepository = $this->entityManager->getRepository(Service::class);
 
-    $queryBuilder = $serviceRepository->createQueryBuilder('s')
-        // Join with sector
-        ->leftJoin('s.sector', 'sect')
-        // Join with requester to get user information
-        ->leftJoin('s.requester', 'u')
-        // Join with responsible attendant
-        ->leftJoin('s.reponsible', 'a')
-        // Select necessary fields
-        ->select('s', 'sect', 'u', 'a')
-        // Order by creation date, newest first
-        ->orderBy('s.date_create', 'DESC');
+        $queryBuilder = $serviceRepository->createQueryBuilder('s')
+            // Join with sector
+            ->leftJoin('s.sector', 'sect')
+            // Join with requester to get user information
+            ->leftJoin('s.requester', 'u')
+            // Join with responsible attendant
+            ->leftJoin('s.reponsible', 'a')
+            // Select necessary fields
+            ->select('s', 'sect', 'u', 'a')
+            // Order by creation date, newest first
+            ->orderBy('s.date_create', 'DESC');
 
-    return $queryBuilder->getQuery()->getResult();
-}
+        return $queryBuilder->getQuery()->getResult();
+    }
 
 
-public function getServicesByRequester($user): array
+    public function getServicesByRequester($user,  int $page = 1, int $limit = 5): array
     {
 
-        
+
         // Get the repository for Service entity
         $serviceRepository = $this->entityManager->getRepository(Service::class);
 
@@ -300,15 +300,44 @@ public function getServicesByRequester($user): array
             // Order tickets by creation date, newest first
             ->orderBy('s.date_create', 'DESC');
 
+        $totalItemsQuery = clone $queryBuilder;
+        $totalItems = count($totalItemsQuery->getQuery()->getResult());
+
+        // Add pagination
+        $queryBuilder->setFirstResult(($page - 1) * $limit)
+            ->setMaxResults($limit);
+
         try {
+
+            $items = $queryBuilder->getQuery()->getResult();
             // Execute the query and return results
-            return $queryBuilder->getQuery()->getResult();
+            return [
+                'items' => $items,
+                'total_items' => $totalItems,
+                'page' => $page,
+                'limit' => $limit,
+                'total_pages' => ceil($totalItems / $limit)
+            ];
         } catch (\Exception $e) {
             // Log the error for debugging (you should configure proper logging)
             error_log("Error fetching services for user {$user}: " . $e->getMessage());
-            
+
             // Re-throw the exception to be handled by the controller
             throw $e;
         }
+    }
+
+
+    public function createQueryBuilderForUserTickets($user)
+    {
+        return $this->entityManager->createQueryBuilder()
+            ->select('s', 'sect', 'u', 'a')
+            ->from(Service::class, 's')
+            ->leftJoin('s.sector', 'sect')
+            ->leftJoin('s.requester', 'u')
+            ->leftJoin('s.reponsible', 'a')
+            ->where('s.requester = :user')
+            ->setParameter('user', $user)
+            ->orderBy('s.date_create', 'DESC');
     }
 }
