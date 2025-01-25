@@ -1,87 +1,93 @@
+// src/services/attendant-auth.service.js
 import api from './api'
 
-// Adicione este método ao attendant-auth.service.js
-const isAuthenticated = () => {
-    const token = localStorage.getItem('attendant_token')
-    const attendant = localStorage.getItem('attendant_data')
-    return !!(token && attendant)
-}
-
-// E um método para obter os dados do atendente
-const getAttendantData = () => {
-    try {
-        const data = localStorage.getItem('attendant_data')
-        return data ? JSON.parse(data) : null
-    } catch (error) {
-        console.error('Erro ao recuperar dados do atendente:', error)
-        return null
-    }
-}
-
-
 export const attendantAuthService = {
-    // attendant-auth.service.js
-    isAuthenticated,
-    getAttendantData,
-// attendant-auth.service.js
-async login(email, password) {
-    try {
-        console.log('Enviando requisição de login:', { email, password });
-
-        // Faz a requisição para o servidor
-        const response = await api.post('/attendant/login', { email, password });        
-       // Log da resposta completa
-        console.log('Resposta completa:', response);
-        console.log('Dados da resposta:', response.data);
-        
-      
-
-        // Verifica se recebemos uma resposta do servidor
-        if (!response.data) {
-            throw new Error('Não foi possível conectar ao servidor')
-        }
-
-        // Extrai o token da resposta
-       
-        const { attendant, token } = response.data.data
-        console.log('Dados extraídos:', { attendant, token })
-
-
-        if (!token || !attendant) {
-            throw new Error('Dados de autenticação incompletos')
-        }
-
-
-       
-
-        // Configura o token para futuras requisições
-        api.defaults.headers.common['Authorization'] = `Bearer ${token}`
-        
-        localStorage.setItem('attendant_token', token)
-        localStorage.setItem('attendant_data', JSON.stringify({
-            id: attendant.id,
-            name: attendant.name,
-            email: attendant.email,
-            function: attendant.function,
-            sector: {                    // Mantém a estrutura completa do objeto
-                id: attendant.sector.id,
-                name: attendant.sector.name
+    async login(email, password) {
+        try {
+            // Faz a requisição de login para a rota específica de atendentes
+            const response = await api.post('/attendant/login', { email, password })
+            
+            if (response.data?.data?.token) {
+                const { token, attendant } = response.data.data
+                
+                // Armazena os dados com prefixo específico para atendentes
+                localStorage.setItem('attendant_token', token)
+                localStorage.setItem('attendant_data', JSON.stringify(attendant))
+                
+                // Configura o token para requisições futuras
+                api.defaults.headers.common['Authorization'] = `Bearer ${token}`
+                
+                return response.data
             }
-        }))
-
-      
-        return response.data
-    } catch (error) {
-        // Tratamento mais específico de erros
-        if (error.response?.status === 401) {
-            throw new Error('Email ou senha incorretos')
-        } else if (error.response?.data?.message) {
-            throw new Error(error.response.data.message)
-        } else {
-            throw new Error('Erro ao conectar com o servidor')
+            throw new Error('Dados de autenticação inválidos')
+        } catch (error) {
+            console.error('Erro no login do atendente:', error)
+            throw new Error(error.response?.data?.message || 'Erro ao fazer login')
         }
+    },
+
+    async logout() {
+        try {
+            const token = this.getToken()
+            if (token) {
+                // Usa a rota específica de logout para atendentes
+                await api.post('/attendant/logout', {}, {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                })
+            }
+        } catch (error) {
+            console.error('Erro no logout do atendente:', error)
+        } finally {
+            this.clearSession()
+        }
+    },
+
+    clearSession() {
+        // Remove apenas os dados relacionados ao atendente
+        localStorage.removeItem('attendant_token')
+        localStorage.removeItem('attendant_data')
+        delete api.defaults.headers.common['Authorization']
+    },
+
+    getToken() {
+        return localStorage.getItem('attendant_token')
+    },
+
+    getAttendantData() {
+        try {
+            const data = localStorage.getItem('attendant_data')
+            return data ? JSON.parse(data) : null
+        } catch {
+            return null
+        }
+    },
+
+    isAuthenticated() {
+        return !!this.getToken()
     }
 }
 
+// Configuração dos interceptors específicos para atendentes
+export const setupAttendantAuthInterceptors = () => {
+    api.interceptors.request.use(
+        config => {
+            const token = attendantAuthService.getToken()
+            if (token) {
+                config.headers['Authorization'] = `Bearer ${token}`
+            }
+            return config
+        },
+        error => Promise.reject(error)
+    )
 
+    api.interceptors.response.use(
+        response => response,
+        async error => {
+            if (error.response?.status === 401) {
+                attendantAuthService.clearSession()
+                window.location.href = '/attendant/login'
+            }
+            return Promise.reject(error)
+        }
+    )
 }
