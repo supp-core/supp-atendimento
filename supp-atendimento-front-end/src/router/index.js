@@ -2,6 +2,7 @@ import { createRouter, createWebHistory } from 'vue-router';
 import DashboardView from '../views/DashboardView.vue';
 import LoginView from '../views/LoginView.vue';
 import TicketsView from '../views/TicketsView.vue';
+import AttendantLoginView from '../views/AttendantLoginView.vue'; // Adicione esta linha
 
 const routes = [
   {
@@ -26,6 +27,17 @@ const routes = [
     name: 'create-ticket',
     component: () => import('@/views/CreateTicket.vue'),
     meta: { requiresAuth: true }
+  },
+  {
+    path: '/attendant/login',
+    name: 'attendant-login',
+    component: () => import('@/views/AttendantLoginView.vue')
+  },
+  {
+    path: '/attendant/dashboard',
+    name: 'attendant-dashboard',
+    component: () => import('../views/AttendantDashboard.vue'),
+    meta: { requiresAttendantAuth: true }
   }
 ];
 
