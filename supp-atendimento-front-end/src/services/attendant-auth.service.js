@@ -42,6 +42,15 @@ async login(email, password) {
         // Armazena o token e os dados do atendente
         localStorage.setItem('attendant_token', token)
 
+
+       /* localStorage.setItem('attendant_data', JSON.stringify({
+            id: attendant.id,
+            name: attendant.name,
+            email: attendant.email,
+            function: attendant.function,
+            sector: attendant.sector
+        }))*/
+
         // Se tivermos dados do atendente na resposta, vamos armazená-los também
         if (response.data.attendant) {
             localStorage.setItem('attendant_data', JSON.stringify(response.data.attendant))
