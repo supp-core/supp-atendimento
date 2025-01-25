@@ -3,3 +3,8 @@ controllers:
         path: ../src/Controller/
         namespace: App\Controller
     type: attribute
+    
+api_attendant_login:
+    path: /api/attendant/login
+    controller: App\Controller\AttendantAuthController::login
+    methods: [POST]

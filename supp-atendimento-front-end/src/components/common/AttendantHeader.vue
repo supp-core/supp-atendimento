@@ -5,8 +5,10 @@
         <span class="portal-text">Portal do Atendente</span>
       </div>
       <div class="user-actions">
+        <span class="sector">{{ sector }}</span>
         <span class="username">{{ nomeAtendente }}</span>
         <span class="function">{{ funcaoAtendente }}</span>
+      
         <button @click="fazerLogout" class="logout-button">
           Sair
         </button>
@@ -22,6 +24,7 @@
   const router = useRouter()
   const nomeAtendente = ref('')
   const funcaoAtendente = ref('')
+  const sector = ref('')
   
   const fazerLogout = async () => {
       try {
@@ -34,9 +37,24 @@
   }
   
   onMounted(() => {
-      const attendant = attendantAuthService.getAttendantData()
-      nomeAtendente.value = attendant?.name || 'Atendente'
-      funcaoAtendente.value = attendant?.function || ''
+    console.log('Component mounted');
+    const attendant = attendantAuthService.getAttendantData()
+    console.log('Dados recuperados:', attendant.sector.name);
+    
+    if (attendant) {
+
+
+
+        nomeAtendente.value = attendant.name
+        funcaoAtendente.value = attendant.function
+        sector.value = attendant.sector.name
+        console.log('Nome:', nomeAtendente.value);
+        console.log('Função:', funcaoAtendente.value);
+        console.log('Sector:', sector.value );
+        
+    } else {
+        console.log('Nenhum dado de atendente encontrado');
+    }
   })
   </script>
   

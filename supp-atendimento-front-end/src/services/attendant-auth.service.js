@@ -9,8 +9,13 @@ const isAuthenticated = () => {
 
 // E um método para obter os dados do atendente
 const getAttendantData = () => {
-    const attendantData = localStorage.getItem('attendant_data')
-    return attendantData ? JSON.parse(attendantData) : null
+    try {
+        const data = localStorage.getItem('attendant_data')
+        return data ? JSON.parse(data) : null
+    } catch (error) {
+        console.error('Erro ao recuperar dados do atendente:', error)
+        return null
+    }
 }
 
 
@@ -21,52 +26,59 @@ export const attendantAuthService = {
 // attendant-auth.service.js
 async login(email, password) {
     try {
+        console.log('Enviando requisição de login:', { email, password });
+
         // Faz a requisição para o servidor
-        const response = await api.post('/attendant/login', { email, password })
+        const response = await api.post('/attendant/login', { email, password });        
+       // Log da resposta completa
+        console.log('Resposta completa:', response);
+        console.log('Dados da resposta:', response.data);
         
+      
+
         // Verifica se recebemos uma resposta do servidor
         if (!response.data) {
             throw new Error('Não foi possível conectar ao servidor')
         }
 
         // Extrai o token da resposta
-        const token = response.data.token
+       
+        const { attendant, token } = response.data.data
+        console.log('Dados extraídos:', { attendant, token })
 
-        if (!token) {
-            throw new Error('Token de autenticação não encontrado')
+
+        if (!token || !attendant) {
+            throw new Error('Dados de autenticação incompletos')
         }
+
+
+       
 
         // Configura o token para futuras requisições
         api.defaults.headers.common['Authorization'] = `Bearer ${token}`
         
-        // Armazena o token e os dados do atendente
         localStorage.setItem('attendant_token', token)
-
-
-       /* localStorage.setItem('attendant_data', JSON.stringify({
+        localStorage.setItem('attendant_data', JSON.stringify({
             id: attendant.id,
             name: attendant.name,
             email: attendant.email,
             function: attendant.function,
-            sector: attendant.sector
-        }))*/
+            sector: {                    // Mantém a estrutura completa do objeto
+                id: attendant.sector.id,
+                name: attendant.sector.name
+            }
+        }))
 
-        // Se tivermos dados do atendente na resposta, vamos armazená-los também
-        if (response.data.attendant) {
-            localStorage.setItem('attendant_data', JSON.stringify(response.data.attendant))
-        }
-
+      
         return response.data
     } catch (error) {
         // Tratamento mais específico de erros
         if (error.response?.status === 401) {
             throw new Error('Email ou senha incorretos')
-        } else if (error.response?.status === 404) {
-            throw new Error('Servidor não encontrado')
         } else if (error.response?.data?.message) {
             throw new Error(error.response.data.message)
         } else {
-            throw new Error('Erro ao conectar com o servidor. Por favor, tente novamente.')
+            throw new Error('Erro ao conectar com o servidor')
         }
     }
 }

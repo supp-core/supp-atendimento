@@ -1,18 +1,13 @@
 <?php
 
-// src/Controller/AttendantAuthController.php
-
 namespace App\Controller;
 
-use App\Entity\Attendant; // Adicione este import
 use Lexik\Bundle\JWTAuthenticationBundle\Services\JWTTokenManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\JsonResponse;
-use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Routing\Annotation\Route;
 use Symfony\Component\Security\Core\Authentication\Token\Storage\TokenStorageInterface;
-
 
 #[Route('/api/attendant')]
 class AttendantAuthController extends AbstractController
@@ -25,32 +20,12 @@ class AttendantAuthController extends AbstractController
     #[Route('/login', name: 'api_attendant_login', methods: ['POST'])]
     public function login(): JsonResponse
     {
-        /** @var Attendant $attendant */
-        $attendant = $this->getUser();
-
-        if (!$attendant) {
-            return new JsonResponse([
-                'success' => false,
-                'message' => 'Invalid credentials'
-            ], Response::HTTP_UNAUTHORIZED);
-        }
-
+        // Esta função pode ficar vazia porque o processo de autenticação 
+        // e formatação da resposta é tratado pelo sistema de autenticação 
+        // do Symfony e nosso Event Listener
         return new JsonResponse([
-            'success' => true,
-            'data' => [
-                'attendant' => [
-                    'id' => $attendant->getId(),
-                    'name' => $attendant->getName(),
-                    'email' => $attendant->getEmail(),
-                    'function' => $attendant->getFunction(),
-                    'sector' => [
-                        'id' => $attendant->getSector()?->getId(),
-                        'name' => $attendant->getSector()?->getName()
-                    ],
-                ],
-                'token' => $this->jwtManager->create($attendant)
-            ]
-        ]);
+            'message' => 'Use JSON credentials to login'
+        ], Response::HTTP_UNAUTHORIZED);
     }
 
     #[Route('/logout', name: 'api_attendant_logout', methods: ['POST'])]
@@ -60,7 +35,7 @@ class AttendantAuthController extends AbstractController
         
         return new JsonResponse([
             'success' => true,
-            'message' => 'Logged out successfully'
+            'message' => 'Logout realizado com sucesso'
         ]);
     }
 }
