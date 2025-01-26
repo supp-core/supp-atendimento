@@ -2,6 +2,11 @@
 import api from './api'
 
 export const attendantAuthService = {
+    isAuthenticated() {
+        const token = localStorage.getItem('attendant_token')
+        const attendant = localStorage.getItem('attendant_data')
+        return !!(token && attendant)
+      },
     async login(email, password) {
         try {
             // Faz a requisição de login para a rota específica de atendentes

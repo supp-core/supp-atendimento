@@ -29,17 +29,28 @@ security:
         dev:
             pattern: ^/(_(profiler|wdt)|css|images|js)/
             security: false
-
-        attendant_login:
-            pattern: ^/api/attendant/login
+        
+        login:
+            pattern: ^/api/login
             stateless: true
-            provider: app_attendant_provider
+            provider: app_user_provider
             json_login:
-                check_path: /api/attendant/login
-                success_handler: lexik_jwt_authentication.handler.authentication_success
-                failure_handler: lexik_jwt_authentication.handler.authentication_failure
+                check_path: /api/login
                 username_path: email
                 password_path: password
+                success_handler: lexik_jwt_authentication.handler.authentication_success
+                failure_handler: lexik_jwt_authentication.handler.authentication_failure
+
+        attendant_login:
+           pattern: ^/api/attendant/login
+           stateless: true
+           provider: app_attendant_provider
+           json_login:
+                check_path: /api/attendant/login
+                username_path: email
+                password_path: password
+                success_handler: lexik_jwt_authentication.handler.authentication_success
+                failure_handler: lexik_jwt_authentication.handler.authentication_failure
 
         # Login firewall - handles authentication
         auth:  # Changed from 'login' to 'auth' for clarity
@@ -54,11 +65,20 @@ security:
                 failure_handler: lexik_jwt_authentication.handler.authentication_failure
 
         # API firewall - protects all other API routes
-        api:
-            pattern: ^/api
+        user_api:
+            pattern: ^/api/user
             stateless: true
             provider: app_user_provider
-            jwt: ~    # Use JWT authentication for API routes
+            jwt: ~  # Usa JWT para autenticação
+
+    # Firewall para rotas protegidas de atendentes
+        attendant_api:
+            pattern: ^/api/attendant
+            stateless: true
+            provider: app_attendant_provider
+            jwt: ~  # Usa JWT para autenticação
+            
+        
 
         # Remove the 'main' firewall since we're building an API-only application
         # All routes are either under /api or development tools
@@ -66,17 +86,20 @@ security:
     # Access control - defines who can access what
     access_control:
         # Public routes - no authentication needed
-        - { path: ^/api/login, roles: PUBLIC_ACCESS, methods: [POST, OPTIONS]  }
-        - { path: ^/api/register, roles: PUBLIC_ACCESS }
-        # Protected routes - require authentication
-        - { path: ^/api, roles: IS_AUTHENTICATED_FULLY }
+        # Rotas públicas para login de usuários comuns
+    - { path: ^/api/login, roles: PUBLIC_ACCESS }
 
-         # Attendant routes
-        - { path: ^/api/attendant, roles: ROLE_ATTENDANT }
-        # Protected routes
-        - { path: ^/api, roles: IS_AUTHENTICATED_FULLY }
-        - { path: ^/api/attendant/login, roles: PUBLIC_ACCESS }
-        - { path: ^/api/attendant, roles: ROLE_ATTENDANT }
+    # Rotas públicas para login de atendentes
+    - { path: ^/api/attendant/login, roles: PUBLIC_ACCESS }
+
+    # Rotas protegidas para usuários comuns
+    - { path: ^/api/user, roles: ROLE_USER }
+
+    # Rotas protegidas para atendentes
+    - { path: ^/api/attendant, roles: ROLE_ATTENDANT }
+
+    # Rotas protegidas gerais (opcional)
+    - { path: ^/api, roles: IS_AUTHENTICATED_FULLY }
 
 
 # Test environment configuration
@@ -88,3 +111,5 @@ when@test:
                 cost: 4      # Minimum bcrypt cost for testing
                 time_cost: 3 # Minimum argon time cost for testing
                 memory_cost: 10 # Minimum argon memory cost for testing
+                
+              

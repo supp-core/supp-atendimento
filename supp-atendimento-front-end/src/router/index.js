@@ -38,6 +38,12 @@ const routes = [
     name: 'attendant-dashboard',
     component: () => import('../views/AttendantDashboard.vue'),
     meta: { requiresAttendantAuth: true }
+  },
+  {
+    path: '/attendant/tickets',
+    name: 'attendant-tickets',
+    component: () => import('@/views/AttendantTicketsView.vue'),
+    meta: { requiresAttendantAuth: true }
   }
 ];
 
@@ -46,18 +52,30 @@ const router = createRouter({
   routes
 });
 
-// Guarda de rota para verificar autenticação
+// router/index.js
+
 router.beforeEach((to, from, next) => {
-  if (to.matched.some(record => record.meta.requiresAuth)) {
-    if (!localStorage.getItem('token')) {
-      next('/login');
-    } else {
-      next();
-    }
+  if (to.matched.some(record => record.meta.requiresAttendantAuth)) {
+      // Verifica autenticação de atendente
+      const attendantToken = localStorage.getItem('attendant_token')
+      if (!attendantToken) {
+          next('/attendant/login')
+      } else {
+          next()
+      }
+  } else if (to.matched.some(record => record.meta.requiresAuth)) {
+      // Verifica autenticação de usuário comum
+      const userToken = localStorage.getItem('token')
+      if (!userToken) {
+          next('/login')
+      } else {
+          next()
+      }
   } else {
-    next();
+      next()
   }
-});
+})
 
 // Aqui está a exportação que estava faltando
 export default router;
+

@@ -4,7 +4,11 @@ export const authService = {
     async login(email, password) {
         try {
             const response = await api.post('/login', { email, password })
-            if (response.data?.token) {
+
+
+            console.log(response.data?.data?.token);
+
+            if (response.data?.data?.token) {
                 localStorage.setItem('token', response.data.token)
                 localStorage.setItem('user', JSON.stringify(response.data.user))
                 // Configura o token para todas as requisições futuras

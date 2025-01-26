@@ -152,6 +152,11 @@ const loadTickets = async (page = 1) => {
   loading.value = true;
   try {
     const response = await api.get(`/service/my-tickets?page=${page}`);
+
+    if (!response) {
+      console.error('Nenhum dado do atendente encontrado');
+      return;
+    }
     if (response.data.success) {
       tickets.value = response.data.data;
       meta.value = response.data.meta;
