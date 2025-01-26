@@ -66,7 +66,7 @@ security:
 
         # API firewall - protects all other API routes
         user_api:
-            pattern: ^/api/user
+            pattern: ^/api/(?!attendant)  # tem que tirar pra funcionar no usuario comum, e colocar para ser usado no atendente
             stateless: true
             provider: app_user_provider
             jwt: ~  # Usa JWT para autenticação
@@ -78,29 +78,23 @@ security:
             provider: app_attendant_provider
             jwt: ~  # Usa JWT para autenticação
             
-        
+ 
 
         # Remove the 'main' firewall since we're building an API-only application
         # All routes are either under /api or development tools
 
     # Access control - defines who can access what
     access_control:
-        # Public routes - no authentication needed
-        # Rotas públicas para login de usuários comuns
-    - { path: ^/api/login, roles: PUBLIC_ACCESS }
-
-    # Rotas públicas para login de atendentes
-    - { path: ^/api/attendant/login, roles: PUBLIC_ACCESS }
-
-    # Rotas protegidas para usuários comuns
-    - { path: ^/api/user, roles: ROLE_USER }
-
-    # Rotas protegidas para atendentes
-    - { path: ^/api/attendant, roles: ROLE_ATTENDANT }
-
-    # Rotas protegidas gerais (opcional)
-    - { path: ^/api, roles: IS_AUTHENTICATED_FULLY }
-
+     # Public routes
+        - { path: ^/api/login$, roles: PUBLIC_ACCESS }
+        - { path: ^/api/register$, roles: PUBLIC_ACCESS }
+        - { path: ^/api/attendant/login$, roles: PUBLIC_ACCESS }
+        
+        # Attendant routes
+        - { path: ^/api/attendant, roles: ROLE_ATTENDANT }
+        
+        # User routes - protect all other API routes
+        - { path: ^/api/, roles: ROLE_USER }
 
 # Test environment configuration
 when@test:

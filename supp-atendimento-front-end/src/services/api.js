@@ -1,4 +1,6 @@
-import axios from 'axios'
+// services/api.js
+import axios from 'axios';
+import { authService } from './auth.service';
 
 const api = axios.create({
     baseURL: 'http://localhost:8000/api',
@@ -6,34 +8,29 @@ const api = axios.create({
         'Accept': 'application/json',
         'Content-Type': 'application/json'
     }
-})
+});
 
-// Interceptor para adicionar o token em todas as requisições
+// Interceptor com logs detalhados
 api.interceptors.request.use(
     config => {
-        const token = localStorage.getItem('token')
+        const token = localStorage.getItem('token');
+        console.log('Preparando requisição para:', config.url);
+        
         if (token) {
-            config.headers['Authorization'] = `Bearer ${token}`
+            console.log('Token encontrado, adicionando ao header');
+            config.headers['Authorization'] = `Bearer ${token}`;
+        } else {
+            console.warn('Token não encontrado para requisição:', config.url);
         }
-        return config
+        
+        console.log('Headers da requisição:', config.headers);
+        return config;
     },
     error => {
-        return Promise.reject(error)
+        console.error('Erro no interceptor de requisição:', error);
+        return Promise.reject(error);
     }
-)
+);
 
-// Interceptor para tratar erros de resposta
-api.interceptors.response.use(
-    response => response,
-    error => {
-        if (error.response?.status === 401) {
-            // Se receber unauthorized, limpa os dados e redireciona
-            localStorage.removeItem('token')
-            localStorage.removeItem('user')
-            window.location.href = '/login'
-        }
-        return Promise.reject(error)
-    }
-)
 
-export default api
+export default api;

@@ -23,18 +23,21 @@ const nomeUsuario = ref('')
 const fazerLogout = async () => {
     try {
         await authService.logout()
-        // Redireciona para a página de login após o logout
         window.location.href = '/login'
     } catch (error) {
         console.error('Erro no logout:', error)
-        // Mesmo com erro, redireciona
         window.location.href = '/login'
     }
 }
 
 onMounted(() => {
-    const usuario = authService.getUser()
-    nomeUsuario.value = usuario?.name || 'Usuário'
+  const usuario = authService.getUser()
+    if (usuario) {
+        nomeUsuario.value = usuario.name || 'Usuário'
+    } else {
+        console.warn('Nenhum usuário encontrado no localStorage')
+        nomeUsuario.value = 'Usuário'
+    }
 })
 </script>
 

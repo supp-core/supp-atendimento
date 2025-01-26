@@ -99,12 +99,26 @@ import api from '@/services/api';
 import AppHeader from '@/components/common/AppHeader.vue';
 import AppSidebar from '@/components/common/AppSidebar.vue';
 import { useSidebar } from '@/composables/useSidebar';
+import { authService } from '@/services/auth.service';
+
+// Função para carregar os dados do usuário
+const carregarDadosUsuario = () => {
+    const userData = authService.getUser();
+    if (userData) {
+        nomeUsuario.value = userData.name; // Assume que o usuário tem uma propriedade 'name'
+        console.log('Dados do usuário carregados:', userData);
+    } else {
+        console.error('Dados do usuário não encontrados');
+        router.push('/login');
+    }
+};
+
 
 const { sidebarCollapsed } = useSidebar();
 const router = useRouter();
 const tickets = ref([]);
 const loading = ref(false);
-
+const nomeUsuario = ref(''); // Adicionando a referência ao nome do usuário
 
 const currentPage = ref(1);
 const meta = ref({
@@ -149,23 +163,33 @@ const formatDate = (dateString) => {
 };
 
 const loadTickets = async (page = 1) => {
-  loading.value = true;
-  try {
-    const response = await api.get(`/service/my-tickets?page=${page}`);
+    loading.value = true;
+    try {
+        if (!authService.isAuthenticated()) {
+            console.log('Usuário não autenticado');
+            router.push('/login');
+            return;
+        }
 
-    if (!response) {
-      console.error('Nenhum dado do atendente encontrado');
-      return;
+        const response = await api.get(`/service/my-tickets?page=${page}`);
+        
+        if (response.data.success) {
+            tickets.value = response.data.data;
+            meta.value = response.data.meta;
+        } else {
+            tickets.value = [];
+        }
+    } catch (error) {
+        console.error('Erro ao carregar tickets:', error);
+        tickets.value = [];
+        
+        if (error.response?.status === 401) {
+            authService.logout();
+            router.push('/login');
+        }
+    } finally {
+        loading.value = false;
     }
-    if (response.data.success) {
-      tickets.value = response.data.data;
-      meta.value = response.data.meta;
-    }
-  } catch (error) {
-    console.error('Erro ao carregar chamados:', error);
-  } finally {
-    loading.value = false;
-  }
 };
 
 const createTicket = () => router.push('/tickets/create');
@@ -173,6 +197,7 @@ const viewTicket = (id) => router.push(`/tickets/${id}`);
 const editTicket = (id) => router.push(`/tickets/${id}/edit`);
 
 onMounted(() => {
+  carregarDadosUsuario(); // Carrega os dados do usuário quando o componente é montado
   loadTickets();
 });
 </script>
