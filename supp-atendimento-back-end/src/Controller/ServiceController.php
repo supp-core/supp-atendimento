@@ -137,11 +137,33 @@ class ServiceController extends AbstractController
     }
 
     #[Route('/attendant/{id}', methods: ['GET'])]
-    public function listByAttendant(int $id): JsonResponse
+    public function listByAttendant(int $id, Request $request): JsonResponse
     {
         try {
-            $services = $this->serviceManager->getServicesByAttendant($id);
-
+            // Obtém parâmetros de paginação
+            $page = $request->query->get('page', 1);
+            $perPage = $request->query->get('per_page', 10);
+            
+            // Cria query builder
+            $queryBuilder = $this->entityManager->getRepository(Service::class)
+                ->createQueryBuilder('s')
+                ->join('s.reponsible', 'a')
+                ->leftJoin('s.requester', 'u')
+                ->leftJoin('s.sector', 'sect')
+                ->select('s', 'sect', 'u', 'a')
+                ->where('a.id = :attendantId')
+                ->setParameter('attendantId', $id)
+                ->orderBy('s.date_create', 'DESC');
+    
+            // Conta total de registros
+            $total = count($queryBuilder->getQuery()->getResult());
+    
+            // Aplica paginação
+            $queryBuilder->setFirstResult(($page - 1) * $perPage)
+                ->setMaxResults($perPage);
+    
+            $services = $queryBuilder->getQuery()->getResult();
+    
             $response = array_map(function ($service) {
                 return [
                     'id' => $service->getId(),
@@ -164,11 +186,16 @@ class ServiceController extends AbstractController
                     ],
                 ];
             }, $services);
-
+    
             return new JsonResponse([
                 'success' => true,
                 'data' => $response,
-                'count' => count($response)
+                'meta' => [
+                    'total' => $total,
+                    'per_page' => $perPage,
+                    'current_page' => (int)$page,
+                    'last_page' => ceil($total / $perPage)
+                ]
             ]);
         } catch (\Exception $e) {
             return new JsonResponse([
