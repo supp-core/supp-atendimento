@@ -452,4 +452,62 @@ class ServiceController extends AbstractController
                 ], 500);
             }
         }
+
+
+
+        // Em ServiceController.php
+
+#[Route('/{id}/history', methods: ['GET'])]
+public function getServiceHistory(int $id): JsonResponse
+{
+    try {
+        $service = $this->serviceManager->findById($id);
+        
+        if (!$service) {
+            return new JsonResponse([
+                'success' => false,
+                'message' => 'Service not found'
+            ], 404);
+        }
+
+        // Obtém o histórico ordenado por data
+        $histories = $service->getHistories()->toArray();
+        
+        // Ordena o histórico pela data mais recente primeiro
+        usort($histories, function($a, $b) {
+            return $b->getDateHistory() <=> $a->getDateHistory();
+        });
+
+        // Formata a resposta
+        $response = array_map(function ($history) {
+            return [
+                'id' => $history->getId(),
+                'date' => $history->getDateHistory()->format('Y-m-d H:i:s'),
+                'status_prev' => $history->getStatusPrev(),
+                'status_post' => $history->getStatusPost(),
+                'comment' => $history->getComment(),
+                'responsible' => [
+                    'id' => $history->getResponsible()?->getId(),
+                    'name' => $history->getResponsible()?->getName(),
+                    'function' => $history->getResponsible()?->getFunction()
+                ],
+                'service' => [
+                    'id' => $history->getService()->getId(),
+                    'title' => $history->getService()->getTitle()
+                ]
+            ];
+        }, $histories);
+
+        return new JsonResponse([
+            'success' => true,
+            'data' => $response
+        ]);
+
+    } catch (\Exception $e) {
+        return new JsonResponse([
+            'success' => false,
+            'message' => 'Error fetching service history: ' . $e->getMessage()
+        ], 500);
+    }
+}
 }

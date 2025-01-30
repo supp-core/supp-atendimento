@@ -91,14 +91,47 @@
         </div>
 
         <!-- Modal para Evolução do Ticket -->
-        <v-dialog v-model="evolveDialog.show" max-width="500px">
+        <v-dialog v-model="evolveDialog.show" max-width="600px">
           <v-card>
-            <v-card-title>Evoluir Atendimento</v-card-title>
+            <v-card-title class="headline">
+              Evoluir Atendimento #{{ evolveDialog.ticket?.id }}
+            </v-card-title>
+
             <v-card-text>
-              <v-select v-model="evolveDialog.newStatus" :items="availableStatuses" label="Novo Status"
-                required></v-select>
-              <v-textarea v-model="evolveDialog.comment" label="Comentário" required rows="3"></v-textarea>
+              <!-- Formulário de nova evolução -->
+              <div class="new-update-form mb-6">
+                <v-select v-model="evolveDialog.newStatus" :items="availableStatuses" label="Novo Status" required
+                  class="mb-4"></v-select>
+
+                <v-textarea v-model="evolveDialog.comment" label="Comentário" required rows="3"
+                  class="mb-4"></v-textarea>
+              </div>
+
+              <!-- Linha do tempo -->
+              <div class="timeline">
+                <div v-for="(history, index) in evolveDialog.ticket?.histories" :key="index" class="timeline-item">
+                  <div class="timeline-header d-flex align-center">
+                    <v-avatar size="32" class="mr-3">
+                      <v-img src="/assets/user-avatar.png"></v-img>
+                    </v-avatar>
+                    <div>
+                      <span class="font-weight-medium">{{ history.responsible?.name }}</span>
+                      <span class="text-caption ml-2 grey--text">
+                        {{ formatDate(history.date) }}
+                      </span>
+                    </div>
+                  </div>
+
+                  <div class="timeline-content ml-11">
+                    <v-chip size="small" :color="getStatusColor(history.status_post)" class="mb-2">
+                      {{ translateStatus(history.status_post) }}
+                    </v-chip>
+                    <p class="text-body-2 mb-0">{{ history.comment }}</p>
+                  </div>
+                </div>
+              </div>
             </v-card-text>
+
             <v-card-actions>
               <v-spacer></v-spacer>
               <v-btn color="grey" text @click="evolveDialog.show = false">
@@ -247,16 +280,31 @@ const formatDate = (dateString) => {
   })
 }
 
+
+const loadServiceHistory = async (serviceId) => {
+  try {
+    const response = await api.get(`/service/${serviceId}/history`);
+    if (response.data.success) {
+      evolveDialog.value.ticket.histories = response.data.data;
+    }
+  } catch (error) {
+    console.error('Erro ao carregar histórico:', error);
+  }
+};
+
+
 // Funções de ação
-const openEvolveDialog = (ticket) => {
+const openEvolveDialog = async (ticket) => {
   evolveDialog.value = {
     show: true,
-    ticket,
+    ticket: { ...ticket },
     newStatus: ticket.status,
     comment: '',
     loading: false
-  }
-}
+  };
+  
+  await loadServiceHistory(ticket.id);
+};
 
 const openTransferDialog = (ticket) => {
   transferDialog.value = {
@@ -306,47 +354,47 @@ const handlePageChange = async (page) => {
 };
 
 const loadTickets = async (page = 1) => {
-    loading.value = true;
-    try {
-        if (!attendantAuthService.isAuthenticated()) {
-            console.log('Usuário não autenticado');
-            router.push('/attendant/login');
-            return;
-        }
-
-        const attendant = attendantAuthService.getAttendantData();
-        console.log('Dados do Atendente:', attendant);
-        
-        if (!attendant || !attendant.id) {
-            console.error('Dados do atendente inválidos');
-            return;
-        }
-        console.log('ID do Atendente:', attendant.id);
-        
-        const response = await api.get(`/service/attendant/${attendant.id}?page=${page}`);
-        console.log('Resposta Completa:', response);
-        console.log('Dados da Resposta:', response.data);
-
-        if (response.data.success) {
-            tickets.value = response.data.data;
-            meta.value = response.data.meta;
-        } else {
-            tickets.value = [];
-        }
-    } catch (error) {
-        console.error('Erro ao carregar tickets:', error);
-        if (error.response) {
-            console.error('Detalhes da Resposta:', error.response.data);
-        }
-        tickets.value = [];
-        
-        if (error.response?.status === 401) {
-            attendantAuthService.logout();
-            router.push('/attendant/login');
-        }
-    } finally {
-        loading.value = false;
+  loading.value = true;
+  try {
+    if (!attendantAuthService.isAuthenticated()) {
+      console.log('Usuário não autenticado');
+      router.push('/attendant/login');
+      return;
     }
+
+    const attendant = attendantAuthService.getAttendantData();
+    console.log('Dados do Atendente:', attendant);
+
+    if (!attendant || !attendant.id) {
+      console.error('Dados do atendente inválidos');
+      return;
+    }
+    console.log('ID do Atendente:', attendant.id);
+
+    const response = await api.get(`/service/attendant/${attendant.id}?page=${page}`);
+    console.log('Resposta Completa:', response);
+    console.log('Dados da Resposta:', response.data);
+
+    if (response.data.success) {
+      tickets.value = response.data.data;
+      meta.value = response.data.meta;
+    } else {
+      tickets.value = [];
+    }
+  } catch (error) {
+    console.error('Erro ao carregar tickets:', error);
+    if (error.response) {
+      console.error('Detalhes da Resposta:', error.response.data);
+    }
+    tickets.value = [];
+
+    if (error.response?.status === 401) {
+      attendantAuthService.logout();
+      router.push('/attendant/login');
+    }
+  } finally {
+    loading.value = false;
+  }
 };
 const loadAttendants = async () => {
   try {
@@ -410,7 +458,6 @@ onMounted(() => {
 }
 
 
-
 .pagination-wrapper {
   padding: 16px 24px;
   display: flex;
@@ -441,4 +488,45 @@ onMounted(() => {
   color: #ffffff !important;
 }
 
+.timeline {
+  position: relative;
+  padding-top: 16px;
+  border-top: 1px solid #e0e0e0;
+}
+
+.timeline-item {
+  position: relative;
+  padding-bottom: 24px;
+}
+
+.timeline-item::before {
+  content: '';
+  position: absolute;
+  left: 16px;
+  top: 40px;
+  bottom: 0;
+  width: 2px;
+  background: #e0e0e0;
+}
+
+.timeline-item:last-child::before {
+  display: none;
+}
+
+.timeline-content {
+  background: #f8f9fa;
+  padding: 12px;
+  border-radius: 16px;
+  margin-top: 8px;
+}
+
+/* Estilo para o hover nos itens da timeline */
+.timeline-item:hover {
+  background: rgba(0, 0, 0, 0.02);
+}
+
+/* Estilo para o conteúdo quando houver hover */
+.timeline-item:hover .timeline-content {
+  background: #f0f2f5;
+}
 </style>

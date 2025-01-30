@@ -340,4 +340,17 @@ class ServiceManager
             ->setParameter('user', $user)
             ->orderBy('s.date_create', 'DESC');
     }
+
+    // Em ServiceManager.php
+
+    public function getServiceHistory(Service $service): array
+    {
+        return $this->entityManager->getRepository(ServiceHistory::class)
+            ->createQueryBuilder('sh')
+            ->where('sh.service = :service')
+            ->setParameter('service', $service)
+            ->orderBy('sh.date_history', 'DESC')
+            ->getQuery()
+            ->getResult();
+    }
 }
