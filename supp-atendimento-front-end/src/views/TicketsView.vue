@@ -176,7 +176,7 @@ const searchPriority = ref('');
 const dateMenu = ref(false);
 
 const statusOptions = [
-  { title: 'Novo', value: 'NEW' },
+  { title: 'Novo', value: 'new' },
   { title: 'Aberto', value: 'OPEN' },
   { title: 'Em Andamento', value: 'IN_PROGRESS' },
   { title: 'Resolvido', value: 'RESOLVED' },
