@@ -51,6 +51,35 @@
             </form>
           </div>
 
+
+          <div class="form-group">
+    <label>Anexos</label>
+    <div class="file-upload-area" @dragover.prevent @drop.prevent="handleFileDrop">
+      <input 
+        type="file" 
+        ref="fileInput" 
+        multiple 
+        @change="handleFileSelect" 
+        accept=".pdf,.docx,.jpg,.jpeg,.png,.gif"
+        style="display: none"
+      >
+      <div class="upload-zone" @click="$refs.fileInput.click()">
+        <span v-if="!selectedFiles.length">
+          Arraste arquivos aqui ou clique para selecionar
+        </span>
+        <div v-else class="selected-files">
+          <div v-for="file in selectedFiles" :key="file.name" class="file-item">
+            <span>{{ file.name }}</span>
+            <button @click.prevent="removeFile(file)">×</button>
+          </div>
+        </div>
+      </div>
+    </div>
+    <small class="text-muted">
+      Formatos aceitos: PDF, DOCX, JPG, PNG, GIF. Tamanho máximo por arquivo: 10MB
+    </small>
+  </div>
+
           <!-- Mensagem de feedback -->
           <div v-if="feedback.show" :class="['feedback-message', feedback.type]">
             {{ feedback.message }}
@@ -283,3 +312,61 @@ textarea.form-input {
   background-color: #f44336;
 }
 </style>
+
+
+<script>
+export default {
+  data() {
+    return {
+      selectedFiles: [],
+      // ... outros dados
+    }
+  },
+  methods: {
+    handleFileSelect(event) {
+      this.addFiles(event.target.files)
+    },
+    handleFileDrop(event) {
+      this.addFiles(event.dataTransfer.files)
+    },
+    addFiles(fileList) {
+      const maxSize = 10 * 1024 * 1024 // 10MB
+      
+      Array.from(fileList).forEach(file => {
+        if (file.size <= maxSize) {
+          this.selectedFiles.push(file)
+        } else {
+          this.$notify({
+            type: 'error',
+            message: `Arquivo ${file.name} excede o tamanho máximo permitido`
+          })
+        }
+      })
+    },
+    removeFile(file) {
+      const index = this.selectedFiles.indexOf(file)
+      this.selectedFiles.splice(index, 1)
+    },
+    async handleSubmit() {
+      const formData = new FormData()
+      
+      // Adicionar dados do ticket
+      formData.append('title', this.title)
+      formData.append('description', this.description)
+      formData.append('priority', this.priority)
+      
+      // Adicionar arquivos
+      this.selectedFiles.forEach((file, index) => {
+        formData.append(`attachments[${index}]`, file)
+      })
+      
+      try {
+        await this.createTicket(formData)
+        // ... continua
+      } catch (error) {
+        // ... tratamento de erro
+      }
+    }
+  }
+}
+</script>

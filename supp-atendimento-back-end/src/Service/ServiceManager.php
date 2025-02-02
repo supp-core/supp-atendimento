@@ -5,13 +5,14 @@ namespace App\Service;
 use App\Entity\Service;
 use App\Entity\Attendant;
 use App\Entity\ServiceHistory;
+use App\Entity\ServiceAttachment;
 use App\Entity\Sector;
 use App\Entity\User;
 use DateTime;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Component\Mailer\MailerInterface;
 use Symfony\Component\Mime\Email;  // Adicione este import
-
+use Symfony\Component\HttpFoundation\File\UploadedFile;
 use Symfony\Component\HttpFoundation\Exception\BadRequestException;
 use Twig\Environment;
 
@@ -22,6 +23,7 @@ class ServiceManager
 
     public function __construct(
         private EntityManagerInterface $entityManager,
+        private AttachmentManager $attachmentManager,
         private MailerInterface $mailer,
     ) {}
 
@@ -62,6 +64,29 @@ class ServiceManager
             $service->setReponsible($adminAttendant);
         }
 
+         // Processar anexos se existirem
+         if (!empty($data['files']) && is_array($data['files'])) {
+            foreach ($data['files'] as $uploadedFile) {
+                if ($uploadedFile instanceof UploadedFile) {
+                    if ($this->attachmentManager->validateFile($uploadedFile)) {
+                        $filename = $this->attachmentManager->uploadFile($uploadedFile);
+                        
+                        $attachment = new ServiceAttachment();
+                        $attachment->setService($service);
+                        $attachment->setFilename($filename);
+                        $attachment->setOriginalFilename($uploadedFile->getClientOriginalName());
+                        $attachment->setMimeType($uploadedFile->getMimeType());
+                        $attachment->setFileSize($uploadedFile->getSize());
+                        
+                        $this->entityManager->persist($attachment);
+                        $service->addAttachment($attachment);
+                    }
+                }
+            }
+        }
+
+
+
         // Persistir o serviço
         $this->entityManager->persist($service);
 
@@ -76,6 +101,7 @@ class ServiceManager
         $this->entityManager->persist($history);
         $this->entityManager->flush();
 
+        
         return $service;
     }
 
@@ -87,6 +113,20 @@ class ServiceManager
 
         $currentStatus = $service->getStatus();
 
+        foreach ($files as $file) {
+            if ($this->attachmentManager->validateFile($file)) {
+                $filename = $this->attachmentManager->uploadFile($file);
+                
+                $attachment = new ServiceAttachment();
+                $attachment->setService($service);
+                $attachment->setFilename($filename);
+                $attachment->setOriginalFilename($file->getClientOriginalName());
+                $attachment->setMimeType($file->getMimeType());
+                $attachment->setFileSize($file->getSize());
+                
+                $service->addAttachment($attachment);
+            }
+        }
         // Criar histórico da alteração
         $this->createServiceHistory($service, $currentStatus, $newStatus, $comment);
 

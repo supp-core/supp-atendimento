@@ -92,6 +92,8 @@
                 </tr>
               </tbody>
             </v-table>
+
+            
             <div class="pagination-wrapper">
               <div class="pagination-info">
                 Mostrando {{ meta.per_page }} de {{ meta.total }} registros

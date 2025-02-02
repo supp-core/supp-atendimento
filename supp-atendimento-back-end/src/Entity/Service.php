@@ -70,12 +70,17 @@ class Service
     #[ORM\OneToMany(mappedBy: 'service', targetEntity: ServiceHistory::class, orphanRemoval: true)]
     private Collection $histories;
 
+
+    #[ORM\OneToMany(mappedBy: 'service', targetEntity: ServiceAttachment::class, cascade: ['persist', 'remove'])]
+    private Collection $attachments;
+
     public function __construct()
     {
         $this->serviceHistory = new ArrayCollection();
+        $this->attachments = new ArrayCollection();
     }
 
-    
+
 
     public function getHistories(): Collection
     {
@@ -252,14 +257,38 @@ class Service
         return $this->priority;
     }
 
- // Método setter com validação
- public function setPriority(string $priority): self
- {
-     if (!in_array($priority, self::VALID_PRIORITIES)) {
-         throw new \InvalidArgumentException('Prioridade inválida. Valores permitidos: BAIXA, NORMAL, ALTA, URGENTE');
-     }
-     
-     $this->priority = $priority;
-     return $this;
- }
+    // Método setter com validação
+    public function setPriority(string $priority): self
+    {
+        if (!in_array($priority, self::VALID_PRIORITIES)) {
+            throw new \InvalidArgumentException('Prioridade inválida. Valores permitidos: BAIXA, NORMAL, ALTA, URGENTE');
+        }
+
+        $this->priority = $priority;
+        return $this;
+    }
+
+    public function getAttachments(): Collection
+    {
+        return $this->attachments;
+    }
+
+    public function addAttachment(ServiceAttachment $attachment): self
+    {
+        if (!$this->attachments->contains($attachment)) {
+            $this->attachments->add($attachment);
+            $attachment->setService($this);
+        }
+        return $this;
+    }
+
+    public function removeAttachment(ServiceAttachment $attachment): self
+    {
+        if ($this->attachments->removeElement($attachment)) {
+            if ($attachment->getService() === $this) {
+                $attachment->setService(null);
+            }
+        }
+        return $this;
+    }
 }
