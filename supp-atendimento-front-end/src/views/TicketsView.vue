@@ -33,6 +33,20 @@
                   <v-select v-model="searchPriority" :items="priorityOptions" item-title="title" item-value="value"
                     label="Prioridade" outlined dense @change="handleFilter"></v-select>
                 </v-col>
+
+                <v-col cols="12" sm="3" class="d-flex align-center">
+                  <v-btn color="primary" @click="handleFilter" :loading="loading" class="me-2">
+                    <v-icon start>mdi-magnify</v-icon>
+                    Pesquisar
+                  </v-btn>
+
+                  <v-btn variant="outlined" @click="resetFilters" :disabled="loading">
+                    <v-icon start>mdi-refresh</v-icon>
+                    Limpar
+                  </v-btn>
+                </v-col>
+
+
               </v-row>
             </v-card-text>
           </v-card>
@@ -188,6 +202,21 @@ const applyFilters = () => {
   });
 };
 
+
+
+const resetFilters = () => {
+  // Limpa todos os campos de filtro
+  searchName.value = '';
+  searchStatus.value = '';
+  searchPriority.value = '';
+  
+  // Recarrega os dados
+  currentPage.value = 1;
+  loadTickets(1);
+};
+
+
+
 const handlePageChange = async (page) => {
   await loadTickets(page);
 };
@@ -271,11 +300,24 @@ const loadTickets = async (page = 1) => {
   }
 };
 
-const handleFilter = () => {
-  currentPage.value = 1; // Reseta para a primeira página ao filtrar
-  loadTickets(1);
+// Função para acionar a pesquisa
+const handleFilter = async () => {
+  try {
+    // Reseta para a primeira página
+    currentPage.value = 1;
+    
+    // Inicia o carregamento
+    loading.value = true;
+    
+    // Carrega os tickets com os filtros
+    await loadTickets(1);
+    
+  } catch (error) {
+    console.error('Erro ao filtrar tickets:', error);
+  } finally {
+    loading.value = false;
+  }
 };
-
 
 // Adicione um debounce para o campo de pesquisa por nome
 let searchTimeout;
@@ -310,6 +352,19 @@ onMounted(() => {
   align-items: center;
 }
 
+/* Adicione estes novos estilos */
+.v-btn {
+  text-transform: none !important;
+  font-weight: 500 !important;
+}
+
+.v-btn:hover {
+  opacity: 0.9;
+}
+
+.d-flex {
+  gap: 8px;
+}
 .dashboard {
   min-height: 100vh;
   background-color: #f3f4f6;
