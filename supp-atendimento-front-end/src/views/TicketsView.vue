@@ -12,9 +12,30 @@
               Novo Atendimento
             </v-btn>
           </div>
+          <!-- Filtros de Pesquisa -->
+          <v-card class="mb-4">
+            <v-card-text>
+              <v-row>
+                <v-col cols="12" sm="3">
+                  <v-text-field v-model="searchName" label="Pesquisar por Nome" outlined dense
+                    @input="handleSearchInput"></v-text-field>
+                </v-col>
+                <v-col cols="12" sm="3">
+                  <v-select v-model="searchStatus" :items="statusOptions" item-title="title" item-value="value"
+                    label="Status" outlined dense @change="handleFilter"></v-select>
+                </v-col>
+                <v-col cols="12" sm="3">
+                  <v-text-field v-model="searchDateRange" label="Intervalo de Datas" readonly outlined dense
+                    @change="fetchTickets"></v-text-field>
+                </v-col>
+                <v-col cols="12" sm="3">
 
-          <v-progress-linear v-if="loading" indeterminate color="primary" class="mb-4"></v-progress-linear>
-
+                  <v-select v-model="searchPriority" :items="priorityOptions" item-title="title" item-value="value"
+                    label="Prioridade" outlined dense @change="handleFilter"></v-select>
+                </v-col>
+              </v-row>
+            </v-card-text>
+          </v-card>
           <v-card class="tickets-table">
             <v-table hover>
               <thead>
@@ -91,6 +112,7 @@
 </template>
 
 <script setup>
+
 import { ref, onMounted } from 'vue';
 import { useRouter } from 'vue-router';
 import { format } from 'date-fns';
@@ -101,16 +123,19 @@ import AppSidebar from '@/components/common/AppSidebar.vue';
 import { useSidebar } from '@/composables/useSidebar';
 import { authService } from '@/services/auth.service';
 
+
+
+
 // Função para carregar os dados do usuário
 const carregarDadosUsuario = () => {
-    const userData = authService.getUser();
-    if (userData) {
-        nomeUsuario.value = userData.name; // Assume que o usuário tem uma propriedade 'name'
-        console.log('Dados do usuário carregados:', userData);
-    } else {
-        console.error('Dados do usuário não encontrados');
-        router.push('/login');
-    }
+  const userData = authService.getUser();
+  if (userData) {
+    nomeUsuario.value = userData.name; // Assume que o usuário tem uma propriedade 'name'
+    console.log('Dados do usuário carregados:', userData);
+  } else {
+    console.error('Dados do usuário não encontrados');
+    router.push('/login');
+  }
 };
 
 
@@ -127,6 +152,41 @@ const meta = ref({
   per_page: 5,
   total: 0
 });
+
+
+// Filtros de pesquisa
+const searchName = ref('');
+const searchStatus = ref('');
+const searchDateRange = ref([]);
+const searchPriority = ref('');
+const dateMenu = ref(false);
+
+const statusOptions = [
+  { title: 'Novo', value: 'NEW' },
+  { title: 'Aberto', value: 'OPEN' },
+  { title: 'Em Andamento', value: 'IN_PROGRESS' },
+  { title: 'Resolvido', value: 'RESOLVED' },
+  { title: 'Concluído', value: 'CONCLUDED' }
+];
+const priorityOptions = [
+  { title: 'Baixa', value: 'BAIXA' },
+  { title: 'Normal', value: 'NORMAL' },
+  { title: 'Alta', value: 'ALTA' },
+  { title: 'Urgente', value: 'URGENTE' }
+];
+
+const applyFilters = () => {
+  filteredTickets.value = tickets.value.filter(ticket => {
+    const matchesName = ticket.title.toLowerCase().includes(searchName.value.toLowerCase());
+    const matchesStatus = searchStatus.value ? ticket.status === searchStatus.value : true;
+    const matchesPriority = searchPriority.value ? ticket.priority === searchPriority.value : true;
+    const matchesDateRange = searchDateRange.value.length === 2 ?
+      new Date(ticket.dates.created) >= new Date(searchDateRange.value[0]) &&
+      new Date(ticket.dates.created) <= new Date(searchDateRange.value[1]) : true;
+
+    return matchesName && matchesStatus && matchesPriority && matchesDateRange;
+  });
+};
 
 const handlePageChange = async (page) => {
   await loadTickets(page);
@@ -163,33 +223,67 @@ const formatDate = (dateString) => {
 };
 
 const loadTickets = async (page = 1) => {
-    loading.value = true;
-    try {
-        if (!authService.isAuthenticated()) {
-            console.log('Usuário não autenticado');
-            router.push('/login');
-            return;
-        }
-
-        const response = await api.get(`/service/my-tickets?page=${page}`);
-        
-        if (response.data.success) {
-            tickets.value = response.data.data;
-            meta.value = response.data.meta;
-        } else {
-            tickets.value = [];
-        }
-    } catch (error) {
-        console.error('Erro ao carregar tickets:', error);
-        tickets.value = [];
-        
-        if (error.response?.status === 401) {
-            authService.logout();
-            router.push('/login');
-        }
-    } finally {
-        loading.value = false;
+  loading.value = true;
+  try {
+    if (!authService.isAuthenticated()) {
+      console.log('Usuário não autenticado');
+      router.push('/login');
+      return;
     }
+
+
+
+    // Construir os parâmetros de filtro
+    const params = new URLSearchParams({
+      page: page.toString()
+    });
+    // Adicionar filtros apenas se tiverem valor
+    if (searchName.value) {
+      params.append('title', searchName.value);
+    }
+    if (searchStatus.value) {
+      params.append('status', searchStatus.value);
+    }
+    if (searchPriority.value) {
+      params.append('priority', searchPriority.value);
+    }
+
+
+    const response = await api.get(`/service/my-tickets?${params.toString()}`);
+
+
+    if (response.data.success) {
+      tickets.value = response.data.data;
+      meta.value = response.data.meta;
+    } else {
+      tickets.value = [];
+    }
+  } catch (error) {
+    console.error('Erro ao carregar tickets:', error);
+    tickets.value = [];
+
+    if (error.response?.status === 401) {
+      authService.logout();
+      router.push('/login');
+    }
+  } finally {
+    loading.value = false;
+  }
+};
+
+const handleFilter = () => {
+  currentPage.value = 1; // Reseta para a primeira página ao filtrar
+  loadTickets(1);
+};
+
+
+// Adicione um debounce para o campo de pesquisa por nome
+let searchTimeout;
+const handleSearchInput = () => {
+  clearTimeout(searchTimeout);
+  searchTimeout = setTimeout(() => {
+    handleFilter();
+  }, 500); // Aguarda 500ms após o usuário parar de digitar
 };
 
 const createTicket = () => router.push('/tickets/create');
