@@ -4,9 +4,14 @@ namespace App\EventListener;
 use Lexik\Bundle\JWTAuthenticationBundle\Event\AuthenticationSuccessEvent;
 use App\Entity\User;
 use App\Entity\Attendant;
+use Doctrine\ORM\EntityManagerInterface;
 
 class AuthenticationSuccessListener
 {
+    public function __construct(
+        private EntityManagerInterface $entityManager
+    ) {}
+
     public function onAuthenticationSuccess(AuthenticationSuccessEvent $event): void
     {
         $data = $event->getData();
@@ -14,19 +19,25 @@ class AuthenticationSuccessListener
         $token = $data['token'];
 
         // Para atendentes
-        if ($user instanceof Attendant) {
-            $responseData = [
+        if ($user instanceof User && $user->isIsAttendant()) {
+
+            $attendant = $this->entityManager->getRepository(\App\Entity\Attendant::class)
+            ->findOneBy(['user' => $user]);
+
+               $responseData = [
                 'success' => true,
                 'data' => [
                     'attendant' => [
                         'id' => $user->getId(),
                         'name' => $user->getName(),
                         'email' => $user->getEmail(),
-                        'function' => $user->getFunction(),
-                        'sector' => [
-                            'id' => $user->getSector()?->getId(),
-                            'name' => $user->getSector()?->getName()
+                        'attendant' => [ 
+                            'function' => $attendant->getFunction(),
+                            'sector' => [
+                                'id' => $attendant->getSector()?->getId(),
+                                'name' => $attendant->getSector()?->getName()
                         ],
+                       ]
                     ],
                     'token' => $token
                 ]

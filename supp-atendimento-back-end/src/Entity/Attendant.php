@@ -1,15 +1,12 @@
 <?php
-
 namespace App\Entity;
 
 use App\Repository\AttendantRepository;
 use Doctrine\ORM\Mapping as ORM;
 use Symfony\Component\Security\Core\User\UserInterface;
-use Symfony\Component\Security\Core\User\PasswordAuthenticatedUserInterface;
-
 
 #[ORM\Entity(repositoryClass: AttendantRepository::class)]
-class Attendant implements UserInterface, PasswordAuthenticatedUserInterface
+class Attendant
 {
     #[ORM\Id]
     #[ORM\GeneratedValue]
@@ -28,14 +25,10 @@ class Attendant implements UserInterface, PasswordAuthenticatedUserInterface
     #[ORM\Column(length: 100)]
     private ?string $function = null;
 
-    #[ORM\Column(length: 180, unique: true, nullable:false)]
-    private ?string $email = null;
-
-    #[ORM\Column(length: 255)]
-    private ?string $password = null;
-
-    #[ORM\Column(type: 'json')]
-    private array $roles = ['ROLE_ATTENDANT'];
+    // Novo relacionamento com User
+    #[ORM\OneToOne(inversedBy: 'attendant')]
+    #[ORM\JoinColumn(name: 'user_id', referencedColumnName: 'id', nullable: false)]
+    private ?User $user = null;
 
     public function getId(): ?int
     {
@@ -50,7 +43,6 @@ class Attendant implements UserInterface, PasswordAuthenticatedUserInterface
     public function setName(string $name): static
     {
         $this->name = $name;
-
         return $this;
     }
 
@@ -62,7 +54,6 @@ class Attendant implements UserInterface, PasswordAuthenticatedUserInterface
     public function setSector(?Sector $sector): static
     {
         $this->sector = $sector;
-
         return $this;
     }
 
@@ -74,7 +65,6 @@ class Attendant implements UserInterface, PasswordAuthenticatedUserInterface
     public function setStatus(string $status): static
     {
         $this->status = $status;
-
         return $this;
     }
 
@@ -86,53 +76,29 @@ class Attendant implements UserInterface, PasswordAuthenticatedUserInterface
     public function setFunction(string $function): static
     {
         $this->function = $function;
-
         return $this;
     }
 
-    public function getEmail(): ?string
+    public function getUser(): ?User
     {
-        return $this->email;
+        return $this->user;
     }
 
-    public function setEmail(string $email): self
+    public function setUser(?User $user): static
     {
-        $this->email = $email;
+        $this->user = $user;
         return $this;
     }
 
-    public function getRoles(): array
-    {
-        $roles = $this->roles;
-        $roles[] = 'ROLE_ATTENDANT';
-        return array_unique($roles);
-    }
-
-    public function setRoles(array $roles): self
-    {
-        $this->roles = $roles;
-        return $this;
-    }
-
-    public function getPassword(): string
-    {
-        return $this->password;
-    }
-
-    public function setPassword(string $password): self
-    {
-        $this->password = $password;
-        return $this;
-    }
-
-    public function getUserIdentifier(): string
-    {
-        return $this->email;
-    }
-
-    public function eraseCredentials(): void
-    {
-        // Se necessário limpar dados sensíveis temporários
-    }
-
+     // Método para acessar o email através do User associado
+     public function getEmail(): ?string
+     {
+         return $this->user?->getEmail();
+     }
+ 
+     // Método para acessar o password através do User associado
+     public function getPassword(): ?string
+     {
+         return $this->user?->getPassword();
+     }
 }
