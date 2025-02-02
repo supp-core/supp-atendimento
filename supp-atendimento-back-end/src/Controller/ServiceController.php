@@ -22,11 +22,11 @@ class ServiceController extends AbstractController
     public function __construct(
         EntityManagerInterface $entityManager,
         ServiceManager $serviceManager
-        
-        ) {
-            $this->entityManager = $entityManager;
-            $this->serviceManager = $serviceManager;
-        }
+
+    ) {
+        $this->entityManager = $entityManager;
+        $this->serviceManager = $serviceManager;
+    }
 
     #[Route('', methods: ['POST'])]
     public function create(Request $request): JsonResponse
@@ -143,7 +143,7 @@ class ServiceController extends AbstractController
             // Obtém parâmetros de paginação
             $page = $request->query->get('page', 1);
             $perPage = $request->query->get('per_page', 10);
-            
+
             // Cria query builder
             $queryBuilder = $this->entityManager->getRepository(Service::class)
                 ->createQueryBuilder('s')
@@ -154,16 +154,16 @@ class ServiceController extends AbstractController
                 ->where('a.id = :attendantId')
                 ->setParameter('attendantId', $id)
                 ->orderBy('s.date_create', 'DESC');
-    
+
             // Conta total de registros
             $total = count($queryBuilder->getQuery()->getResult());
-    
+
             // Aplica paginação
             $queryBuilder->setFirstResult(($page - 1) * $perPage)
                 ->setMaxResults($perPage);
-    
+
             $services = $queryBuilder->getQuery()->getResult();
-    
+
             $response = array_map(function ($service) {
                 return [
                     'id' => $service->getId(),
@@ -186,7 +186,7 @@ class ServiceController extends AbstractController
                     ],
                 ];
             }, $services);
-    
+
             return new JsonResponse([
                 'success' => true,
                 'data' => $response,
@@ -374,140 +374,151 @@ class ServiceController extends AbstractController
 
     // Then modify the ServiceController.php to use this new method:
 
-        #[Route('/my-tickets', methods: ['GET'])]
-        public function listUserTickets(Request $request): JsonResponse
-        {
-            try {
-                $user = $this->getUser();
-    
-                if (!$user) {
-                    return new JsonResponse([
-                        'success' => false,
-                        'message' => 'User not authenticated'
-                    ], 401);
-                }
-    
-                // Get pagination parameters from request
-                $page = $request->query->get('page', 1);
-                $perPage = $request->query->get('per_page', 10);
-    
-                $queryBuilder = $this->serviceManager->createQueryBuilderForUserTickets($user);
-    
-                // Get total items before applying pagination
-                $total = count($queryBuilder->getQuery()->getResult());
-                // Calcula os metadados da paginação
-                $lastPage = max(1, ceil($total / $perPage));
-                $currentPage = min($page, $lastPage); // Garante que não ultrapasse o número de páginas
-                $offset = ($currentPage - 1) * $perPage;
-                // Apply pagination
-                $queryBuilder->setFirstResult(($page - 1) * $perPage)
-                    ->setMaxResults($perPage);
-    
-                $services = $queryBuilder->getQuery()->getResult();
-    
-                // Transform the services into a format suitable for JSON response
-                $response = array_map(function ($service) {
-                    return [
-                        'id' => $service->getId(),
-                        'title' => $service->getTitle(),
-                        'description' => $service->getDescription(),
-                        'status' => $service->getStatus(),
-                        'sector' => [
-                            'id' => $service->getSector()?->getId(),
-                            'name' => $service->getSector()?->getName(),
-                        ],
-                        'requester' => [
-                            'id' => $service->getRequester()?->getId(),
-                            'name' => $service->getRequester()?->getName(),
-                            'email' => $service->getRequester()?->getEmail(),
-                        ],
-                        'responsible' => [
-                            'id' => $service->getReponsible()?->getId(),
-                            'name' => $service->getReponsible()?->getName(),
-                            'function' => $service->getReponsible()?->getFunction(),
-                        ],
-                        'dates' => [
-                            'created' => $service->getDateCreate()?->format('Y-m-d H:i:s'),
-                            'updated' => $service->getDateUpdate()?->format('Y-m-d H:i:s'),
-                            'concluded' => $service->getDateConclusion()?->format('Y-m-d H:i:s'),
-                        ],
-                    ];
-                }, $services);
-    
-                return new JsonResponse([
-                    'success' => true,
-                    'data' => $response,
-                    'meta' => [
-                        'total' => $total,
-                        'per_page' => $perPage,
-                        'current_page' => $page,
-                        'last_page' => ceil($total / $perPage),
-    
-                    ]
-                ]);
-            } catch (\Exception $e) {
+    #[Route('/my-tickets', methods: ['GET'])]
+    public function listUserTickets(Request $request): JsonResponse
+    {
+        try {
+            $user = $this->getUser();
+
+            if (!$user) {
                 return new JsonResponse([
                     'success' => false,
-                    'message' => 'Error fetching tickets: ' . $e->getMessage()
-                ], 500);
+                    'message' => 'User not authenticated'
+                ], 401);
             }
-        }
+
+            $filters = [
+                'title' => $request->query->get('title'),
+                'status' => $request->query->get('status'),
+                'priority' => $request->query->get('priority')
+            ];
+
+            // Removemos filtros vazios
+            $filters = array_filter($filters, function ($value) {
+                return !is_null($value) && $value !== '';
+            });
 
 
+            // Get pagination parameters from request
+            $page = $request->query->get('page', 1);
+            $perPage = $request->query->get('per_page', 10);
 
-        // Em ServiceController.php
+            $queryBuilder = $this->serviceManager->createQueryBuilderForUserTickets($user, $filters);
 
-#[Route('/{id}/history', methods: ['GET'])]
-public function getServiceHistory(int $id): JsonResponse
-{
-    try {
-        $service = $this->serviceManager->findById($id);
-        
-        if (!$service) {
+            // Get total items before applying pagination
+            $total = count($queryBuilder->getQuery()->getResult());
+            // Calcula os metadados da paginação
+            $lastPage = max(1, ceil($total / $perPage));
+            $currentPage = min($page, $lastPage); // Garante que não ultrapasse o número de páginas
+            $offset = ($currentPage - 1) * $perPage;
+            // Apply pagination
+            $queryBuilder->setFirstResult(($page - 1) * $perPage)
+                ->setMaxResults($perPage);
+
+            $services = $queryBuilder->getQuery()->getResult();
+
+            // Transform the services into a format suitable for JSON response
+            $response = array_map(function ($service) {
+                return [
+                    'id' => $service->getId(),
+                    'title' => $service->getTitle(),
+                    'description' => $service->getDescription(),
+                    'status' => $service->getStatus(),
+                    'sector' => [
+                        'id' => $service->getSector()?->getId(),
+                        'name' => $service->getSector()?->getName(),
+                    ],
+                    'requester' => [
+                        'id' => $service->getRequester()?->getId(),
+                        'name' => $service->getRequester()?->getName(),
+                        'email' => $service->getRequester()?->getEmail(),
+                    ],
+                    'responsible' => [
+                        'id' => $service->getReponsible()?->getId(),
+                        'name' => $service->getReponsible()?->getName(),
+                        'function' => $service->getReponsible()?->getFunction(),
+                    ],
+                    'dates' => [
+                        'created' => $service->getDateCreate()?->format('Y-m-d H:i:s'),
+                        'updated' => $service->getDateUpdate()?->format('Y-m-d H:i:s'),
+                        'concluded' => $service->getDateConclusion()?->format('Y-m-d H:i:s'),
+                    ],
+                ];
+            }, $services);
+
+            return new JsonResponse([
+                'success' => true,
+                'data' => $response,
+                'meta' => [
+                    'total' => $total,
+                    'per_page' => $perPage,
+                    'current_page' => $page,
+                    'last_page' => ceil($total / $perPage),
+
+                ]
+            ]);
+        } catch (\Exception $e) {
             return new JsonResponse([
                 'success' => false,
-                'message' => 'Service not found'
-            ], 404);
+                'message' => 'Error fetching tickets: ' . $e->getMessage()
+            ], 500);
         }
-
-        // Obtém o histórico ordenado por data
-        $histories = $service->getHistories()->toArray();
-        
-        // Ordena o histórico pela data mais recente primeiro
-        usort($histories, function($a, $b) {
-            return $b->getDateHistory() <=> $a->getDateHistory();
-        });
-
-        // Formata a resposta
-        $response = array_map(function ($history) {
-            return [
-                'id' => $history->getId(),
-                'date' => $history->getDateHistory()->format('Y-m-d H:i:s'),
-                'status_prev' => $history->getStatusPrev(),
-                'status_post' => $history->getStatusPost(),
-                'comment' => $history->getComment(),
-                'responsible' => [
-                    'id' => $history->getResponsible()?->getId(),
-                    'name' => $history->getResponsible()?->getName(),
-                    'function' => $history->getResponsible()?->getFunction()
-                ],
-                'service' => [
-                    'id' => $history->getService()->getId(),
-                    'title' => $history->getService()->getTitle()
-                ]
-            ];
-        }, $histories);
-
-        return new JsonResponse([
-            'success' => true,
-            'data' => $response
-        ]);
-
-    } catch (\Exception $e) {
-        return new JsonResponse([
-            'success' => false,
-            'message' => 'Error fetching service history: ' . $e->getMessage()
-        ], 500);
     }
-}
+
+
+
+    // Em ServiceController.php
+
+    #[Route('/{id}/history', methods: ['GET'])]
+    public function getServiceHistory(int $id): JsonResponse
+    {
+        try {
+            $service = $this->serviceManager->findById($id);
+
+            if (!$service) {
+                return new JsonResponse([
+                    'success' => false,
+                    'message' => 'Service not found'
+                ], 404);
+            }
+
+            // Obtém o histórico ordenado por data
+            $histories = $service->getHistories()->toArray();
+
+            // Ordena o histórico pela data mais recente primeiro
+            usort($histories, function ($a, $b) {
+                return $b->getDateHistory() <=> $a->getDateHistory();
+            });
+
+            // Formata a resposta
+            $response = array_map(function ($history) {
+                return [
+                    'id' => $history->getId(),
+                    'date' => $history->getDateHistory()->format('Y-m-d H:i:s'),
+                    'status_prev' => $history->getStatusPrev(),
+                    'status_post' => $history->getStatusPost(),
+                    'comment' => $history->getComment(),
+                    'responsible' => [
+                        'id' => $history->getResponsible()?->getId(),
+                        'name' => $history->getResponsible()?->getName(),
+                        'function' => $history->getResponsible()?->getFunction()
+                    ],
+                    'service' => [
+                        'id' => $history->getService()->getId(),
+                        'title' => $history->getService()->getTitle()
+                    ]
+                ];
+            }, $histories);
+
+            return new JsonResponse([
+                'success' => true,
+                'data' => $response
+            ]);
+        } catch (\Exception $e) {
+            return new JsonResponse([
+                'success' => false,
+                'message' => 'Error fetching service history: ' . $e->getMessage()
+            ], 500);
+        }
+    }
 }

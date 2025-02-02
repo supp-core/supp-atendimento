@@ -54,8 +54,9 @@ class ServiceManager
         $service->setRequester($requester);
         $service->setStatus('new');
         $service->setDateCreate(new DateTime());
-
-        // Buscar atendente admin para atribuição automática
+        $priority = $data['priority'] ?? Service::PRIORITY_NORMAL;
+        $service->setPriority($priority);
+                // Buscar atendente admin para atribuição automática
         $adminAttendant = $this->findAdminAttendant();
         if ($adminAttendant) {
             $service->setReponsible($adminAttendant);
@@ -219,7 +220,7 @@ class ServiceManager
     public function getServicesByAttendant(int $attendantId): array
     {
         $attendant = $this->entityManager->getRepository(Attendant::class)->find($attendantId);
-        
+
         if (!$attendant) {
             throw new BadRequestException('Attendant not found');
         }
@@ -298,80 +299,87 @@ class ServiceManager
     }
 
 
-    public function getServicesByRequester($user,  int $page = 1, int $limit = 5): array
+    public function getServicesByRequester($user, int $page = 1, int $limit = 5, array $filters = []): array
     {
-
-
-        // Get the repository for Service entity
-        $serviceRepository = $this->entityManager->getRepository(Service::class);
-
-        // Create a QueryBuilder instance for complex query construction
-        $queryBuilder = $serviceRepository->createQueryBuilder('s');
-
-        // Build the query with necessary joins and conditions
+        $queryBuilder = $this->entityManager->createQueryBuilder();
         $queryBuilder
-            // Join with sector table to get sector information
+            ->select('s', 'sect', 'u', 'a', 'h')
+            ->from(Service::class, 's')
             ->leftJoin('s.sector', 'sect')
-            ->addSelect('sect')
-
-            // Join with requester (user) table to get requester information
             ->leftJoin('s.requester', 'u')
-            ->addSelect('u')
-
-            // Join with attendant table to get responsible attendant information
             ->leftJoin('s.reponsible', 'a')
-            ->addSelect('a')
-
-            // Join with service history to get the ticket history
             ->leftJoin('s.histories', 'h')
-            ->addSelect('h')
-
-            // Filter tickets by the requester's user ID
             ->where('s.requester = :userId')
-            ->setParameter('userId', $user)
+            ->setParameter('userId', $user);
 
-            // Order tickets by creation date, newest first
-            ->orderBy('s.date_create', 'DESC');
+        // Aplicar filtros
+        if (!empty($filters['title'])) {
+            $queryBuilder->andWhere('s.title LIKE :title')
+                ->setParameter('title', '%' . $filters['title'] . '%');
+        }
 
+        if (!empty($filters['status'])) {
+            $queryBuilder->andWhere('s.status = :status')
+                ->setParameter('status', $filters['status']);
+        }
+
+        if (!empty($filters['priority'])) {
+            $queryBuilder->andWhere('s.priority = :priority')
+                ->setParameter('priority', $filters['priority']);
+        }
+
+        // Ordenação
+        $queryBuilder->orderBy('s.date_create', 'DESC');
+
+        // Calcular total de itens para paginação
         $totalItemsQuery = clone $queryBuilder;
         $totalItems = count($totalItemsQuery->getQuery()->getResult());
 
-        // Add pagination
+        // Aplicar paginação
         $queryBuilder->setFirstResult(($page - 1) * $limit)
             ->setMaxResults($limit);
 
-        try {
-
-            $items = $queryBuilder->getQuery()->getResult();
-            // Execute the query and return results
-            return [
-                'items' => $items,
-                'total_items' => $totalItems,
-                'page' => $page,
-                'limit' => $limit,
-                'total_pages' => ceil($totalItems / $limit)
-            ];
-        } catch (\Exception $e) {
-            // Log the error for debugging (you should configure proper logging)
-            error_log("Error fetching services for user {$user}: " . $e->getMessage());
-
-            // Re-throw the exception to be handled by the controller
-            throw $e;
-        }
+        return [
+            'items' => $queryBuilder->getQuery()->getResult(),
+            'total_items' => $totalItems,
+            'page' => $page,
+            'limit' => $limit,
+            'total_pages' => ceil($totalItems / $limit)
+        ];
     }
 
 
-    public function createQueryBuilderForUserTickets($user)
+    public function createQueryBuilderForUserTickets($user, array $filters = [])
     {
-        return $this->entityManager->createQueryBuilder()
+        $queryBuilder = $this->entityManager->createQueryBuilder()
             ->select('s', 'sect', 'u', 'a')
             ->from(Service::class, 's')
             ->leftJoin('s.sector', 'sect')
             ->leftJoin('s.requester', 'u')
             ->leftJoin('s.reponsible', 'a')
             ->where('s.requester = :user')
-            ->setParameter('user', $user)
-            ->orderBy('s.date_create', 'DESC');
+            ->setParameter('user', $user);
+
+        // Aplicamos os filtros de forma dinâmica
+        if (!empty($filters['title'])) {
+            $queryBuilder->andWhere('s.title LIKE :title')
+                ->setParameter('title', '%' . $filters['title'] . '%');
+        }
+
+        if (!empty($filters['status'])) {
+            $queryBuilder->andWhere('s.status = :status')
+                ->setParameter('status', $filters['status']);
+        }
+
+        if (!empty($filters['priority'])) {
+            $queryBuilder->andWhere('s.priority = :priority')
+                ->setParameter('priority', $filters['priority']);
+        }
+
+        // Mantemos a ordenação padrão
+        $queryBuilder->orderBy('s.date_create', 'DESC');
+
+        return $queryBuilder;
     }
 
     // Em ServiceManager.php

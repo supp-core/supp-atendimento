@@ -11,6 +11,25 @@ use Doctrine\Common\Collections\Collection;
 #[ORM\Entity(repositoryClass: ServiceRepository::class)]
 class Service
 {
+
+
+
+    // Definimos as constantes para as prioridades permitidas
+    public const PRIORITY_LOW = 'BAIXA';
+    public const PRIORITY_NORMAL = 'NORMAL';
+    public const PRIORITY_HIGH = 'ALTA';
+    public const PRIORITY_URGENT = 'URGENTE';
+
+
+    // Lista de prioridades válidas para validação
+    public const VALID_PRIORITIES = [
+        self::PRIORITY_LOW,
+        self::PRIORITY_NORMAL,
+        self::PRIORITY_HIGH,
+        self::PRIORITY_URGENT
+    ];
+
+
     #[ORM\Id]
     #[ORM\GeneratedValue]
     #[ORM\Column]
@@ -25,8 +44,8 @@ class Service
     #[ORM\Column(length: 30)]
     private ?string $status = null;
 
-    #[ORM\Column(length: 20, options: ['default' => 'NORMAL'])]
-    private ?string $priority = 'NORMAL';
+    #[ORM\Column(length: 20, nullable: false, options: ['default' => 'NORMAL'])]
+    private string $priority = self::PRIORITY_NORMAL;
 
     #[ORM\ManyToOne(inversedBy: 'id_service')]
     #[ORM\JoinColumn(nullable: false)]
@@ -233,10 +252,14 @@ class Service
         return $this->priority;
     }
 
-    public function setPriority(string $priority): static
-    {
-        $this->priority = $priority;
-
-        return $this;
-    }
+ // Método setter com validação
+ public function setPriority(string $priority): self
+ {
+     if (!in_array($priority, self::VALID_PRIORITIES)) {
+         throw new \InvalidArgumentException('Prioridade inválida. Valores permitidos: BAIXA, NORMAL, ALTA, URGENTE');
+     }
+     
+     $this->priority = $priority;
+     return $this;
+ }
 }
