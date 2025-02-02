@@ -23,6 +23,51 @@ class AttendantController extends AbstractController
         private UserPasswordHasherInterface $passwordHasher
     ) {}
 
+
+    #[Route('', methods: ['GET'])]
+public function index(): JsonResponse
+{
+    try {
+
+    //    die('parou aqui');
+        // Busca todos os atendentes com seus respectivos setores e usuários
+        $queryBuilder = $this->entityManager->createQueryBuilder();
+        $queryBuilder
+            ->select('a', 's', 'u')
+            ->from(Attendant::class, 'a')
+            ->leftJoin('a.sector', 's')
+            ->leftJoin('a.user', 'u')
+            ->where('u.isAttendant = :isAttendant')
+            ->setParameter('isAttendant', true)
+            ->orderBy('a.name', 'ASC');
+
+        $attendants = $queryBuilder->getQuery()->getResult();
+
+        return new JsonResponse([
+            'success' => true,
+            'data' => array_map(function($attendant) {
+                return [
+                    'id' => $attendant->getId(),
+                    'name' => $attendant->getName(),
+                    'email' => $attendant->getUser()->getEmail(),
+                    'function' => $attendant->getFunction(),
+                    'status' => $attendant->getStatus(),
+                    'sector' => [
+                        'id' => $attendant->getSector()?->getId(),
+                        'name' => $attendant->getSector()?->getName()
+                    ]
+                ];
+            }, $attendants)
+        ]);
+    } catch (\Exception $e) {
+        return new JsonResponse([
+            'success' => false,
+            'message' => 'Erro ao buscar atendentes: ' . $e->getMessage()
+        ], 500);
+    }
+}
+
+
     #[Route('', methods: ['POST'])]
     public function create(Request $request): JsonResponse
     {

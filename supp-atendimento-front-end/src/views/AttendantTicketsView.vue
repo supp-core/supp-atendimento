@@ -408,7 +408,7 @@ const loadAttendants = async () => {
 // Carrega dados iniciais
 onMounted(() => {
   loadTickets()
-  /* loadAttendants()*/
+   loadAttendants()
 })
 </script>
 
