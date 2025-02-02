@@ -42,18 +42,16 @@
                   <td>{{ formatDate(ticket.dates.created) }}</td>
                   <td>{{ ticket.dates.concluded ? formatDate(ticket.dates.concluded) : '-' }}</td>
                   <td class="text-center">
-                    <v-btn icon="mdi-progression" size="small" color="primary" class="mr-2"
+                    <v-btn :prepend-icon="mdi - pencil - box - outline" size="small" color="primary" class="mr-2"
                       @click="openEvolveDialog(ticket)" :disabled="ticket.status === 'CONCLUDED'">
-                      <v-tooltip activator="parent" location="top">
-                        Evoluir
-                      </v-tooltip>
+                      Evoluir
                     </v-btn>
-                    <v-btn icon="mdi-account-switch" size="small" color="secondary" @click="openTransferDialog(ticket)"
-                      :disabled="ticket.status === 'CONCLUDED'">
-                      <v-tooltip activator="parent" location="top">
-                        Transferir
-                      </v-tooltip>
+
+                     <v-btn :prepend-icon="mdi - pencil - box - outline" size="small" color="primary" class="mr-2"
+                     @click="openTransferDialog(ticket)" :disabled="ticket.status === 'CONCLUDED'">
+                      Transferir
                     </v-btn>
+
                   </td>
                 </tr>
               </tbody>
@@ -302,7 +300,7 @@ const openEvolveDialog = async (ticket) => {
     comment: '',
     loading: false
   };
-  
+
   await loadServiceHistory(ticket.id);
 };
 
@@ -408,7 +406,7 @@ const loadAttendants = async () => {
 // Carrega dados iniciais
 onMounted(() => {
   loadTickets()
-   loadAttendants()
+  loadAttendants()
 })
 </script>
 

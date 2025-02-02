@@ -55,6 +55,12 @@ class ServiceManager
         $service->setStatus('new');
         $service->setDateCreate(new DateTime());
 
+        // Buscar atendente admin para atribuição automática
+        $adminAttendant = $this->findAdminAttendant();
+        if ($adminAttendant) {
+            $service->setReponsible($adminAttendant);
+        }
+
         // Persistir o serviço
         $this->entityManager->persist($service);
 
@@ -94,6 +100,19 @@ class ServiceManager
         }
 
         $this->entityManager->flush();
+    }
+
+    private function findAdminAttendant(): ?Attendant
+    {
+        return $this->entityManager->getRepository(Attendant::class)
+            ->createQueryBuilder('a')
+            ->where('a.function = :function')
+            ->andWhere('a.status = :status')
+            ->setParameter('function', 'Admin')
+            ->setParameter('status', 'ACTIVE')
+            ->setMaxResults(1)
+            ->getQuery()
+            ->getOneOrNullResult();
     }
 
     private function createServiceHistory(Service $service, string $prevStatus, string $newStatus, string $comment): void
@@ -199,16 +218,30 @@ class ServiceManager
 
     public function getServicesByAttendant(int $attendantId): array
     {
-        $serviceRepository = $this->entityManager->getRepository(Service::class);
+        $attendant = $this->entityManager->getRepository(Attendant::class)->find($attendantId);
+        
+        if (!$attendant) {
+            throw new BadRequestException('Attendant not found');
+        }
 
-        $queryBuilder = $serviceRepository->createQueryBuilder('s')
-            ->join('s.reponsible', 'a')
-            ->leftJoin('s.requester', 'u')
-            ->leftJoin('s.sector', 'sect')
+        $queryBuilder = $this->entityManager->createQueryBuilder();
+        $queryBuilder
             ->select('s', 'sect', 'u', 'a')
-            ->where('a.id = :attendantId')
-            ->setParameter('attendantId', $attendantId)
-            ->orderBy('s.date_create', 'DESC');
+            ->from(Service::class, 's')
+            ->leftJoin('s.sector', 'sect')
+            ->leftJoin('s.requester', 'u')
+            ->leftJoin('s.reponsible', 'a');
+
+        // Se for admin, retorna todos os tickets
+        if ($attendant->getFunction() === 'admin') {
+            $queryBuilder->where('1=1');
+        } else {
+            // Se não for admin, retorna apenas os tickets atribuídos ao atendente
+            $queryBuilder->where('s.reponsible = :attendantId')
+                ->setParameter('attendantId', $attendantId);
+        }
+
+        $queryBuilder->orderBy('s.date_create', 'DESC');
 
         return $queryBuilder->getQuery()->getResult();
     }
