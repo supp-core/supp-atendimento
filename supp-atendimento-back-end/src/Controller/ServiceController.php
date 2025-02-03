@@ -41,16 +41,31 @@ class ServiceController extends AbstractController
             }
 
 
-            $data = json_decode($request->getContent(), true);
-            $data['requester_id'] = $user;
+            $files = $request->files->get('files');
+
+            if (!is_array($files)) {
+                $files = [$files];
+            }
+            $data = [
+                'title' => $request->request->get('title'),
+                'description' => $request->request->get('description'),
+                'priority' => $request->request->get('priority'),
+                'sector_id' => $request->request->get('sector_id'),
+                'requester_id' => $user,
+                'files' =>$files // Pega os arquivos
+            ];
+
+           // $data = json_decode($request->getContent(), true);
+            //$data['requester_id'] = $user;
             $data['status'] = 'Novo'; // Status inicial do chamado
-            $data['date_create'] = new \DateTime(); // Data de criação
+            $data['date_create'] = new \DateTime(); // Data de criação*/
             $service = $this->serviceManager->createService($data);
 
             return new JsonResponse([
                 'success' => true,
                 'data' => [
                     'id' => $service->getId(),
+                    
                     'title' => $service->getTitle(),
                     'description' => $service->getDescription(),
                     'status' => $service->getStatus(),
@@ -66,7 +81,14 @@ class ServiceController extends AbstractController
                     ],
                     'dates' => [
                         'created' => $service->getDateCreate()->format('Y-m-d H:i:s')
-                    ]
+                    ],
+                    'attachments' => array_map(function($attachment) {
+                        return [
+                            'id' => $attachment->getId(),
+                            'filename' => $attachment->getFilename(),
+                            'originalFilename' => $attachment->getOriginalFilename()
+                        ];
+                    }, $service->getAttachments()->toArray())
                 ]
             ], 201);
         } catch (BadRequestException $e) {

@@ -19,13 +19,20 @@ use Twig\Environment;
 class ServiceManager
 {
     private const VALID_STATUS = ['NEW', 'OPEN', 'IN_PROGRESS', 'RESOLVED', 'CONCLUDED'];
-
+    private string $uploadDir;
 
     public function __construct(
         private EntityManagerInterface $entityManager,
         private AttachmentManager $attachmentManager,
         private MailerInterface $mailer,
-    ) {}
+        string $uploadDir = null
+    ) {
+
+        $this->uploadDir = $uploadDir ?? dirname(__DIR__, 2) . '/public/uploads/attachments';
+        if (!file_exists($this->uploadDir)) {
+            mkdir($this->uploadDir, 0777, true);
+        }
+    }
 
     public function findById(int $id): ?Service
     {
@@ -43,6 +50,8 @@ class ServiceManager
         // Buscar entidades relacionadas
         $sector = $this->entityManager->getRepository(Sector::class)->find($data['sector_id']);
         $requester = $this->entityManager->getRepository(User::class)->find($data['requester_id']);
+        // $requester = $data['requester_id']; 
+
 
         if (!$sector || !$requester) {
             throw new BadRequestException('Invalid sector or requester');
@@ -58,28 +67,37 @@ class ServiceManager
         $service->setDateCreate(new DateTime());
         $priority = $data['priority'] ?? Service::PRIORITY_NORMAL;
         $service->setPriority($priority);
-                // Buscar atendente admin para atribuição automática
+        // Buscar atendente admin para atribuição automática
         $adminAttendant = $this->findAdminAttendant();
         if ($adminAttendant) {
             $service->setReponsible($adminAttendant);
         }
 
-         // Processar anexos se existirem
-         if (!empty($data['files']) && is_array($data['files'])) {
+        // Dentro do método createService
+        if (!empty($data['files'])) {
             foreach ($data['files'] as $uploadedFile) {
-                if ($uploadedFile instanceof UploadedFile) {
-                    if ($this->attachmentManager->validateFile($uploadedFile)) {
-                        $filename = $this->attachmentManager->uploadFile($uploadedFile);
-                        
-                        $attachment = new ServiceAttachment();
-                        $attachment->setService($service);
-                        $attachment->setFilename($filename);
-                        $attachment->setOriginalFilename($uploadedFile->getClientOriginalName());
-                        $attachment->setMimeType($uploadedFile->getMimeType());
-                        $attachment->setFileSize($uploadedFile->getSize());
-                        
-                        $this->entityManager->persist($attachment);
-                        $service->addAttachment($attachment);
+                if ($uploadedFile instanceof UploadedFile && $uploadedFile->isValid()) {
+                    try {
+                        // Valida o arquivo
+                        if ($this->attachmentManager->validateFile($uploadedFile)) {
+                            // Faz o upload e obtém o nome do arquivo
+                            $filename = $this->attachmentManager->uploadFile($uploadedFile);
+    
+                            // Cria o registro do anexo
+                            $attachment = new ServiceAttachment();
+                            $attachment->setService($service);
+                            $attachment->setFilename($filename);
+                            $attachment->setOriginalFilename($uploadedFile->getClientOriginalName());
+                            $attachment->setMimeType($uploadedFile->getMimeType());
+                            $attachment->setFileSize($uploadedFile->getSize());
+    
+                            $this->entityManager->persist($attachment);
+                            $service->addAttachment($attachment);
+                        }
+                    } catch (\Exception $e) {
+                        // Log do erro específico
+                        error_log('Erro ao processar arquivo: ' . $e->getMessage());
+                        throw new BadRequestException('Erro ao processar arquivo: ' . $e->getMessage());
                     }
                 }
             }
@@ -101,11 +119,11 @@ class ServiceManager
         $this->entityManager->persist($history);
         $this->entityManager->flush();
 
-        
+
         return $service;
     }
 
-    public function updateServiceStatus(Service $service, string $newStatus, string $comment): void
+    public function updateServiceStatus(Service $service, string $newStatus, string $comment,  array $files = []): void
     {
         if (!in_array(strtoupper($newStatus), self::VALID_STATUS)) {
             throw new BadRequestException('Invalid status provided');
@@ -113,18 +131,21 @@ class ServiceManager
 
         $currentStatus = $service->getStatus();
 
-        foreach ($files as $file) {
-            if ($this->attachmentManager->validateFile($file)) {
-                $filename = $this->attachmentManager->uploadFile($file);
-                
-                $attachment = new ServiceAttachment();
-                $attachment->setService($service);
-                $attachment->setFilename($filename);
-                $attachment->setOriginalFilename($file->getClientOriginalName());
-                $attachment->setMimeType($file->getMimeType());
-                $attachment->setFileSize($file->getSize());
-                
-                $service->addAttachment($attachment);
+        if (!empty($files)) {
+            foreach ($files as $file) {
+                if ($this->attachmentManager->validateFile($file)) {
+                    $filename = $this->attachmentManager->uploadFile($file);
+
+                    $attachment = new ServiceAttachment();
+                    $attachment->setService($service);
+                    $attachment->setFilename($filename);
+                    $attachment->setOriginalFilename($file->getClientOriginalName());
+                    $attachment->setMimeType($file->getMimeType());
+                    $attachment->setFileSize($file->getSize());
+
+                    $this->entityManager->persist($attachment);
+                    $service->addAttachment($attachment);
+                }
             }
         }
         // Criar histórico da alteração
