@@ -47,8 +47,8 @@
                       Evoluir
                     </v-btn>
 
-                     <v-btn :prepend-icon="mdi - pencil - box - outline" size="small" color="primary" class="mr-2"
-                     @click="openTransferDialog(ticket)" :disabled="ticket.status === 'CONCLUDED'">
+                    <v-btn :prepend-icon="mdi - pencil - box - outline" size="small" color="primary" class="mr-2"
+                      @click="openTransferDialog(ticket)" :disabled="ticket.status === 'CONCLUDED'">
                       Transferir
                     </v-btn>
 
@@ -96,6 +96,51 @@
             </v-card-title>
 
             <v-card-text>
+
+
+
+
+              <div class="ticket-details mb-6">
+                <div class="ticket-header">
+                  <h3 class="ticket-title">{{ evolveDialog.ticket?.title }}</h3>
+                  <v-chip :color="getPriorityColor(evolveDialog.ticket?.priority)" size="small" class="priority-chip">
+                    {{ evolveDialog.ticket?.priority }}
+                  </v-chip>
+                </div>
+
+              </div>
+              <div class="description-container">
+
+                <div class="description-label">
+                  <v-icon icon="mdi-text-box-outline" class="mr-2"></v-icon>
+                  Descrição do Atendimento
+                </div>
+                <div class="description-content">
+                  {{ evolveDialog.ticket?.description }}
+                </div>
+                <div class="ticket-metadata">
+
+                  <div class="metadata-item">
+                    <v-icon size="small" class="mr-1">mdi-calendar</v-icon>
+                    <span class="metadata-label">Aberto em:</span>
+                    {{ formatDate(evolveDialog.ticket?.dates?.created) }}
+                  </div>
+                  <div class="metadata-item">
+                    <v-icon size="small" class="mr-1">mdi-account</v-icon>
+                    <span class="metadata-label">Solicitante:</span>
+                    {{ evolveDialog.ticket?.requester?.name }}
+                  </div>
+                </div>
+
+              </div>
+
+
+
+
+
+
+
+
               <!-- Formulário de nova evolução -->
               <div class="new-update-form mb-6">
                 <v-select v-model="evolveDialog.newStatus" :items="availableStatuses" label="Novo Status" required
@@ -262,11 +307,12 @@ const getStatusColor = (status) => {
 
 const translateStatus = (status) => {
   const translations = {
-    'NEW': 'Novo',
+    'new': 'Novo',
     'OPEN': 'Aberto',
     'IN_PROGRESS': 'Em Andamento',
     'RESOLVED': 'Resolvido',
-    'CONCLUDED': 'Concluído'
+    'CONCLUDED': 'Concluído',
+    'CLOSED': 'Fechado'
   }
   return translations[status] || status
 }
@@ -414,6 +460,94 @@ onMounted(() => {
 .dashboard {
   min-height: 100vh;
   background-color: #f3f4f6;
+}
+
+.ticket-details {
+  background-color: #f8f9fa;
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+
+.ticket-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 16px 20px;
+  background-color: #fff;
+  border-bottom: 1px solid #e9ecef;
+}
+
+
+.ticket-title {
+  font-size: 1.1rem;
+  font-weight: 500;
+  color: #1a237e;
+  margin: 0;
+}
+
+.priority-chip {
+  font-weight: 500;
+}
+
+.description-container {
+  padding: 20px;
+  background-color: #ffffff;
+  border-radius: 0 0 8px 8px;
+}
+
+.description-label {
+  display: flex;
+  align-items: center;
+  font-size: 0.95rem;
+  font-weight: 500;
+  color: #495057;
+  margin-bottom: 12px;
+}
+
+.description-content {
+  font-size: 0.95rem;
+  line-height: 1.6;
+  color: #212529;
+  padding: 16px;
+  background-color: #f8f9fa;
+  border-radius: 6px;
+  border: 1px solid #e9ecef;
+  white-space: pre-wrap;
+  margin-bottom: 16px;
+}
+
+.ticket-metadata {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 16px;
+  padding-top: 12px;
+  border-top: 1px solid #e9ecef;
+}
+
+.metadata-item {
+  display: flex;
+  align-items: center;
+  font-size: 0.85rem;
+  color: #6c757d;
+}
+
+.metadata-label {
+  font-weight: 500;
+  margin-right: 4px;
+  margin-left: 4px;
+}
+
+/* Efeito hover suave */
+.description-container:hover {
+  box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+  transition: box-shadow 0.3s ease;
+}
+
+/* Estilo para texto selecionado */
+.description-content::selection {
+  background-color: #e3f2fd;
+  color: #1a237e;
 }
 
 .dashboard-layout {

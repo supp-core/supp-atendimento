@@ -14,7 +14,8 @@
           </div>
 
           <div class="form-card">
-            <form @submit.prevent="handleSubmit" ref="form">
+
+            <form @submit.prevent="submitForm" ref="form" enctype="multipart/form-data">
               <!-- Título do Chamado -->
               <div class="form-group">
                 <label for="title">Título do Chamado*</label>
@@ -40,45 +41,28 @@
                   placeholder="Descreva detalhadamente o problema"></textarea>
               </div>
 
-              <div class="form-actions">
-                <button type="button" class="button button-secondary" @click="$router.back()">
-                  Cancelar
-                </button>
-                <button type="submit" class="button button-primary" :disabled="loading">
-                  {{ loading ? 'Criando...' : 'Criar Atendimento' }}
-                </button>
+              <div class="anexos">
+                <label for="fileInput">Anexos</label>
+                <input type="file" id="fileInput" ref="fileInput" @change="handleFileSelect" multiple accept=".pdf,.docx,.jpg,.png,.gif">
+                <div v-if="selectedFiles.length > 0" class="selected-files">
+                  <div v-for="(file, index) in selectedFiles" :key="index" class="file-item">
+                    {{ file.name }}
+                    <button type="button" @click="removeFile(index)" class="remove-file">×</button>
+                  </div>
+                </div>
+              </div>
+
+              <div class="actions">
+                <v-btn @click="cancelar">Cancelar</v-btn>
+                <v-btn type="submit" color="primary" :loading="loading" :disabled="loading">
+                  Criar Atendimento
+                </v-btn>
               </div>
             </form>
           </div>
 
 
-          <div class="form-group">
-    <label>Anexos</label>
-    <div class="file-upload-area" @dragover.prevent @drop.prevent="handleFileDrop">
-      <input 
-        type="file" 
-        ref="fileInput" 
-        multiple 
-        @change="handleFileSelect" 
-        accept=".pdf,.docx,.jpg,.jpeg,.png,.gif"
-        style="display: none"
-      >
-      <div class="upload-zone" @click="$refs.fileInput.click()">
-        <span v-if="!selectedFiles.length">
-          Arraste arquivos aqui ou clique para selecionar
-        </span>
-        <div v-else class="selected-files">
-          <div v-for="file in selectedFiles" :key="file.name" class="file-item">
-            <span>{{ file.name }}</span>
-            <button @click.prevent="removeFile(file)">×</button>
-          </div>
-        </div>
-      </div>
-    </div>
-    <small class="text-muted">
-      Formatos aceitos: PDF, DOCX, JPG, PNG, GIF. Tamanho máximo por arquivo: 10MB
-    </small>
-  </div>
+
 
           <!-- Mensagem de feedback -->
           <div v-if="feedback.show" :class="['feedback-message', feedback.type]">
@@ -98,11 +82,15 @@ import AppHeader from '@/components/common/AppHeader.vue';
 import AppSidebar from '@/components/common/AppSidebar.vue';
 import api from '@/services/api';
 
+
 const router = useRouter();
 const { sidebarCollapsed } = useSidebar();
 const form = ref(null);
 const loading = ref(false);
 const sectors = ref([]);
+const priority = ref('NORMAL');
+const selectedFiles = ref([]);
+
 
 const formData = ref({
   title: '',
@@ -118,6 +106,9 @@ const feedback = ref({
   type: 'success'
 });
 
+
+
+
 const loadSectors = async () => {
   try {
     const response = await api.get('/sectors');
@@ -126,6 +117,18 @@ const loadSectors = async () => {
     showFeedback('Erro ao carregar setores', 'error');
   }
 };
+
+const handleFileSelect = (event) => {
+  const files = event.target.files;
+  for (let i = 0; i < files.length; i++) {
+    selectedFiles.value.push(files[i]);
+  }
+};
+
+const removeFile = (index) => {
+  selectedFiles.value.splice(index, 1);
+};
+
 
 const showFeedback = (message, type = 'success') => {
   feedback.value = {
@@ -147,13 +150,13 @@ const handleSubmit = async () => {
   loading.value = true;
 
   try {
-     // Adiciona o setor Admin automaticamente
-     const dataToSubmit = {
+    // Adiciona o setor Admin automaticamente
+    const dataToSubmit = {
       ...formData.value,
       sector_id: 5 // ID do setor Admin
     };
 
-    console.log('DaTA SUBMIt ',dataToSubmit);
+    console.log('DaTA SUBMIt ', dataToSubmit);
 
     const response = await api.post('/service', dataToSubmit);
 
@@ -173,9 +176,84 @@ const handleSubmit = async () => {
 onMounted(() => {
   loadSectors();
 });
+
+
+
+
+const handleFileUpload = (event) => {
+  files.value = event.target.files;
+};
+
+
+const submitForm = async () => {
+    try {
+        loading.value = true;
+        
+        // Criação do FormData para envio
+        const submitData = new FormData();
+        
+        // Adicionando campos básicos
+        submitData.append('title', formData.value.title);
+        submitData.append('description', formData.value.description);
+        submitData.append('priority', formData.value.priority);
+        submitData.append('sector_id', '5');
+        
+        // Adicionando arquivos
+        if (selectedFiles.value.length > 0) {
+            selectedFiles.value.forEach((file, index) => {
+                submitData.append(`files[]`, file); // Mudamos para files[]
+            });
+        }
+
+        // Envio para a API
+        const response = await api.post('/service', submitData, {
+            headers: {
+                'Content-Type': 'multipart/form-data'
+            }
+        });
+
+        if (response.data.success) {
+             alert('Atendimento criado com sucesso!');
+            router.push('/tickets');
+        }
+    } catch (error) {
+        console.error('Erro ao criar ticket:', error);
+    } finally {
+        loading.value = false;
+    }
+};
+
+
+const cancelar = () => {
+  router.push('/tickets');
+};
+
 </script>
 
 <style scoped>
+.anexos {
+  margin: 1rem 0;
+}
+
+
+.anexos small {
+  color: #666;
+  font-size: 0.875rem;
+}
+
+
+.actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 1rem;
+  margin-top: 1rem;
+}
+
+.anexos input[type="file"] {
+  display: block;
+  margin: 0.5rem 0;
+}
+
 .dashboard {
   min-height: 100vh;
   background-color: #f3f4f6;
@@ -323,15 +401,13 @@ export default {
     }
   },
   methods: {
-    handleFileSelect(event) {
-      this.addFiles(event.target.files)
-    },
+  
     handleFileDrop(event) {
       this.addFiles(event.dataTransfer.files)
     },
     addFiles(fileList) {
       const maxSize = 10 * 1024 * 1024 // 10MB
-      
+
       Array.from(fileList).forEach(file => {
         if (file.size <= maxSize) {
           this.selectedFiles.push(file)
@@ -343,23 +419,20 @@ export default {
         }
       })
     },
-    removeFile(file) {
-      const index = this.selectedFiles.indexOf(file)
-      this.selectedFiles.splice(index, 1)
-    },
+  
     async handleSubmit() {
       const formData = new FormData()
-      
+
       // Adicionar dados do ticket
       formData.append('title', this.title)
       formData.append('description', this.description)
       formData.append('priority', this.priority)
-      
+
       // Adicionar arquivos
       this.selectedFiles.forEach((file, index) => {
         formData.append(`attachments[${index}]`, file)
       })
-      
+
       try {
         await this.createTicket(formData)
         // ... continua
