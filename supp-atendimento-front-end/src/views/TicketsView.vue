@@ -60,7 +60,7 @@
                   <th class="px-4 py-3">Setor</th>
                   <th class="px-4 py-3">Responsável</th>
                   <th class="px-4 py-3">Data de Criação</th>
-                  <th class="px-4 py-3">Ações</th>
+                  <th class="px-4 py-3">Acompanhar</th>
                 </tr>
               </thead>
               <tbody>
@@ -81,7 +81,7 @@
                   <td class="px-4 py-3">{{ formatDate(ticket.dates.created) }}</td>
                   <td class="px-4 py-3">
                     <div class="d-flex gap-2">
-                      <v-btn variant="text" density="comfortable" size="small" @click="viewTicket(ticket.id)"
+                      <v-btn variant="text" density="comfortable" size="small" @click="openTicketDetails(ticket)"
                         class="action-button" title="Acompanhar Ticket">
                         <span class="icon-text">📄</span>
 
@@ -125,10 +125,17 @@
       </div>
     </div>
   </div>
+
+   <!-- Adicione o componente do modal ao final do template, antes do fechamento da última div -->
+   <TicketDetailsModal
+    v-model="showDetailsModal"
+    :ticket="selectedTicket"
+  />
 </template>
 
 <script setup>
 
+import TicketDetailsModal from '@/components/tickets/TicketDetailsModal.vue'
 import { ref, onMounted } from 'vue';
 import { useRouter } from 'vue-router';
 import { format } from 'date-fns';
@@ -140,7 +147,8 @@ import { useSidebar } from '@/composables/useSidebar';
 import { authService } from '@/services/auth.service';
 
 
-
+const selectedTicket = ref(null)
+const showDetailsModal = ref(false)
 
 // Função para carregar os dados do usuário
 const carregarDadosUsuario = () => {
@@ -154,6 +162,26 @@ const carregarDadosUsuario = () => {
   }
 };
 
+
+// Adicione a função que abre o modal
+const openTicketDetails = async (ticket) => {
+  try {
+    console.log('Abrindo detalhes do ticket:', ticket) // Log para debug
+    selectedTicket.value = ticket
+    showDetailsModal.value = true
+    
+    // Carrega o histórico do ticket
+    const response = await api.get(`/service/${ticket.id}/history`)
+    if (response.data.success) {
+      selectedTicket.value = {
+        ...ticket,
+        histories: response.data.data
+      }
+    }
+  } catch (error) {
+    console.error('Erro ao carregar detalhes do ticket:', error)
+  }
+}
 
 const { sidebarCollapsed } = useSidebar();
 const router = useRouter();

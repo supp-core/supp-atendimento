@@ -30,7 +30,7 @@
                   <td>{{ ticket.title }}</td>
                   <td>
                     <v-chip :color="getPriorityColor(ticket.priority)"
-                      :text-color="getPriorityTextColor(ticket.priority)" size="small">
+                      :text-color="getPriorityTextColor(ticket.priority)" size="small" class="priority-chip">
                       {{ ticket.priority }}
                     </v-chip>
                   </td>
@@ -540,7 +540,7 @@ onMounted(() => {
 
 /* Efeito hover suave */
 .description-container:hover {
-  box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
   transition: box-shadow 0.3s ease;
 }
 

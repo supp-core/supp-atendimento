@@ -44,6 +44,12 @@ const routes = [
     name: 'attendant-tickets',
     component: () => import('@/views/AttendantTicketsView.vue'),
     meta: { requiresAttendantAuth: true }
+  },
+  {
+    path: '/tickets/:id',
+    name: 'ticket-details',
+    component: () => import('@/views/TicketsView.vue'),
+    props: true
   }
 ];
 
