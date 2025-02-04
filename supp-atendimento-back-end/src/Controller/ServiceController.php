@@ -52,10 +52,10 @@ class ServiceController extends AbstractController
                 'priority' => $request->request->get('priority'),
                 'sector_id' => $request->request->get('sector_id'),
                 'requester_id' => $user,
-                'files' =>$files // Pega os arquivos
+                'files' => $files // Pega os arquivos
             ];
 
-           // $data = json_decode($request->getContent(), true);
+            // $data = json_decode($request->getContent(), true);
             //$data['requester_id'] = $user;
             $data['status'] = 'Novo'; // Status inicial do chamado
             $data['date_create'] = new \DateTime(); // Data de criação*/
@@ -65,7 +65,7 @@ class ServiceController extends AbstractController
                 'success' => true,
                 'data' => [
                     'id' => $service->getId(),
-                    
+
                     'title' => $service->getTitle(),
                     'description' => $service->getDescription(),
                     'status' => $service->getStatus(),
@@ -82,7 +82,7 @@ class ServiceController extends AbstractController
                     'dates' => [
                         'created' => $service->getDateCreate()->format('Y-m-d H:i:s')
                     ],
-                    'attachments' => array_map(function($attachment) {
+                    'attachments' => array_map(function ($attachment) {
                         return [
                             'id' => $attachment->getId(),
                             'filename' => $attachment->getFilename(),
@@ -174,11 +174,40 @@ class ServiceController extends AbstractController
                 ->leftJoin('s.sector', 'sect')
                 ->select('s', 'sect', 'u', 'a')
                 ->where('a.id = :attendantId')
-                ->setParameter('attendantId', $id)
-                ->orderBy('s.date_create', 'DESC');
+                ->setParameter('attendantId', $id);
+        
 
+            // Aplicar filtro por título
+            if ($title = $request->query->get('title')) {
+                $queryBuilder->andWhere('s.title LIKE :title')
+                    ->setParameter('title', '%' . $title . '%');
+            }
+
+            // Aplicar filtro por solicitante
+            if ($requester = $request->query->get('requester')) {
+                $queryBuilder->andWhere('u.name LIKE :requester')
+                    ->setParameter('requester', '%' . $requester . '%');
+            }
+
+            // Aplicar filtro por status
+            if ($status = $request->query->get('status')) {
+                $queryBuilder->andWhere('s.status = :status')
+                    ->setParameter('status', $status);
+            }
+
+            // Aplicar filtro por prioridade
+            if ($priority = $request->query->get('priority')) {
+                $queryBuilder->andWhere('s.priority = :priority')
+                    ->setParameter('priority', $priority);
+            }
+
+           
+            // Ordenação padrão
+          $queryBuilder->orderBy('s.date_create', 'DESC');
+ 
+          $totalBuilder = clone $queryBuilder;
             // Conta total de registros
-            $total = count($queryBuilder->getQuery()->getResult());
+            $total =  count($totalBuilder->getQuery()->getResult());
 
             // Aplica paginação
             $queryBuilder->setFirstResult(($page - 1) * $perPage)

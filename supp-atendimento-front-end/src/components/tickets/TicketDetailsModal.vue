@@ -224,6 +224,7 @@
     dialogVisible.value = false
   }
   
+  
  /* const downloadAttachment = (attachment) => {
     // Implementar lógica de download do arquivo
     console.log('Downloading attachment:', attachment)

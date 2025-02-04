@@ -9,15 +9,59 @@
             <h2 class="text-h5 font-weight-medium">Meus Atendimentos</h2>
           </div>
 
+          <v-card class="mb-4">
+            <v-card-text>
+              <v-row>
+                <!-- Campo de pesquisa por título -->
+                <v-col cols="12" sm="3">
+                  <v-text-field v-model="searchTitle" label="Pesquisar por Título" outlined dense
+                    @input="handleSearchInput"></v-text-field>
+                </v-col>
+
+                <!-- Campo de pesquisa por solicitante -->
+                <v-col cols="12" sm="3">
+                  <v-text-field v-model="searchRequester" label="Pesquisar por Solicitante" outlined dense
+                    @input="handleSearchInput"></v-text-field>
+                </v-col>
+
+                <!-- Filtro de Status -->
+                <v-col cols="12" sm="3">
+                  <v-select v-model="searchStatus" :items="statusOptions" label="Status" outlined dense
+                    @change="handleFilter"></v-select>
+                </v-col>
+
+                <!-- Filtro de Prioridade -->
+                <v-col cols="12" sm="3">
+                  <v-select v-model="searchPriority" :items="priorityOptions" label="Prioridade" outlined dense
+                    @change="handleFilter"></v-select>
+                </v-col>
+
+                <!-- Nova linha para botões -->
+                <v-col cols="12" class="d-flex align-center mt-2">
+                  <v-btn color="primary" @click="handleSearch" :loading="loading" class="me-2">
+                    <v-icon start>mdi-magnify</v-icon>
+                    Pesquisar
+                  </v-btn>
+
+                  <v-btn variant="outlined" @click="resetFilters" :disabled="loading">
+                    <v-icon start>mdi-refresh</v-icon>
+                    Limpar
+                  </v-btn>
+                </v-col>
+              </v-row>
+            </v-card-text>
+          </v-card>
           <v-card class="tickets-table">
             <!-- Barra de carregamento -->
             <v-progress-linear v-if="loading" indeterminate color="primary" class="mb-4"></v-progress-linear>
+
 
             <!-- Tabela de tickets -->
             <v-table hover>
               <thead>
                 <tr>
                   <th class="text-left">Título</th>
+                  <th class="text-left">Solicitante</th>
                   <th class="text-left">Prioridade</th>
                   <th class="text-left">Status</th>
                   <th class="text-left">Data Criação</th>
@@ -28,6 +72,7 @@
               <tbody>
                 <tr v-for="ticket in sortedTickets" :key="ticket.id">
                   <td>{{ ticket.title }}</td>
+                  <td>{{ ticket.requester?.name }}</td> <!-- Nova célula -->
                   <td>
                     <v-chip :color="getPriorityColor(ticket.priority)"
                       :text-color="getPriorityTextColor(ticket.priority)" size="small" class="priority-chip">
@@ -227,6 +272,44 @@ const { sidebarCollapsed } = useSidebar()
 const loading = ref(false)
 const tickets = ref([])
 
+// Função principal de pesquisa
+const handleSearch = async () => {
+  try {
+    // Reseta para a primeira página antes de pesquisar
+    currentPage.value = 1;
+    
+    // Inicia o carregamento
+    loading.value = true;
+    
+    // Carrega os tickets com os filtros atuais
+    await loadTickets(1);
+    
+  } catch (error) {
+    console.error('Erro ao pesquisar tickets:', error);
+  } finally {
+    loading.value = false;
+  }
+};
+
+
+const resetFilters = () => {
+  // Limpa todos os campos de filtro
+  searchTitle.value = '';
+  searchRequester.value = '';
+  searchStatus.value = '';
+  searchPriority.value = '';
+  
+  // Recarrega os dados sem filtros
+  currentPage.value = 1;
+  loadTickets(1);
+};
+
+const searchTitle = ref('');
+const searchRequester = ref('');
+const searchStatus = ref('');
+const searchPriority = ref('');
+
+
 // Estado para os diálogos
 const evolveDialog = ref({
   show: false,
@@ -281,6 +364,7 @@ const sortedTickets = computed(() => {
 
 // Funções auxiliares
 const getPriorityColor = (priority) => {
+    if (!priority) return 'grey'
   const colors = {
     'URGENTE': 'red',
     'ALTA': 'orange',
@@ -295,6 +379,7 @@ const getPriorityTextColor = (priority) => {
 }
 
 const getStatusColor = (status) => {
+  if (!status) return 'grey'
   const colors = {
     'NEW': 'grey',
     'OPEN': 'blue',
@@ -306,6 +391,7 @@ const getStatusColor = (status) => {
 }
 
 const translateStatus = (status) => {
+  if (!status) return '-'
   const translations = {
     'new': 'Novo',
     'OPEN': 'Aberto',
@@ -397,49 +483,84 @@ const handlePageChange = async (page) => {
   await loadTickets(page);
 };
 
+
 const loadTickets = async (page = 1) => {
-  loading.value = true;
-  try {
-    if (!attendantAuthService.isAuthenticated()) {
-      console.log('Usuário não autenticado');
-      router.push('/attendant/login');
-      return;
-    }
+    loading.value = true;
+    try {
+        // Verificação de autenticação
+        if (!attendantAuthService.isAuthenticated()) {
+            console.log('Usuário não autenticado');
+            router.push('/attendant/login');
+            return;
+        }
 
-    const attendant = attendantAuthService.getAttendantData();
-    console.log('Dados do Atendente:', attendant);
+        // Obter dados do atendente
+        const attendant = attendantAuthService.getAttendantData();
+        if (!attendant || !attendant.id) {
+            console.error('Dados do atendente inválidos');
+            return;
+        }
 
-    if (!attendant || !attendant.id) {
-      console.error('Dados do atendente inválidos');
-      return;
-    }
-    console.log('ID do Atendente:', attendant.id);
+        // Criar objeto URLSearchParams para construir a query string
+        const params = new URLSearchParams();
+        params.append('page', page.toString());
+        params.append('per_page', '10');
 
-    const response = await api.get(`/service/attendant/${attendant.id}?page=${page}`);
-    console.log('Resposta Completa:', response);
-    console.log('Dados da Resposta:', response.data);
+        // Adicionar filtros somente se existirem valores
+        if (searchTitle.value) {
+            params.append('title', searchTitle.value);
+        }
+        if (searchRequester.value) {
+            params.append('requester', searchRequester.value);
+        }
+        if (searchStatus.value) {
+            params.append('status', searchStatus.value);
+        }
+        if (searchPriority.value) {
+            params.append('priority', searchPriority.value);
+        }
 
-    if (response.data.success) {
-      tickets.value = response.data.data;
-      meta.value = response.data.meta;
-    } else {
-      tickets.value = [];
-    }
-  } catch (error) {
-    console.error('Erro ao carregar tickets:', error);
-    if (error.response) {
-      console.error('Detalhes da Resposta:', error.response.data);
-    }
-    tickets.value = [];
+        // Log para debug da URL construída
+        console.log('URL da requisição:', `/service/attendant/${attendant.id}?${params.toString()}`);
 
-    if (error.response?.status === 401) {
-      attendantAuthService.logout();
-      router.push('/attendant/login');
+        // Fazer a requisição
+        const response = await api.get(`/service/attendant/${attendant.id}?${params.toString()}`);
+        
+        // Log da resposta para debug
+        console.log('Dados recebidos:', response.data);
+
+        // Processar a resposta
+        if (response.data.success) {
+            tickets.value = response.data.data;
+            meta.value = response.data.meta;
+        } else {
+            console.error('Resposta sem sucesso:', response.data);
+            tickets.value = [];
+        }
+
+    } catch (error) {
+        // Tratamento de erros mais detalhado
+        console.error('Erro ao carregar tickets:', error);
+        if (error.response) {
+            console.error('Detalhes do erro:', error.response.data);
+        }
+        tickets.value = [];
+
+        // Tratamento de erro de autenticação
+        if (error.response?.status === 401) {
+            attendantAuthService.logout();
+            router.push('/attendant/login');
+        }
+    } finally {
+        loading.value = false;
     }
-  } finally {
-    loading.value = false;
-  }
 };
+
+
+
+
+
+
 const loadAttendants = async () => {
   try {
     const response = await api.get('/attendants')
@@ -448,6 +569,24 @@ const loadAttendants = async () => {
     console.error('Erro ao carregar atendentes:', error)
   }
 }
+
+
+// Replace the current statusOptions with:
+const statusOptions = [
+  { title: 'Novo', value: 'NEW' },
+  { title: 'Aberto', value: 'OPEN' },
+  { title: 'Em Andamento', value: 'IN_PROGRESS' },
+  { title: 'Resolvido', value: 'RESOLVED' },
+  { title: 'Concluído', value: 'CONCLUDED' }
+]
+
+// Replace the current priorityOptions with:
+const priorityOptions = [
+  { title: 'Baixa', value: 'BAIXA' },
+  { title: 'Normal', value: 'NORMAL' },
+  { title: 'Alta', value: 'ALTA' },
+  { title: 'Urgente', value: 'URGENTE' }
+]
 
 // Carrega dados iniciais
 onMounted(() => {
