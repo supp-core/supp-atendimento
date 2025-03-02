@@ -1,5 +1,5 @@
 <template>
-    <v-dialog v-model="dialogVisible" max-width="800px">
+    <v-dialog v-model="dialogVisible" max-width="900px">
       <v-card>
         <!-- Cabeçalho do Modal -->
         <v-card-title class="d-flex justify-space-between align-center pa-4">

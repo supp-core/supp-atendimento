@@ -3,6 +3,7 @@ import DashboardView from '../views/DashboardView.vue';
 import LoginView from '../views/LoginView.vue';
 import TicketsView from '../views/TicketsView.vue';
 import AttendantLoginView from '../views/AttendantLoginView.vue'; // Adicione esta linha
+//import CreateTicketForUserView from '../views/CreateTicketForUserView.vue';
 
 const routes = [
   {
@@ -50,6 +51,12 @@ const routes = [
     name: 'ticket-details',
     component: () => import('@/views/TicketsView.vue'),
     props: true
+  },
+  {
+    path: '/attendant/tickets/create-for-user',
+    name: 'create-ticket-for-user',
+    component: () => import('@/views/AttendantTicketsView.vue'),
+    meta: { requiresAttendantAuth: true, requiresAdmin: true }
   }
 ];
 
@@ -71,15 +78,24 @@ router.beforeEach((to, from, next) => {
       }
   } else if (to.matched.some(record => record.meta.requiresAuth)) {
       // Verifica autenticação de usuário comum
-      const userToken = localStorage.getItem('token')
-      if (!userToken) {
-          next('/login')
+      const userToken = localStorage.getItem('token');
+      const attendantData = localStorage.getItem('attendant');
+      if (!token || !attendantData) {
+        next('/attendant/login');
+      } else if (to.matched.some(record => record.meta.requiresAdmin)) {
+        // Verificação adicional para rotas que exigem perfil de admin
+        const attendant = JSON.parse(attendantData);
+        if (attendant.function !== 'Admin') {
+          next('/attendant/dashboard'); // Redireciona se não for admin
+        } else {
+          next();
+        }
       } else {
-          next()
+        next();
       }
-  } else {
-      next()
-  }
+    } else {
+      next();
+    }
 })
 
 // Aqui está a exportação que estava faltando

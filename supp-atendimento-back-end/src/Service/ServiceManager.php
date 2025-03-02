@@ -67,12 +67,29 @@ class ServiceManager
         $service->setDateCreate(new DateTime());
         $priority = $data['priority'] ?? Service::PRIORITY_NORMAL;
         $service->setPriority($priority);
+
+        $createdByAdmin = !empty($data['created_by_admin']);
+        $adminAttendant = null;
+        
         // Buscar atendente admin para atribuição automática
         $adminAttendant = $this->findAdminAttendant();
         if ($adminAttendant) {
             $service->setReponsible($adminAttendant);
         }
 
+        if ($createdByAdmin && !empty($data['created_by_admin_id'])) {
+            $adminAttendant = $this->entityManager->getRepository(Attendant::class)->find($data['created_by_admin_id']);
+            // Se o ticket foi criado por um admin, este já será o responsável
+            if ($adminAttendant) {
+                $service->setReponsible($adminAttendant);
+            }
+        } else {
+            // Buscar atendente admin para atribuição automática (comportamento anterior)
+            $adminAttendant = $this->findAdminAttendant();
+            if ($adminAttendant) {
+                $service->setReponsible($adminAttendant);
+            }
+        }
         // Dentro do método createService
         if (!empty($data['files'])) {
             foreach ($data['files'] as $uploadedFile) {
@@ -111,10 +128,18 @@ class ServiceManager
         // Criar histórico inicial
         $history = new ServiceHistory();
         $history->setService($service);
-        $history->setStatusPrev('none');
-        $history->setStatusPost('new');
+        $history->setStatusPrev('Nenhum');
+        $history->setStatusPost('Novo');
         $history->setDateHistory(new DateTime());
-        $history->setComment('Ticket created');
+        $history->setComment('Ticket Criado');
+
+        if ($createdByAdmin && $adminAttendant) {
+            $history->setComment('Ticket criado pelo atendente: ' . $adminAttendant->getName());
+            $history->setResponsible($adminAttendant);
+        } else {
+            $history->setComment('Ticket criado pelo usuário');
+        }
+
 
         $this->entityManager->persist($history);
         $this->entityManager->flush();

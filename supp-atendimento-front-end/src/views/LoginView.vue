@@ -14,14 +14,14 @@ import LoginForm from '@/components/auth/LoginForm.vue'
   justify-content: center;
   align-items: center;
   min-height: 100vh; /* Garante que o container ocupe toda a altura da tela */
+  width: 100vw; /* Garante que ocupe toda a largura */
   padding: 1rem;
   box-sizing: border-box;
-  position: relative; /* Permite ajustes de posicionamento */
 }
+
 
 .parent-container > div {
   position: relative;
-  left: 300px;
- /* top: -150px; /* Move o formulário 20px para cima */
+  transform: translateY(-20px); /* Move o formulário um pouco para cima */
 }
 </style>

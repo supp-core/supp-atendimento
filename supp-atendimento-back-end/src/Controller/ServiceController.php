@@ -476,6 +476,7 @@ class ServiceController extends AbstractController
                     'title' => $service->getTitle(),
                     'description' => $service->getDescription(),
                     'status' => $service->getStatus(),
+                    'priority' => $service->getPriority(),
                     'sector' => [
                         'id' => $service->getSector()?->getId(),
                         'name' => $service->getSector()?->getName(),
@@ -489,6 +490,10 @@ class ServiceController extends AbstractController
                         'id' => $service->getReponsible()?->getId(),
                         'name' => $service->getReponsible()?->getName(),
                         'function' => $service->getReponsible()?->getFunction(),
+                        'sector' => [
+                            'id' => $service->getReponsible()?->getSector()?->getId(),
+                            'name' => $service->getReponsible()?->getSector()?->getName()
+                        ]
                     ],
                     'dates' => [
                         'created' => $service->getDateCreate()?->format('Y-m-d H:i:s'),

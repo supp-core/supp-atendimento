@@ -56,6 +56,7 @@
                 <tr>
                   <th class="px-4 py-3">ID</th>
                   <th class="px-4 py-3">Título</th>
+                  <th class="text-left">Prioridade</th> <!-- Nova coluna -->
                   <th class="px-4 py-3">Status</th>
                   <th class="px-4 py-3">Setor</th>
                   <th class="px-4 py-3">Responsável</th>
@@ -69,13 +70,19 @@
                     <span class="id-prefix">#</span>{{ ticket.id }}
                   </td>
                   <td class="px-4 py-3">{{ ticket.title }}</td>
+                  <td>
+                    <v-chip :color="getPriorityColor(ticket.priority)"
+                      :text-color="getPriorityTextColor(ticket.priority)" size="small" class="priority-chip">
+                      {{ ticket.priority }}
+                    </v-chip>
+                  </td>
                   <td class="px-4 py-3">
                     <v-chip :color="getStatusColor(ticket.status)" :class="['status-chip', ticket.status.toLowerCase()]"
                       size="small">
                       {{ translateStatus(ticket.status) }}
                     </v-chip>
                   </td>
-                  <td class="px-4 py-3">{{ ticket.sector?.name }}</td>
+                  <td class="px-4 py-3">{{ ticket.responsible.sector?.name }}</td>
                   <!-- <td class="px-4 py-3">{{ ticket.requester?.name }}</td> -->
                   <td class="px-4 py-3">{{ ticket.responsible?.name || 'Não atribuído' }}</td>
                   <td class="px-4 py-3">{{ formatDate(ticket.dates.created) }}</td>
@@ -93,7 +100,7 @@
               </tbody>
             </v-table>
 
-            
+
             <div class="pagination-wrapper">
               <div class="pagination-info">
                 Mostrando {{ meta.per_page }} de {{ meta.total }} registros
@@ -126,11 +133,8 @@
     </div>
   </div>
 
-   <!-- Adicione o componente do modal ao final do template, antes do fechamento da última div -->
-   <TicketDetailsModal
-    v-model="showDetailsModal"
-    :ticket="selectedTicket"
-  />
+  <!-- Adicione o componente do modal ao final do template, antes do fechamento da última div -->
+  <TicketDetailsModal v-model="showDetailsModal" :ticket="selectedTicket" />
 </template>
 
 <script setup>
@@ -162,14 +166,38 @@ const carregarDadosUsuario = () => {
   }
 };
 
+const getPriorityColor = (priority) => {
+  const colors = {
+    'URGENTE': 'red-darken-1',
+    'ALTA': 'orange-darken-1',
+    'NORMAL': 'blue',
+    'BAIXA': 'green'
+  }
+  return colors[priority] || 'grey'
+}
 
+const getPriorityTextColor = (priority) => {
+  return ['URGENTE', 'ALTA'].includes(priority) ? 'white' : 'white'
+}
+
+
+const getStatusColor = (status) => {
+  const colors = {
+    'NEW': 'grey',
+    'OPEN': 'blue',
+    'IN_PROGRESS': 'orange',
+    'RESOLVED': 'green',
+    'CONCLUDED': 'purple'
+  }
+  return colors[status] || 'grey'
+}
 // Adicione a função que abre o modal
 const openTicketDetails = async (ticket) => {
   try {
     console.log('Abrindo detalhes do ticket:', ticket) // Log para debug
     selectedTicket.value = ticket
     showDetailsModal.value = true
-    
+
     // Carrega o histórico do ticket
     const response = await api.get(`/service/${ticket.id}/history`)
     if (response.data.success) {
@@ -239,7 +267,7 @@ const resetFilters = () => {
   searchName.value = '';
   searchStatus.value = '';
   searchPriority.value = '';
-  
+
   // Recarrega os dados
   currentPage.value = 1;
   loadTickets(1);
@@ -258,21 +286,13 @@ const translateStatus = (status) => {
     'OPEN': 'Aberto',
     'IN_PROGRESS': 'Em Andamento',
     'RESOLVED': 'Resolvido',
-    'CLOSED': 'Fechado'
+    'CLOSED': 'Fechado',
+    'CONCLUDED': 'Concluído'
   };
   return translations[status] || status;
 };
 
-const getStatusColor = (status) => {
-  const colors = {
-    'NEW': 'info',
-    'OPEN': 'warning',
-    'IN_PROGRESS': 'primary',
-    'RESOLVED': 'success',
-    'CLOSED': 'grey'
-  };
-  return colors[status] || 'grey';
-};
+
 
 const formatDate = (dateString) => {
   if (!dateString) return '';
@@ -335,13 +355,13 @@ const handleFilter = async () => {
   try {
     // Reseta para a primeira página
     currentPage.value = 1;
-    
+
     // Inicia o carregamento
     loading.value = true;
-    
+
     // Carrega os tickets com os filtros
     await loadTickets(1);
-    
+
   } catch (error) {
     console.error('Erro ao filtrar tickets:', error);
   } finally {
@@ -395,6 +415,7 @@ onMounted(() => {
 .d-flex {
   gap: 8px;
 }
+
 .dashboard {
   min-height: 100vh;
   background-color: #f3f4f6;

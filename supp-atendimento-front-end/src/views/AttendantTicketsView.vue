@@ -7,6 +7,12 @@
         <div class="tickets-page">
           <div class="d-flex justify-space-between align-center mb-4">
             <h2 class="text-h5 font-weight-medium">Meus Atendimentos</h2>
+
+            <!-- Novo botão para criar chamado para usuário (visível apenas para admins) -->
+            <v-btn v-if="isAdmin" color="primary" prepend-icon="mdi-plus" @click="navigateToCreateTicketForUser">
+              Criar Chamado para Usuário
+            </v-btn>
+
           </div>
 
           <v-card class="mb-4">
@@ -87,10 +93,11 @@
                   <td>{{ formatDate(ticket.dates.created) }}</td>
                   <td>{{ ticket.dates.concluded ? formatDate(ticket.dates.concluded) : '-' }}</td>
                   <td class="text-center">
-                    <v-btn :prepend-icon="mdi - pencil - box - outline" size="small" color="primary" class="mr-2"
+                    <v-btn :prepend-icon="mdiPencilBoxOutline" size="small" color="primary" class="mr-2"
                       @click="openEvolveDialog(ticket)" :disabled="ticket.status === 'CONCLUDED'">
                       Evoluir
                     </v-btn>
+
 
                     <v-btn :prepend-icon="mdi - pencil - box - outline" size="small" color="primary" class="mr-2"
                       @click="openTransferDialog(ticket)" :disabled="ticket.status === 'CONCLUDED'">
@@ -134,7 +141,7 @@
         </div>
 
         <!-- Modal para Evolução do Ticket -->
-        <v-dialog v-model="evolveDialog.show" max-width="600px">
+        <v-dialog v-model="evolveDialog.show" max-width="800px">
           <v-card>
             <v-card-title class="headline">
               Evoluir Atendimento #{{ evolveDialog.ticket?.id }}
@@ -188,8 +195,8 @@
 
               <!-- Formulário de nova evolução -->
               <div class="new-update-form mb-6">
-                <v-select v-model="evolveDialog.newStatus" :items="availableStatuses" label="Novo Status" required
-                  class="mb-4"></v-select>
+                <v-select v-model="evolveDialog.newStatus" :items="availableStatuses" item-title="text"
+                  item-value="value" label="Novo Status" required />
 
                 <v-textarea v-model="evolveDialog.comment" label="Comentário" required rows="3"
                   class="mb-4"></v-textarea>
@@ -267,7 +274,21 @@ import AttendantHeader from '@/components/common/AttendantHeader.vue'
 import AttendantSidebar from '@/components/common/AttendantSidebar.vue'
 import api from '@/services/api'
 import { attendantAuthService } from '@/services/attendant-auth.service'
+import { mdiPencilBoxOutline } from "@mdi/js";
+// Importar router
+import { useRouter } from 'vue-router';
+const router = useRouter();
 
+// Verificar se o atendente é admin
+const isAdmin = computed(() => {
+  const attendant = attendantAuthService.getAttendantData();
+  return attendant && attendant.function === 'Admin';
+});
+
+// Função para navegar para a página de criação de chamado para usuário
+const navigateToCreateTicketForUser = () => {
+  router.push('/attendant/tickets/create-for-user');
+};
 const { sidebarCollapsed } = useSidebar()
 const loading = ref(false)
 const tickets = ref([])
@@ -277,13 +298,13 @@ const handleSearch = async () => {
   try {
     // Reseta para a primeira página antes de pesquisar
     currentPage.value = 1;
-    
+
     // Inicia o carregamento
     loading.value = true;
-    
+
     // Carrega os tickets com os filtros atuais
     await loadTickets(1);
-    
+
   } catch (error) {
     console.error('Erro ao pesquisar tickets:', error);
   } finally {
@@ -298,7 +319,7 @@ const resetFilters = () => {
   searchRequester.value = '';
   searchStatus.value = '';
   searchPriority.value = '';
-  
+
   // Recarrega os dados sem filtros
   currentPage.value = 1;
   loadTickets(1);
@@ -327,12 +348,12 @@ const transferDialog = ref({
   loading: false
 })
 
-// Lista de status disponíveis
+// Depois (em português com mapeamento)
 const availableStatuses = [
-  'OPEN',
-  'IN_PROGRESS',
-  'RESOLVED',
-  'CONCLUDED'
+  { text: 'Aberto', value: 'OPEN' },
+  { text: 'Em Andamento', value: 'IN_PROGRESS' },
+  { text: 'Resolvido', value: 'RESOLVED' },
+  { text: 'Concluído', value: 'CONCLUDED' }
 ]
 
 const currentPage = ref(1);
@@ -364,7 +385,7 @@ const sortedTickets = computed(() => {
 
 // Funções auxiliares
 const getPriorityColor = (priority) => {
-    if (!priority) return 'grey'
+  if (!priority) return 'grey'
   const colors = {
     'URGENTE': 'red',
     'ALTA': 'orange',
@@ -485,75 +506,75 @@ const handlePageChange = async (page) => {
 
 
 const loadTickets = async (page = 1) => {
-    loading.value = true;
-    try {
-        // Verificação de autenticação
-        if (!attendantAuthService.isAuthenticated()) {
-            console.log('Usuário não autenticado');
-            router.push('/attendant/login');
-            return;
-        }
-
-        // Obter dados do atendente
-        const attendant = attendantAuthService.getAttendantData();
-        if (!attendant || !attendant.id) {
-            console.error('Dados do atendente inválidos');
-            return;
-        }
-
-        // Criar objeto URLSearchParams para construir a query string
-        const params = new URLSearchParams();
-        params.append('page', page.toString());
-        params.append('per_page', '10');
-
-        // Adicionar filtros somente se existirem valores
-        if (searchTitle.value) {
-            params.append('title', searchTitle.value);
-        }
-        if (searchRequester.value) {
-            params.append('requester', searchRequester.value);
-        }
-        if (searchStatus.value) {
-            params.append('status', searchStatus.value);
-        }
-        if (searchPriority.value) {
-            params.append('priority', searchPriority.value);
-        }
-
-        // Log para debug da URL construída
-        console.log('URL da requisição:', `/service/attendant/${attendant.id}?${params.toString()}`);
-
-        // Fazer a requisição
-        const response = await api.get(`/service/attendant/${attendant.id}?${params.toString()}`);
-        
-        // Log da resposta para debug
-        console.log('Dados recebidos:', response.data);
-
-        // Processar a resposta
-        if (response.data.success) {
-            tickets.value = response.data.data;
-            meta.value = response.data.meta;
-        } else {
-            console.error('Resposta sem sucesso:', response.data);
-            tickets.value = [];
-        }
-
-    } catch (error) {
-        // Tratamento de erros mais detalhado
-        console.error('Erro ao carregar tickets:', error);
-        if (error.response) {
-            console.error('Detalhes do erro:', error.response.data);
-        }
-        tickets.value = [];
-
-        // Tratamento de erro de autenticação
-        if (error.response?.status === 401) {
-            attendantAuthService.logout();
-            router.push('/attendant/login');
-        }
-    } finally {
-        loading.value = false;
+  loading.value = true;
+  try {
+    // Verificação de autenticação
+    if (!attendantAuthService.isAuthenticated()) {
+      console.log('Usuário não autenticado');
+      router.push('/attendant/login');
+      return;
     }
+
+    // Obter dados do atendente
+    const attendant = attendantAuthService.getAttendantData();
+    if (!attendant || !attendant.id) {
+      console.error('Dados do atendente inválidos');
+      return;
+    }
+
+    // Criar objeto URLSearchParams para construir a query string
+    const params = new URLSearchParams();
+    params.append('page', page.toString());
+    params.append('per_page', '10');
+
+    // Adicionar filtros somente se existirem valores
+    if (searchTitle.value) {
+      params.append('title', searchTitle.value);
+    }
+    if (searchRequester.value) {
+      params.append('requester', searchRequester.value);
+    }
+    if (searchStatus.value) {
+      params.append('status', searchStatus.value);
+    }
+    if (searchPriority.value) {
+      params.append('priority', searchPriority.value);
+    }
+
+    // Log para debug da URL construída
+    console.log('URL da requisição:', `/service/attendant/${attendant.id}?${params.toString()}`);
+
+    // Fazer a requisição
+    const response = await api.get(`/service/attendant/${attendant.id}?${params.toString()}`);
+
+    // Log da resposta para debug
+    console.log('Dados recebidos:', response.data);
+
+    // Processar a resposta
+    if (response.data.success) {
+      tickets.value = response.data.data;
+      meta.value = response.data.meta;
+    } else {
+      console.error('Resposta sem sucesso:', response.data);
+      tickets.value = [];
+    }
+
+  } catch (error) {
+    // Tratamento de erros mais detalhado
+    console.error('Erro ao carregar tickets:', error);
+    if (error.response) {
+      console.error('Detalhes do erro:', error.response.data);
+    }
+    tickets.value = [];
+
+    // Tratamento de erro de autenticação
+    if (error.response?.status === 401) {
+      attendantAuthService.logout();
+      router.push('/attendant/login');
+    }
+  } finally {
+    loading.value = false;
+  }
 };
 
 
@@ -573,7 +594,7 @@ const loadAttendants = async () => {
 
 // Replace the current statusOptions with:
 const statusOptions = [
-  { title: 'Novo', value: 'NEW' },
+  { title: 'Novo', value: 'new' },
   { title: 'Aberto', value: 'OPEN' },
   { title: 'Em Andamento', value: 'IN_PROGRESS' },
   { title: 'Resolvido', value: 'RESOLVED' },

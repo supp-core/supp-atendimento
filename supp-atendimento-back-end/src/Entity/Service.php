@@ -74,11 +74,20 @@ class Service
     #[ORM\OneToMany(mappedBy: 'service', targetEntity: ServiceAttachment::class, cascade: ['persist', 'remove'])]
     private Collection $attachments;
 
+
+    // Adicionar nova propriedade para rastrear se foi criado por admin
+    #[ORM\Column(type: 'boolean', options: ['default' => false])]
+    private bool $createdByAdmin = false;
+
+    // Adicionar relação ao atendente admin que criou o ticket
+    #[ORM\ManyToOne]
+    #[ORM\JoinColumn(name: 'created_by_admin_id', referencedColumnName: 'id', nullable: true)]
+    private ?Attendant $createdByAdminAttendant = null;
+
     public function __construct()
     {
         $this->attachments = new ArrayCollection();
         $this->serviceHistory = new ArrayCollection();
-        
     }
 
 
@@ -290,6 +299,28 @@ class Service
                 $attachment->setService(null);
             }
         }
+        return $this;
+    }
+
+    public function isCreatedByAdmin(): bool
+    {
+        return $this->createdByAdmin;
+    }
+
+    public function setCreatedByAdmin(bool $createdByAdmin): self
+    {
+        $this->createdByAdmin = $createdByAdmin;
+        return $this;
+    }
+
+    public function getCreatedByAdminAttendant(): ?Attendant
+    {
+        return $this->createdByAdminAttendant;
+    }
+
+    public function setCreatedByAdminAttendant(?Attendant $attendant): self
+    {
+        $this->createdByAdminAttendant = $attendant;
         return $this;
     }
 }
