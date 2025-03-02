@@ -9,7 +9,7 @@
             <h2 class="text-h5 font-weight-medium">Meus Atendimentos</h2>
 
             <!-- Novo botão para criar chamado para usuário (visível apenas para admins) -->
-            <v-btn v-if="isAdmin" color="primary" prepend-icon="mdi-plus" @click="navigateToCreateTicketForUser">
+            <v-btn v-if="isAdmin" color="primary" prepend-icon="mdi-plus" @click="">
               Criar Chamado para Usuário
             </v-btn>
 
@@ -275,20 +275,7 @@ import AttendantSidebar from '@/components/common/AttendantSidebar.vue'
 import api from '@/services/api'
 import { attendantAuthService } from '@/services/attendant-auth.service'
 import { mdiPencilBoxOutline } from "@mdi/js";
-// Importar router
-import { useRouter } from 'vue-router';
-const router = useRouter();
 
-// Verificar se o atendente é admin
-const isAdmin = computed(() => {
-  const attendant = attendantAuthService.getAttendantData();
-  return attendant && attendant.function === 'Admin';
-});
-
-// Função para navegar para a página de criação de chamado para usuário
-const navigateToCreateTicketForUser = () => {
-  router.push('/attendant/tickets/create-for-user');
-};
 const { sidebarCollapsed } = useSidebar()
 const loading = ref(false)
 const tickets = ref([])
