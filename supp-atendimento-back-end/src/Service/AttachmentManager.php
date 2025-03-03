@@ -46,14 +46,49 @@ class AttachmentManager
     public function uploadFile(UploadedFile $file): string
     {
         try {
-            // Gera um nome único para o arquivo
+
+
+            $fileArray = [
+                "test" => $file->isFile(),
+                "originalName" => $file->getClientOriginalName(),
+                "mimeType" => $file->getClientMimeType(),
+                "error" => $file->getError(),
+                "pathName" => $file->getPathname(),
+                "fileName" => $file->getFilename()
+            ];
+            
+            // Convertendo para JSON
+            $json = json_encode($fileArray, JSON_PRETTY_PRINT);
+            echo $json;
+           
+            die();
+            // Verificar se o arquivo existe e pode ser lido
+            if (!file_exists($file->getPathname()) || !is_readable($file->getPathname())) {
+                throw new \Exception('Arquivo temporário não existe ou não pode ser lido: ' . $file->getPathname());
+            }
+            
+            // Gera nome único
             $filename = uniqid() . '_' . $this->sanitizeFilename($file->getClientOriginalName());
             
-            // Move o arquivo para o diretório de upload
+            // Verifica se o diretório de destino existe e é gravável
+            if (!is_dir($this->uploadDir) || !is_writable($this->uploadDir)) {
+                throw new \Exception('Diretório de upload não existe ou não é gravável: ' . $this->uploadDir);
+            }
+            
+            // Move o arquivo
             $file->move($this->uploadDir, $filename);
+            
+            // Verifica se o arquivo foi movido com sucesso
+            if (!file_exists($this->uploadDir . '/' . $filename)) {
+                throw new \Exception('Falha ao mover o arquivo para o destino');
+            }
             
             return $filename;
         } catch (\Exception $e) {
+            // Registra o erro
+            error_log('Erro no upload de arquivo: ' . $e->getMessage());
+            
+            // Relança a exceção para ser tratada pelo chamador
             throw new BadRequestException('Erro ao fazer upload do arquivo: ' . $e->getMessage());
         }
     }

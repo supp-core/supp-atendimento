@@ -44,6 +44,7 @@ class ServiceManager
     {
 
    
+        
 
         // Validar dados obrigatórios
         if (empty($data['title']) || empty($data['description']) || empty($data['sector_id']) || empty($data['requester_id'])) {
@@ -103,19 +104,23 @@ class ServiceManager
     
         // Processar anexos
         if (!empty($data['files'])) {
+          
             foreach ($data['files'] as $uploadedFile) {
+            
                 if ($uploadedFile instanceof UploadedFile && $uploadedFile->isValid()) {
                     try {
+                        
                         if ($this->attachmentManager->validateFile($uploadedFile)) {
-                            $filename = $this->attachmentManager->uploadFile($uploadedFile);
                             
+                            $filename = $this->attachmentManager->uploadFile($uploadedFile);
+                          
                             $attachment = new ServiceAttachment();
                             $attachment->setService($service);
                             $attachment->setFilename($filename);
                             $attachment->setOriginalFilename($uploadedFile->getClientOriginalName());
                             $attachment->setMimeType($uploadedFile->getMimeType());
                             $attachment->setFileSize($uploadedFile->getSize());
-                            
+                           
                             $this->entityManager->persist($attachment);
                             $service->addAttachment($attachment);
                         }
@@ -125,7 +130,11 @@ class ServiceManager
                     }
                 }
             }
+        }else {
+
+            die('nao entrou na funcao do files');
         }
+      
     
         // Persistir o serviço
         $this->entityManager->persist($service);

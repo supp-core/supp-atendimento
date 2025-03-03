@@ -87,7 +87,7 @@ class Service
     public function __construct()
     {
         $this->attachments = new ArrayCollection();
-        $this->serviceHistory = new ArrayCollection();
+        $this->histories = new ArrayCollection();
     }
 
 
