@@ -12,6 +12,10 @@ use Symfony\Component\Routing\Annotation\Route;
 use Symfony\Component\HttpFoundation\Exception\BadRequestException;
 use Symfony\Component\Security\Core\Exception\AccessDeniedException;
 use Symfony\Component\HttpFoundation\Response;  // Adicionando o import do Response
+use App\Entity\User;
+use Symfony\Component\Security\Core\Exception\AuthenticationException;
+use Symfony\Component\PasswordHasher\Hasher\UserPasswordHasherInterface;
+use App\Entity\Attendant;
 
 #[Route('/api/service')]
 class ServiceController extends AbstractController
@@ -21,7 +25,8 @@ class ServiceController extends AbstractController
 
     public function __construct(
         EntityManagerInterface $entityManager,
-        ServiceManager $serviceManager
+        ServiceManager $serviceManager,
+        private UserPasswordHasherInterface $passwordHasher
 
     ) {
         $this->entityManager = $entityManager;
@@ -578,4 +583,121 @@ class ServiceController extends AbstractController
             ], 500);
         }
     }
+
+
+    #[Route('/admin/create', methods: ['POST'])]
+   public function createByAdmin(Request $request): JsonResponse
+    {
+
+        try {
+
+           
+            // Verificar se o usuário logado é um atendente admin
+            $user = $this->getUser();
+
+            if (!$user) {
+                throw new AccessDeniedException('Usuário não autenticado');
+            }
+          
+           // error_log('Usuário autenticado: ' . $user->getId() . ' - ' . $user->getEmail());
+        
+
+          /* if ($user instanceof User && !$user->isIsAttendant()) {
+                throw new AccessDeniedException('Apenas atendentes podem criar tickets para usuários 1 ');
+            }
+            */
+            // Obter o atendente correspondente ao usuário
+            $attendant = $this->entityManager->getRepository(Attendant::class)
+                ->findOneBy(['user' => $user]);
+
+                /*
+            if (!$attendant || $attendant->getFunction() !== 'Admin') {
+                throw new AccessDeniedException('Apenas administradores podem criar tickets para usuários 2 ');
+            }
+    */
+            // Preparar dados para criação do ticket
+            $jsonData = json_decode($request->getContent(), true);
+            $files = $request->files->get('files');
+    
+            if (!is_array($files)) {
+                $files = [$files];
+            }
+            
+            $title = $request->request->get('title');
+            $description = $request->request->get('description');
+            $priority = $request->request->get('priority', 'NORMAL');
+            $sector_id = $request->request->get('sector_id');
+            $requester_id = $request->request->get('requester_id');
+            $created_by_admin_id = $request->request->get('created_by_admin_id');
+        
+
+            $data = [
+                'title' => $title,
+                'description' => $description,
+                'priority' => $priority,
+                'sector_id' => $sector_id,
+                'requester_id' => $requester_id, // Usar o ID do usuário solicitante
+                'created_by_admin' => true,
+                'created_by_admin_id' => $created_by_admin_id, // ID do atendente admin
+                'files' => $files
+            ];
+
+
+
+            
+           
+    
+            // Criar o serviço
+            $service = $this->serviceManager->createService($data);
+    
+            return new JsonResponse([
+                'success' => true,
+                'data' => [
+                    'id' => $service->getId(),
+                    'title' => $service->getTitle(),
+                    'description' => $service->getDescription(),
+                    'status' => $service->getStatus(),
+                    'sector' => [
+                        'id' => $service->getSector()->getId(),
+                        'name' => $service->getSector()->getName()
+                    ],
+                    'priority' => $service->getPriority(),
+                    'requester' => [
+                        'id' => $service->getRequester()->getId(),
+                        'name' => $service->getRequester()->getName(),
+                        'email' => $service->getRequester()->getEmail()
+                    ],
+                    'dates' => [
+                        'created' => $service->getDateCreate()->format('Y-m-d H:i:s')
+                    ],
+                    'created_by_admin' => $service->isCreatedByAdmin(),
+                    'attachments' => array_map(function ($attachment) {
+                        return [
+                            'id' => $attachment->getId(),
+                            'filename' => $attachment->getFilename(),
+                            'originalFilename' => $attachment->getOriginalFilename()
+                        ];
+                    }, $service->getAttachments()->toArray())
+                ]
+            ], 201);
+        } catch (AccessDeniedException $e) {
+            return new JsonResponse([
+                'success' => false,
+                'message' => $e->getMessage()
+            ], 403);
+        } catch (BadRequestException $e) {
+            return new JsonResponse([
+                'success' => false,
+                'message' => $e->getMessage()
+            ], 400);
+        } catch (\Exception $e) {
+            return new JsonResponse([
+                'success' => false,
+                'message' => 'Internal server error: ' . $e->getMessage()
+            ], 500);
+        }
+
+
+    }
+    
 }

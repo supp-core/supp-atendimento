@@ -7,11 +7,10 @@
         <div class="tickets-page">
           <div class="d-flex justify-space-between align-center mb-4">
             <h2 class="text-h5 font-weight-medium">Meus Atendimentos</h2>
-
-            <!-- Novo botão para criar chamado para usuário (visível apenas para admins) -->
-            <v-btn v-if="isAdmin" color="primary" prepend-icon="mdi-plus" @click="">
+            <v-btn v-if="isAdmin" color="primary" prepend-icon="mdi-plus" @click="openCreateDialog">
               Criar Chamado para Usuário
             </v-btn>
+
 
           </div>
 
@@ -260,6 +259,13 @@
             </v-card-actions>
           </v-card>
         </v-dialog>
+
+
+        <AdminCreateTicket v-model="createDialog" @created="handleTicketCreated" />
+
+
+
+
       </div>
     </div>
   </div>
@@ -272,6 +278,7 @@ import { ptBR } from 'date-fns/locale'
 import { useSidebar } from '@/composables/useSidebar'
 import AttendantHeader from '@/components/common/AttendantHeader.vue'
 import AttendantSidebar from '@/components/common/AttendantSidebar.vue'
+import AdminCreateTicket from '@/components/common/AdminCreateTicket.vue' // Importe o novo componente
 import api from '@/services/api'
 import { attendantAuthService } from '@/services/attendant-auth.service'
 import { mdiPencilBoxOutline } from "@mdi/js";
@@ -299,6 +306,13 @@ const handleSearch = async () => {
   }
 };
 
+const createDialog = ref(false)
+const attendantData = ref(null)
+
+
+const isAdmin = computed(() => {
+  return attendantData.value && attendantData.value.function === 'Admin'
+})
 
 const resetFilters = () => {
   // Limpa todos os campos de filtro
@@ -317,6 +331,12 @@ const searchRequester = ref('');
 const searchStatus = ref('');
 const searchPriority = ref('');
 
+const handleTicketCreated = (newTicket) => {
+  // Adicionar o novo ticket à lista ou recarregar os dados
+  loadTickets()
+  // Exibir mensagem de sucesso
+  alert('Atendimento criado com sucesso!')
+}
 
 // Estado para os diálogos
 const evolveDialog = ref({
@@ -326,6 +346,11 @@ const evolveDialog = ref({
   comment: '',
   loading: false
 })
+
+const openCreateDialog = () => {
+  createDialog.value = true
+}
+
 
 const transferDialog = ref({
   show: false,
@@ -598,6 +623,7 @@ const priorityOptions = [
 
 // Carrega dados iniciais
 onMounted(() => {
+  attendantData.value = attendantAuthService.getAttendantData()
   loadTickets()
   loadAttendants()
 })

@@ -42,14 +42,36 @@ class ServiceManager
 
     public function createService(array $data): Service
     {
+
+   
+
         // Validar dados obrigatórios
         if (empty($data['title']) || empty($data['description']) || empty($data['sector_id']) || empty($data['requester_id'])) {
             throw new BadRequestException('Missing required fields');
         }
 
+        $createdByAdmin = !empty($data['created_by_admin']);
+        $requester = null;
+        
+        if ($createdByAdmin) {
+            // Se o ticket está sendo criado por um admin, verificamos o ID do requisitante
+            if (empty($data['requester_id'])) {
+                throw new BadRequestException('Requester ID is required when creating ticket as admin');
+            }
+            
+            $requester = $this->entityManager->getRepository(User::class)->find($data['requester_id']);
+            if (!$requester) {
+                throw new BadRequestException('Invalid requester');
+            }
+        } else {
+            // Caso padrão: ticket criado pelo próprio usuário
+            $requester = $data['requester_id'];
+        }
+        
+
         // Buscar entidades relacionadas
         $sector = $this->entityManager->getRepository(Sector::class)->find($data['sector_id']);
-        $requester = $this->entityManager->getRepository(User::class)->find($data['requester_id']);
+     //   $requester = $this->entityManager->getRepository(User::class)->find($data['requester_id']);
         // $requester = $data['requester_id']; 
 
 
@@ -57,94 +79,74 @@ class ServiceManager
             throw new BadRequestException('Invalid sector or requester');
         }
 
-        // Criar novo serviço
         $service = new Service();
         $service->setTitle($data['title']);
         $service->setDescription($data['description']);
         $service->setSector($sector);
         $service->setRequester($requester);
-        $service->setStatus('new');
+        $service->setStatus('NEW');
         $service->setDateCreate(new DateTime());
         $priority = $data['priority'] ?? Service::PRIORITY_NORMAL;
         $service->setPriority($priority);
-
-        $createdByAdmin = !empty($data['created_by_admin']);
-        $adminAttendant = null;
         
-        // Buscar atendente admin para atribuição automática
-        $adminAttendant = $this->findAdminAttendant();
-        if ($adminAttendant) {
-            $service->setReponsible($adminAttendant);
-        }
 
+        
+        // Configurações para tickets criados por admin
         if ($createdByAdmin && !empty($data['created_by_admin_id'])) {
             $adminAttendant = $this->entityManager->getRepository(Attendant::class)->find($data['created_by_admin_id']);
-            // Se o ticket foi criado por um admin, este já será o responsável
             if ($adminAttendant) {
-                $service->setReponsible($adminAttendant);
-            }
-        } else {
-            // Buscar atendente admin para atribuição automática (comportamento anterior)
-            $adminAttendant = $this->findAdminAttendant();
-            if ($adminAttendant) {
+                $service->setCreatedByAdmin(true);
+                $service->setCreatedByAdminAttendant($adminAttendant);
                 $service->setReponsible($adminAttendant);
             }
         }
-        // Dentro do método createService
+    
+        // Processar anexos
         if (!empty($data['files'])) {
             foreach ($data['files'] as $uploadedFile) {
                 if ($uploadedFile instanceof UploadedFile && $uploadedFile->isValid()) {
                     try {
-                        // Valida o arquivo
                         if ($this->attachmentManager->validateFile($uploadedFile)) {
-                            // Faz o upload e obtém o nome do arquivo
                             $filename = $this->attachmentManager->uploadFile($uploadedFile);
-    
-                            // Cria o registro do anexo
+                            
                             $attachment = new ServiceAttachment();
                             $attachment->setService($service);
                             $attachment->setFilename($filename);
                             $attachment->setOriginalFilename($uploadedFile->getClientOriginalName());
                             $attachment->setMimeType($uploadedFile->getMimeType());
                             $attachment->setFileSize($uploadedFile->getSize());
-    
+                            
                             $this->entityManager->persist($attachment);
                             $service->addAttachment($attachment);
                         }
                     } catch (\Exception $e) {
-                        // Log do erro específico
                         error_log('Erro ao processar arquivo: ' . $e->getMessage());
                         throw new BadRequestException('Erro ao processar arquivo: ' . $e->getMessage());
                     }
                 }
             }
         }
-
-
-
+    
         // Persistir o serviço
         $this->entityManager->persist($service);
-
+    
         // Criar histórico inicial
         $history = new ServiceHistory();
         $history->setService($service);
         $history->setStatusPrev('Nenhum');
-        $history->setStatusPost('Novo');
+        $history->setStatusPost('NEW');
         $history->setDateHistory(new DateTime());
-        $history->setComment('Ticket Criado');
-
-        if ($createdByAdmin && $adminAttendant) {
-            $history->setComment('Ticket criado pelo atendente: ' . $adminAttendant->getName());
-            $history->setResponsible($adminAttendant);
+        
+        if ($createdByAdmin && $service->getCreatedByAdminAttendant()) {
+            $history->setComment('Ticket criado pelo atendente: ' . $service->getCreatedByAdminAttendant()->getName());
+            $history->setResponsible($service->getCreatedByAdminAttendant());
         } else {
             $history->setComment('Ticket criado pelo usuário');
         }
-
-
+    
         $this->entityManager->persist($history);
         $this->entityManager->flush();
-
-
+    
         return $service;
     }
 
