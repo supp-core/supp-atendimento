@@ -84,7 +84,7 @@ class ServiceManager
         $service->setDescription($data['description']);
         $service->setSector($sector);
         $service->setRequester($requester);
-        $service->setStatus('NEW');
+        $service->setStatus('NOVO');
         $service->setDateCreate(new DateTime());
         $priority = $data['priority'] ?? Service::PRIORITY_NORMAL;
         $service->setPriority($priority);
