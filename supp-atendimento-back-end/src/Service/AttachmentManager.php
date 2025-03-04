@@ -30,16 +30,19 @@ class AttachmentManager
 
     public function validateFile(UploadedFile $file): bool
     {
+
+
+        
         // Valida o tipo MIME do arquivo
         if (!in_array($file->getMimeType(), self::ALLOWED_MIME_TYPES)) {
             throw new BadRequestException('Tipo de arquivo não permitido');
         }
-
+       
         // Valida o tamanho do arquivo (10MB máximo)
         if ($file->getSize() > 10 * 1024 * 1024) {
             throw new BadRequestException('Arquivo muito grande. Tamanho máximo permitido: 10MB');
         }
-
+       
         return true;
     }
 
@@ -61,7 +64,7 @@ class AttachmentManager
             $json = json_encode($fileArray, JSON_PRETTY_PRINT);
             echo $json;
            
-            die();
+           // die();
             // Verificar se o arquivo existe e pode ser lido
             if (!file_exists($file->getPathname()) || !is_readable($file->getPathname())) {
                 throw new \Exception('Arquivo temporário não existe ou não pode ser lido: ' . $file->getPathname());
