@@ -21,10 +21,29 @@
   const showDetailsModal = ref(false);
   
   // Função para abrir o modal
-  const openTicketDetails = (ticket) => {
+  const openTicketDetails = async (ticket) => {
+  try {
+    // Mostra o modal com os dados básicos primeiro
     selectedTicket.value = ticket;
     showDetailsModal.value = true;
-  };
+
+    // Carrega os detalhes completos do ticket, incluindo anexos
+    const response = await ticketsService.getTicketDetails(ticket.id);
+    if (response.success) {
+      // Atualiza o ticket com informações completas
+      selectedTicket.value = response.data;
+      
+      // Carrega o histórico em segundo plano
+      const historyResponse = await ticketsService.getTicketHistory(ticket.id);
+      if (historyResponse.success) {
+        // Adiciona o histórico ao ticket
+        selectedTicket.value.histories = historyResponse.data;
+      }
+    }
+  } catch (error) {
+    console.error('Erro ao carregar detalhes do ticket:', error);
+  }
+};
   
   // Adicione o modal ao final do template
   </script>

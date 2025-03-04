@@ -16,6 +16,10 @@ use App\Entity\User;
 use Symfony\Component\Security\Core\Exception\AuthenticationException;
 use Symfony\Component\PasswordHasher\Hasher\UserPasswordHasherInterface;
 use App\Entity\Attendant;
+use App\Entity\ServiceAttachment; // Adicione esta linha para importar a classe
+use Symfony\Component\HttpFoundation\BinaryFileResponse; // Também adicione esta para o download
+
+
 
 #[Route('/api/service')]
 class ServiceController extends AbstractController
@@ -32,6 +36,9 @@ class ServiceController extends AbstractController
         $this->entityManager = $entityManager;
         $this->serviceManager = $serviceManager;
     }
+
+
+
 
     #[Route('', methods: ['POST'])]
     public function create(Request $request): JsonResponse
@@ -180,7 +187,7 @@ class ServiceController extends AbstractController
                 ->select('s', 'sect', 'u', 'a')
                 ->where('a.id = :attendantId')
                 ->setParameter('attendantId', $id);
-        
+
 
             // Aplicar filtro por título
             if ($title = $request->query->get('title')) {
@@ -206,11 +213,11 @@ class ServiceController extends AbstractController
                     ->setParameter('priority', $priority);
             }
 
-           
+
             // Ordenação padrão
-          $queryBuilder->orderBy('s.date_create', 'DESC');
- 
-          $totalBuilder = clone $queryBuilder;
+            $queryBuilder->orderBy('s.date_create', 'DESC');
+
+            $totalBuilder = clone $queryBuilder;
             // Conta total de registros
             $total =  count($totalBuilder->getQuery()->getResult());
 
@@ -479,6 +486,13 @@ class ServiceController extends AbstractController
                 return [
                     'id' => $service->getId(),
                     'title' => $service->getTitle(),
+                    'attachments' => array_map(function ($attachment) {
+                        return [
+                            'id' => $attachment->getId(),
+                            'filename' => $attachment->getFilename(),
+                            'originalFilename' => $attachment->getOriginalFilename()
+                        ];
+                    }, $service->getAttachments()->toArray()),
                     'description' => $service->getDescription(),
                     'status' => $service->getStatus(),
                     'priority' => $service->getPriority(),
@@ -500,6 +514,7 @@ class ServiceController extends AbstractController
                             'name' => $service->getReponsible()?->getSector()?->getName()
                         ]
                     ],
+
                     'dates' => [
                         'created' => $service->getDateCreate()?->format('Y-m-d H:i:s'),
                         'updated' => $service->getDateUpdate()?->format('Y-m-d H:i:s'),
@@ -586,23 +601,23 @@ class ServiceController extends AbstractController
 
 
     #[Route('/admin/create', methods: ['POST'])]
-   public function createByAdmin(Request $request): JsonResponse
+    public function createByAdmin(Request $request): JsonResponse
     {
 
         try {
 
-           
+
             // Verificar se o usuário logado é um atendente admin
             $user = $this->getUser();
 
             if (!$user) {
                 throw new AccessDeniedException('Usuário não autenticado');
             }
-          
-           // error_log('Usuário autenticado: ' . $user->getId() . ' - ' . $user->getEmail());
-        
 
-          /* if ($user instanceof User && !$user->isIsAttendant()) {
+            // error_log('Usuário autenticado: ' . $user->getId() . ' - ' . $user->getEmail());
+
+
+            /* if ($user instanceof User && !$user->isIsAttendant()) {
                 throw new AccessDeniedException('Apenas atendentes podem criar tickets para usuários 1 ');
             }
             */
@@ -610,7 +625,7 @@ class ServiceController extends AbstractController
             $attendant = $this->entityManager->getRepository(Attendant::class)
                 ->findOneBy(['user' => $user]);
 
-                /*
+            /*
             if (!$attendant || $attendant->getFunction() !== 'Admin') {
                 throw new AccessDeniedException('Apenas administradores podem criar tickets para usuários 2 ');
             }
@@ -618,18 +633,18 @@ class ServiceController extends AbstractController
             // Preparar dados para criação do ticket
             $jsonData = json_decode($request->getContent(), true);
             $files = $request->files->get('files');
-    
+
             if (!is_array($files)) {
                 $files = [$files];
             }
-            
+
             $title = $request->request->get('title');
             $description = $request->request->get('description');
             $priority = $request->request->get('priority', 'NORMAL');
             $sector_id = $request->request->get('sector_id');
             $requester_id = $request->request->get('requester_id');
             $created_by_admin_id = $request->request->get('created_by_admin_id');
-        
+
 
             $data = [
                 'title' => $title,
@@ -644,12 +659,12 @@ class ServiceController extends AbstractController
 
 
 
-            
-           
-    
+
+
+
             // Criar o serviço
             $service = $this->serviceManager->createService($data);
-    
+
             return new JsonResponse([
                 'success' => true,
                 'data' => [
@@ -696,8 +711,41 @@ class ServiceController extends AbstractController
                 'message' => 'Internal server error: ' . $e->getMessage()
             ], 500);
         }
-
-
     }
-    
+
+
+    // Em ServiceController.php
+    #[Route('/attachment/{id}', methods: ['GET'])]
+    public function downloadAttachment(int $id): Response
+    {
+        try {
+            $attachment = $this->entityManager->getRepository(ServiceAttachment::class)->find($id);
+
+            if (!$attachment) {
+                return new JsonResponse([
+                    'success' => false,
+                    'message' => 'Anexo não encontrado'
+                ], 404);
+            }
+
+            $filePath = $this->getParameter('uploads_directory') . '/' . $attachment->getFilename();
+
+            if (!file_exists($filePath)) {
+                return new JsonResponse([
+                    'success' => false,
+                    'message' => 'Arquivo não encontrado no servidor'
+                ], 404);
+            }
+
+            return new BinaryFileResponse($filePath, 200, [
+                'Content-Type' => $attachment->getMimeType(),
+                'Content-Disposition' => 'attachment; filename="' . $attachment->getOriginalFilename() . '"'
+            ]);
+        } catch (\Exception $e) {
+            return new JsonResponse([
+                'success' => false,
+                'message' => 'Erro ao baixar anexo: ' . $e->getMessage()
+            ], 500);
+        }
+    }
 }
