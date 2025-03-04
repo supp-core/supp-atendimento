@@ -215,7 +215,15 @@ class ServiceController extends AbstractController
 
 
             // Ordenação padrão
-            $queryBuilder->orderBy('s.date_create', 'DESC');
+           // $queryBuilder->orderBy('s.date_create', 'DESC');
+
+           $queryBuilder->orderBy('CASE s.priority 
+                        WHEN \'URGENTE\' THEN 0 
+                        WHEN \'ALTA\' THEN 1 
+                        WHEN \'NORMAL\' THEN 2 
+                        WHEN \'BAIXA\' THEN 3 
+                        ELSE 4 END', 'ASC')
+             ->addOrderBy('s.date_create', 'DESC');
 
             $totalBuilder = clone $queryBuilder;
             // Conta total de registros
