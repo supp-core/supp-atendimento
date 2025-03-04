@@ -43,7 +43,8 @@
 
               <div class="anexos">
                 <label for="fileInput">Anexos</label>
-                <input type="file" id="fileInput" ref="fileInput" @change="handleFileSelect" multiple accept=".pdf,.docx,.jpg,.png,.gif">
+                <input type="file" id="fileInput" ref="fileInput" @change="handleFileSelect" multiple
+                  accept=".pdf,.docx,.jpg,.png,.gif">
                 <div v-if="selectedFiles.length > 0" class="selected-files">
                   <div v-for="(file, index) in selectedFiles" :key="index" class="file-item">
                     {{ file.name }}
@@ -186,41 +187,66 @@ const handleFileUpload = (event) => {
 
 
 const submitForm = async () => {
-    try {
-        loading.value = true;
-        
-        // Criação do FormData para envio
-        const submitData = new FormData();
-        
-        // Adicionando campos básicos
-        submitData.append('title', formData.value.title);
-        submitData.append('description', formData.value.description);
-        submitData.append('priority', formData.value.priority);
-        submitData.append('sector_id', '5');
-        
-        // Adicionando arquivos
-        if (selectedFiles.value.length > 0) {
-            selectedFiles.value.forEach((file, index) => {
-                submitData.append(`files[]`, file); // Mudamos para files[]
-            });
-        }
+  try {
+    loading.value = true;
 
-        // Envio para a API
-        const response = await api.post('/service', submitData, {
-            headers: {
-                'Content-Type': 'multipart/form-data'
-            }
-        });
+    // Criação do FormData para envio
+    const submitData = new FormData();
 
-        if (response.data.success) {
-             alert('Atendimento criado com sucesso!');
-            router.push('/tickets');
-        }
-    } catch (error) {
-        console.error('Erro ao criar ticket:', error);
-    } finally {
-        loading.value = false;
+    // Adicionando campos básicos
+    submitData.append('title', formData.value.title);
+    submitData.append('description', formData.value.description);
+    submitData.append('priority', formData.value.priority);
+    submitData.append('sector_id', '5');
+
+    // Adicionando arquivos
+    if (selectedFiles.value.length > 0) {
+      selectedFiles.value.forEach((file, index) => {
+        submitData.append(`files[]`, file); // Mudamos para files[]
+      });
     }
+
+    // Envio para a API
+    const response = await api.post('/service', submitData, {
+      headers: {
+        'Content-Type': 'multipart/form-data'
+      }
+    });
+
+    const rawData = response.data;
+
+    // Passo 2: Separar as partes e pegar a segunda (pois estão concatenadas)
+    const jsonParts = rawData.split("}{"); // Quebra no ponto onde há dois JSONs colados
+    let cleanedJson = "{" + jsonParts[1]; // Pegando a parte correta
+
+    // Passo 3: Transformar em objeto JavaScript
+    const parsedData = JSON.parse(cleanedJson);
+
+
+    if (parsedData.success) {
+      // Limpar o formulário
+      formData.value.title = '';
+      formData.value.description = '';
+      formData.value.priority = 'NORMAL';
+      selectedFiles.value = [];
+
+      // Garantir que o feedback seja exibido com animação visível
+      feedback.value = {
+        show: true,
+        message: 'Atendimento criado com sucesso!',
+        type: 'success'
+      };
+
+      // Use setTimeout com tempo suficiente para visualização
+      setTimeout(() => {
+        router.push('/tickets');
+      }, 2000);
+    }
+  } catch (error) {
+    console.error('Erro ao criar ticket:', error);
+  } finally {
+    loading.value = false;
+  }
 };
 
 
@@ -401,7 +427,7 @@ export default {
     }
   },
   methods: {
-  
+
     handleFileDrop(event) {
       this.addFiles(event.dataTransfer.files)
     },
@@ -419,7 +445,7 @@ export default {
         }
       })
     },
-  
+
     async handleSubmit() {
       const formData = new FormData()
 

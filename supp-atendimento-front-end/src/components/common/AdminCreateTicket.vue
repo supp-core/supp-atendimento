@@ -214,7 +214,19 @@ const submitForm = async () => {
       }
     });
 
-    if (response.data.success) {
+
+    console.log('Response====>>> ',response);
+    const rawData = response.data;
+
+// Passo 2: Separar as partes e pegar a segunda (pois estão concatenadas)
+const jsonParts = rawData.split("}{"); // Quebra no ponto onde há dois JSONs colados
+let cleanedJson = "{" + jsonParts[1]; // Pegando a parte correta
+
+// Passo 3: Transformar em objeto JavaScript
+const parsedData = JSON.parse(cleanedJson);
+
+
+    if (parsedData.success) {
       emit('created', response.data.data);
       closeDialog();
     }
