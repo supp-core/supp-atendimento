@@ -43,7 +43,8 @@ class ServiceManager
     public function createService(array $data): Service
     {
 
-   
+
+
 
         // Validar dados obrigatórios
         if (empty($data['title']) || empty($data['description']) || empty($data['sector_id']) || empty($data['requester_id'])) {
@@ -52,13 +53,13 @@ class ServiceManager
 
         $createdByAdmin = !empty($data['created_by_admin']);
         $requester = null;
-        
+
         if ($createdByAdmin) {
             // Se o ticket está sendo criado por um admin, verificamos o ID do requisitante
             if (empty($data['requester_id'])) {
                 throw new BadRequestException('Requester ID is required when creating ticket as admin');
             }
-            
+
             $requester = $this->entityManager->getRepository(User::class)->find($data['requester_id']);
             if (!$requester) {
                 throw new BadRequestException('Invalid requester');
@@ -67,11 +68,11 @@ class ServiceManager
             // Caso padrão: ticket criado pelo próprio usuário
             $requester = $data['requester_id'];
         }
-        
+
 
         // Buscar entidades relacionadas
         $sector = $this->entityManager->getRepository(Sector::class)->find($data['sector_id']);
-     //   $requester = $this->entityManager->getRepository(User::class)->find($data['requester_id']);
+        //   $requester = $this->entityManager->getRepository(User::class)->find($data['requester_id']);
         // $requester = $data['requester_id']; 
 
 
@@ -88,9 +89,9 @@ class ServiceManager
         $service->setDateCreate(new DateTime());
         $priority = $data['priority'] ?? Service::PRIORITY_NORMAL;
         $service->setPriority($priority);
-        
 
-        
+
+
         // Configurações para tickets criados por admin
         if ($createdByAdmin && !empty($data['created_by_admin_id'])) {
             $adminAttendant = $this->entityManager->getRepository(Attendant::class)->find($data['created_by_admin_id']);
@@ -100,53 +101,108 @@ class ServiceManager
                 $service->setReponsible($adminAttendant);
             }
         }
-    
+
         // Processar anexos
         if (!empty($data['files'])) {
+
+
             foreach ($data['files'] as $uploadedFile) {
-                if ($uploadedFile instanceof UploadedFile && $uploadedFile->isValid()) {
+                if ($uploadedFile instanceof UploadedFile) {
                     try {
-                        if ($this->attachmentManager->validateFile($uploadedFile)) {
-                            $filename = $this->attachmentManager->uploadFile($uploadedFile);
+                        if ($uploadedFile->isValid()) {
+
+
+                            if ($this->attachmentManager->validateFile($uploadedFile)) {
+
+                                $extension = $uploadedFile->getClientOriginalExtension();
+                                $mimeMap = [
+                                    'pdf' => 'application/pdf',
+                                    'doc' => 'application/msword',
+                                    'docx' => 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+                                    'jpg' => 'image/jpeg',
+                                    'jpeg' => 'image/jpeg',
+                                    'png' => 'image/png',
+                                    'gif' => 'image/gif',
+                                    // Adicione outros tipos conforme necessário
+                                ];
+
+                                $fileSize = $uploadedFile->getSize();
+                                // Garantir que o tamanho é um inteiro válido
+                                if (is_numeric($fileSize)) {
+                                    $fileSize = (int)$fileSize;
+                                } else {
+                                    $fileSize = 0; // Valor padrão em caso de erro
+                                }
+                                
+                                $filename = $this->attachmentManager->uploadFile($uploadedFile);
+
+                                $attachment = new ServiceAttachment();
+                                $attachment->setService($service);
+
+
+                                $attachment->setFilename($filename);
+
+                                $attachment->setOriginalFilename($uploadedFile->getClientOriginalName());
+                                $mimeType = $mimeMap[strtolower($extension)] ?? 'application/octet-stream';
+
+                                $attachment->setMimeType($mimeType);
                             
-                            $attachment = new ServiceAttachment();
-                            $attachment->setService($service);
-                            $attachment->setFilename($filename);
-                            $attachment->setOriginalFilename($uploadedFile->getClientOriginalName());
-                            $attachment->setMimeType($uploadedFile->getMimeType());
-                            $attachment->setFileSize($uploadedFile->getSize());
-                            
-                            $this->entityManager->persist($attachment);
-                            $service->addAttachment($attachment);
+                                $attachment->setFileSize($fileSize);
+
+                                $this->entityManager->persist($attachment);
+
+                                $service->addAttachment($attachment);
+
+
+                                $attachmentData = [
+                                    'filename' => $filename,
+                                    'originalFilename' => $uploadedFile->getClientOriginalName(),
+                                    'mimeType' => $uploadedFile->getMimeType(),
+                                    'fileSize' => $uploadedFile->getSize(),
+                                    'uploadedFile' => [
+                                        'path' => $uploadedFile->getPathname(),
+                                        'exists' => file_exists($uploadedFile->getPathname()),
+                                        'readable' => is_readable($uploadedFile->getPathname()),
+                                        'error' => $uploadedFile->getError(),
+                                        // 'errorMessage' => $this->getUploadErrorMessage($uploadedFile->getError())
+                                    ]
+                                ];
+
+                                echo  $attachmentData;
+                                die();
+                            }
+                        } else {
+                            error_log('Upload inválido: ' . $uploadedFile->getErrorMessage());
                         }
                     } catch (\Exception $e) {
                         error_log('Erro ao processar arquivo: ' . $e->getMessage());
-                        throw new BadRequestException('Erro ao processar arquivo: ' . $e->getMessage());
+                        // Continue sem interromper o processo
                     }
                 }
             }
         }
-    
+
+
         // Persistir o serviço
         $this->entityManager->persist($service);
-    
+
         // Criar histórico inicial
         $history = new ServiceHistory();
         $history->setService($service);
         $history->setStatusPrev('Nenhum');
         $history->setStatusPost('NEW');
         $history->setDateHistory(new DateTime());
-        
+
         if ($createdByAdmin && $service->getCreatedByAdminAttendant()) {
             $history->setComment('Ticket criado pelo atendente: ' . $service->getCreatedByAdminAttendant()->getName());
             $history->setResponsible($service->getCreatedByAdminAttendant());
         } else {
             $history->setComment('Ticket criado pelo usuário');
         }
-    
+
         $this->entityManager->persist($history);
         $this->entityManager->flush();
-    
+
         return $service;
     }
 
