@@ -378,15 +378,23 @@ class ServiceManager
             ->leftJoin('s.reponsible', 'a');
 
         // Se for admin, retorna todos os tickets
-        if ($attendant->getFunction() === 'admin') {
-            $queryBuilder->where('1=1');
+        if ($attendant->getFunction() === 'Admin') {
+
+            $queryBuilder->where('s.reponsible IS NULL');
         } else {
+
             // Se não for admin, retorna apenas os tickets atribuídos ao atendente
             $queryBuilder->where('s.reponsible = :attendantId')
                 ->setParameter('attendantId', $attendantId);
         }
 
-        $queryBuilder->orderBy('s.date_create', 'DESC');
+        $queryBuilder->orderBy('CASE s.priority 
+        WHEN \'URGENTE\' THEN 0 
+        WHEN \'ALTA\' THEN 1 
+        WHEN \'NORMAL\' THEN 2 
+        WHEN \'BAIXA\' THEN 3 
+        ELSE 4 END', 'ASC')
+            ->addOrderBy('s.date_create', 'DESC');
 
         return $queryBuilder->getQuery()->getResult();
     }

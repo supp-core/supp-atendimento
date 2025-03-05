@@ -19,7 +19,7 @@ use App\Entity\Attendant;
 use App\Entity\ServiceAttachment; // Adicione esta linha para importar a classe
 use Symfony\Component\HttpFoundation\BinaryFileResponse; // Também adicione esta para o download
 
-
+use function Symfony\Component\DependencyInjection\Loader\Configurator\service;
 
 #[Route('/api/service')]
 class ServiceController extends AbstractController
@@ -174,67 +174,85 @@ class ServiceController extends AbstractController
     public function listByAttendant(int $id, Request $request): JsonResponse
     {
         try {
-            // Obtém parâmetros de paginação
+            // Obter parâmetros de filtragem
+            $title = $request->query->get('title');
+            $requester = $request->query->get('requester');
+            $status = $request->query->get('status');
+            $priority = $request->query->get('priority');
+            
+            // Parâmetros de paginação
             $page = $request->query->get('page', 1);
             $perPage = $request->query->get('per_page', 10);
-
-            // Cria query builder
-            $queryBuilder = $this->entityManager->getRepository(Service::class)
-                ->createQueryBuilder('s')
-                ->join('s.reponsible', 'a')
-                ->leftJoin('s.requester', 'u')
-                ->leftJoin('s.sector', 'sect')
-                ->select('s', 'sect', 'u', 'a')
-                ->where('a.id = :attendantId')
-                ->setParameter('attendantId', $id);
-
-
-            // Aplicar filtro por título
-            if ($title = $request->query->get('title')) {
-                $queryBuilder->andWhere('s.title LIKE :title')
-                    ->setParameter('title', '%' . $title . '%');
+            
+            // Usar o método específico do ServiceManager que já verifica se é admin
+            $attendant = $this->entityManager->getRepository(Attendant::class)->find($id);
+            if (!$attendant) {
+                return new JsonResponse([
+                    'success' => false,
+                    'message' => 'Atendente não encontrado'
+                ], 404);
             }
+            
+            // Obter serviços usando a função apropriada
+            $services = $this->serviceManager->getServicesByAttendant($id);
+            
 
-            // Aplicar filtro por solicitante
-            if ($requester = $request->query->get('requester')) {
-                $queryBuilder->andWhere('u.name LIKE :requester')
-                    ->setParameter('requester', '%' . $requester . '%');
+     // Aplicar filtros manualmente
+            $filteredServices = [];
+            foreach ($services as $service) {
+                $keepService = true;
+                
+                // Filtro por título
+                if ($title && !str_contains(strtolower($service->getTitle()), strtolower($title))) {
+                    $keepService = false;
+                }
+                
+                // Filtro por solicitante
+                if ($requester && $service->getRequester() && 
+                    !str_contains(strtolower($service->getRequester()->getName()), strtolower($requester))) {
+                    $keepService = false;
+                }
+                
+                // Filtro por status
+                if ($status && $service->getStatus() !== $status) {
+                    $keepService = false;
+                }
+                
+                // Filtro por prioridade
+                if ($priority && $service->getPriority() !== $priority) {
+                    $keepService = false;
+                }
+                
+                if ($keepService) {
+                    $filteredServices[] = $service;
+                }
             }
-
-            // Aplicar filtro por status
-            if ($status = $request->query->get('status')) {
-                $queryBuilder->andWhere('s.status = :status')
-                    ->setParameter('status', $status);
-            }
-
-            // Aplicar filtro por prioridade
-            if ($priority = $request->query->get('priority')) {
-                $queryBuilder->andWhere('s.priority = :priority')
-                    ->setParameter('priority', $priority);
-            }
-
-
-            // Ordenação padrão
-           // $queryBuilder->orderBy('s.date_create', 'DESC');
-
-           $queryBuilder->orderBy('CASE s.priority 
-                        WHEN \'URGENTE\' THEN 0 
-                        WHEN \'ALTA\' THEN 1 
-                        WHEN \'NORMAL\' THEN 2 
-                        WHEN \'BAIXA\' THEN 3 
-                        ELSE 4 END', 'ASC')
-             ->addOrderBy('s.date_create', 'DESC');
-
-            $totalBuilder = clone $queryBuilder;
-            // Conta total de registros
-            $total =  count($totalBuilder->getQuery()->getResult());
-
-            // Aplica paginação
-            $queryBuilder->setFirstResult(($page - 1) * $perPage)
-                ->setMaxResults($perPage);
-
-            $services = $queryBuilder->getQuery()->getResult();
-
+            
+            // Ordenar por prioridade e depois por data (mais recente primeiro)
+            usort($filteredServices, function($a, $b) {
+                $priorityOrder = [
+                    'URGENTE' => 0,
+                    'ALTA' => 1,
+                    'NORMAL' => 2,
+                    'BAIXA' => 3
+                ];
+                
+                $priorityA = $priorityOrder[$a->getPriority()] ?? 4;
+                $priorityB = $priorityOrder[$b->getPriority()] ?? 4;
+                
+                if ($priorityA === $priorityB) {
+                    // Se prioridades iguais, ordena por data (mais recente primeiro)
+                    return $b->getDateCreate() <=> $a->getDateCreate();
+                }
+                
+                return $priorityA <=> $priorityB;
+            });
+            
+            // Aplicar paginação
+            $total = count($filteredServices);
+            $paginatedServices = array_slice($filteredServices, ($page - 1) * $perPage, $perPage);
+            
+            // Formatação dos dados para a resposta
             $response = array_map(function ($service) {
                 return [
                     'id' => $service->getId(),
@@ -257,14 +275,14 @@ class ServiceController extends AbstractController
                         'concluded' => $service->getDateConclusion()?->format('Y-m-d H:i:s'),
                     ],
                 ];
-            }, $services);
-
+            }, $paginatedServices);
+            
             return new JsonResponse([
                 'success' => true,
                 'data' => $response,
                 'meta' => [
                     'total' => $total,
-                    'per_page' => $perPage,
+                    'per_page' => (int)$perPage,
                     'current_page' => (int)$page,
                     'last_page' => ceil($total / $perPage)
                 ]
