@@ -39,7 +39,7 @@
             <div class="metadata-item">
               <v-icon size="small" class="mr-1">mdi-domain</v-icon>
               <span class="metadata-label">Setor:</span>
-              {{ ticket?.sector?.name }}
+              {{ ticket.responsible.sector?.name ?? ticket.sector.name }}
             </div>
           </v-col>
           <v-col cols="6">

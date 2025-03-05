@@ -107,7 +107,8 @@
                       {{ translateStatus(ticket.status) }}
                     </v-chip>
                   </td>
-                  <td class="px-4 py-3">{{ ticket.responsible.sector?.name }}</td>
+                  <td class="px-4 py-3">{{ ticket.responsible.sector?.name ?? ticket.sector.name }}</td>
+
                   <!-- <td class="px-4 py-3">{{ ticket.requester?.name }}</td> -->
                   <td class="px-4 py-3">{{ ticket.responsible?.name || 'Não atribuído' }}</td>
                   <td class="px-4 py-3">{{ formatDate(ticket.dates.created) }}</td>
@@ -444,7 +445,7 @@ const loadTickets = async (page = 1) => {
       }
       params.append('end_date', formattedEndDate);
     }
-    
+
     const response = await api.get(`/service/my-tickets?${params.toString()}`);
 
 
