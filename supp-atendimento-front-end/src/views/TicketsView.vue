@@ -16,47 +16,49 @@
           <v-card class="mb-4">
             <v-card-text>
               <v-row>
+                <!-- Título -->
                 <v-col cols="12" sm="3">
                   <v-text-field v-model="searchName" label="Pesquisar por Nome" outlined dense
                     @input="handleSearchInput"></v-text-field>
                 </v-col>
+
+                <!-- Status -->
                 <v-col cols="12" sm="3">
                   <v-select v-model="searchStatus" :items="statusOptions" item-title="title" item-value="value"
                     label="Status" outlined dense @change="handleFilter"></v-select>
                 </v-col>
-                <div class="intervalo-datas">
-                  <label>Intervalo de Datas</label>
-                  <div class="date-inputs">
-                    <v-menu v-model="startDateMenu" :close-on-content-click="false" transition="scale-transition"
-                      max-width="290px" min-width="auto">
-                      <template v-slot:activator="{ props }">
-                        <v-text-field v-model="formattedStartDate" label="Data inicial"
-                          prepend-inner-icon="mdi-calendar" readonly v-bind="props" density="compact" variant="outlined"
-                          class="date-field"></v-text-field>
-                      </template>
-                      <v-date-picker v-model="startDate" @update:model-value="startDateMenu = false"></v-date-picker>
-                    </v-menu>
 
-                    <span class="date-separator">até</span>
-
-                    <v-menu v-model="endDateMenu" :close-on-content-click="false" transition="scale-transition"
-                      max-width="290px" min-width="auto">
-                      <template v-slot:activator="{ props }">
-                        <v-text-field v-model="formattedEndDate" label="Data final" prepend-inner-icon="mdi-calendar"
-                          readonly v-bind="props" density="compact" variant="outlined"
-                          class="date-field"></v-text-field>
-                      </template>
-                      <v-date-picker v-model="endDate" @update:model-value="endDateMenu = false"></v-date-picker>
-                    </v-menu>
-                  </div>
-                </div>
+                <!-- Intervalo de Datas (versão compacta) -->
                 <v-col cols="12" sm="3">
+                  <label class="date-label">Período</label>
+                  <div class="date-range-compact">
+                    <v-text-field v-model="formattedStartDate" placeholder="De" @click="startDateMenu = true" readonly
+                      dense prepend-inner-icon="mdi-calendar" variant="outlined" class="date-field"></v-text-field>
 
+                    <v-text-field v-model="formattedEndDate" placeholder="Até" @click="endDateMenu = true" readonly
+                      dense prepend-inner-icon="mdi-calendar" variant="outlined" class="date-field"></v-text-field>
+                  </div>
+
+                  <!-- Menus de data (separados dos campos) -->
+                  <v-menu v-model="startDateMenu" :close-on-content-click="false" transition="scale-transition"
+                    min-width="auto">
+                    <v-date-picker v-model="startDate" @update:model-value="startDateMenu = false"></v-date-picker>
+                  </v-menu>
+
+                  <v-menu v-model="endDateMenu" :close-on-content-click="false" transition="scale-transition"
+                    min-width="auto">
+                    <v-date-picker v-model="endDate" @update:model-value="endDateMenu = false"></v-date-picker>
+                  </v-menu>
+                </v-col>
+
+                <!-- Prioridade -->
+                <v-col cols="12" sm="3">
                   <v-select v-model="searchPriority" :items="priorityOptions" item-title="title" item-value="value"
                     label="Prioridade" outlined dense @change="handleFilter"></v-select>
                 </v-col>
 
-                <v-col cols="12" sm="3" class="d-flex align-center">
+                <!-- Nova linha para botões (mantida) -->
+                <v-col cols="12" class="d-flex align-center mt-2">
                   <v-btn color="primary" @click="handleFilter" :loading="loading" class="me-2">
                     <v-icon start>mdi-magnify</v-icon>
                     Pesquisar
@@ -67,8 +69,6 @@
                     Limpar
                   </v-btn>
                 </v-col>
-
-
               </v-row>
             </v-card-text>
           </v-card>
@@ -162,7 +162,7 @@
 <script setup>
 
 import TicketDetailsModal from '@/components/tickets/TicketDetailsModal.vue'
-import { ref, onMounted, computed ,watch } from 'vue';
+import { ref, onMounted, computed, watch } from 'vue';
 import { useRouter } from 'vue-router';
 import { format, parseISO } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
@@ -186,18 +186,18 @@ const endDate = ref(null);
 // Substitua as funções computed existentes por estas versões corrigidas
 const formattedStartDate = computed(() => {
   if (!startDate.value) return '';
-  
+
   try {
     // Verificar se é um objeto Date
     if (startDate.value instanceof Date) {
       return format(startDate.value, 'dd/MM/yyyy', { locale: ptBR });
     }
-    
+
     // Verificar se é uma string ISO
     if (typeof startDate.value === 'string') {
       return format(new Date(startDate.value), 'dd/MM/yyyy', { locale: ptBR });
     }
-    
+
     return '';
   } catch (error) {
     console.error('Erro ao formatar data inicial:', error);
@@ -207,18 +207,18 @@ const formattedStartDate = computed(() => {
 
 const formattedEndDate = computed(() => {
   if (!endDate.value) return '';
-  
+
   try {
     // Verificar se é um objeto Date
     if (endDate.value instanceof Date) {
       return format(endDate.value, 'dd/MM/yyyy', { locale: ptBR });
     }
-    
+
     // Verificar se é uma string ISO
     if (typeof endDate.value === 'string') {
       return format(new Date(endDate.value), 'dd/MM/yyyy', { locale: ptBR });
     }
-    
+
     return '';
   } catch (error) {
     console.error('Erro ao formatar data final:', error);
@@ -509,6 +509,7 @@ onMounted(() => {
   margin: 0 4px;
   color: rgba(0, 0, 0, 0.6);
 }
+
 .create-button {
   display: flex !important;
   align-items: center !important;
@@ -706,5 +707,36 @@ onMounted(() => {
   /* Leve efeito de elevação ao passar o mouse */
 }
 
+.date-label {
+  display: block;
+  font-size: 0.875rem;
+  color: rgba(0, 0, 0, 0.6);
+  margin-bottom: 4px;
+}
 
+.date-range-compact {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+.date-field {
+  flex: 1;
+}
+
+/* Reduzindo o tamanho dos campos de data */
+:deep(.date-field .v-field__input) {
+  padding-top: 6px;
+  padding-bottom: 6px;
+  min-height: 36px;
+}
+
+:deep(.date-field .v-field) {
+  border-radius: 4px;
+  font-size: 0.875rem;
+}
+
+:deep(.date-field .v-input__details) {
+  display: none;
+}
 </style>
