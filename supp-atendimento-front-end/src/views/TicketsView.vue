@@ -16,48 +16,51 @@
           <v-card class="mb-4">
             <v-card-text>
               <v-row>
-                <!-- Título -->
+                <!-- Campo de pesquisa por título -->
                 <v-col cols="12" sm="3">
                   <v-text-field v-model="searchName" label="Pesquisar por Nome" outlined dense
                     @input="handleSearchInput"></v-text-field>
                 </v-col>
 
-                <!-- Status -->
+                <!-- Campo de filtro por status -->
                 <v-col cols="12" sm="3">
                   <v-select v-model="searchStatus" :items="statusOptions" item-title="title" item-value="value"
                     label="Status" outlined dense @change="handleFilter"></v-select>
                 </v-col>
 
-                <!-- Intervalo de Datas (versão compacta) -->
+                <!-- Intervalo de datas compacto -->
                 <v-col cols="12" sm="3">
-                  <label class="date-label">Período</label>
-                  <div class="date-range-compact">
-                    <v-text-field v-model="formattedStartDate" placeholder="De" @click="startDateMenu = true" readonly
-                      dense prepend-inner-icon="mdi-calendar" variant="outlined" class="date-field"></v-text-field>
+                  <div class="date-compact">
+                    <div class="date-label mb-1">Período</div>
+                    <div class="date-inputs">
+                      <v-menu v-model="startDateMenu" :close-on-content-click="false" min-width="auto">
+                        <template v-slot:activator="{ props }">
+                          <v-text-field v-model="formattedStartDate" dense hide-details placeholder="De"
+                            prepend-inner-icon="mdi-calendar" readonly v-bind="props" variant="outlined"
+                            class="date-input"></v-text-field>
+                        </template>
+                        <v-date-picker v-model="startDate" @update:model-value="startDateMenu = false"></v-date-picker>
+                      </v-menu>
 
-                    <v-text-field v-model="formattedEndDate" placeholder="Até" @click="endDateMenu = true" readonly
-                      dense prepend-inner-icon="mdi-calendar" variant="outlined" class="date-field"></v-text-field>
+                      <v-menu v-model="endDateMenu" :close-on-content-click="false" min-width="auto">
+                        <template v-slot:activator="{ props }">
+                          <v-text-field v-model="formattedEndDate" dense hide-details placeholder="Até"
+                            prepend-inner-icon="mdi-calendar" readonly v-bind="props" variant="outlined"
+                            class="date-input"></v-text-field>
+                        </template>
+                        <v-date-picker v-model="endDate" @update:model-value="endDateMenu = false"></v-date-picker>
+                      </v-menu>
+                    </div>
                   </div>
-
-                  <!-- Menus de data (separados dos campos) -->
-                  <v-menu v-model="startDateMenu" :close-on-content-click="false" transition="scale-transition"
-                    min-width="auto">
-                    <v-date-picker v-model="startDate" @update:model-value="startDateMenu = false"></v-date-picker>
-                  </v-menu>
-
-                  <v-menu v-model="endDateMenu" :close-on-content-click="false" transition="scale-transition"
-                    min-width="auto">
-                    <v-date-picker v-model="endDate" @update:model-value="endDateMenu = false"></v-date-picker>
-                  </v-menu>
                 </v-col>
 
-                <!-- Prioridade -->
+                <!-- Filtro de Prioridade -->
                 <v-col cols="12" sm="3">
                   <v-select v-model="searchPriority" :items="priorityOptions" item-title="title" item-value="value"
                     label="Prioridade" outlined dense @change="handleFilter"></v-select>
                 </v-col>
 
-                <!-- Nova linha para botões (mantida) -->
+                <!-- Nova linha para botões (mantida como estava) -->
                 <v-col cols="12" class="d-flex align-center mt-2">
                   <v-btn color="primary" @click="handleFilter" :loading="loading" class="me-2">
                     <v-icon start>mdi-magnify</v-icon>
