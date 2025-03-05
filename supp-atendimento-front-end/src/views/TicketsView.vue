@@ -39,7 +39,7 @@
                             prepend-inner-icon="mdi-calendar" readonly v-bind="props" variant="outlined"
                             class="date-input"></v-text-field>
                         </template>
-                        <v-date-picker v-model="startDate" @update:model-value="startDateMenu = false"></v-date-picker>
+                        <v-date-picker v-model="startDate" @update:model-value="startDateMenu = false" locale="pt-BR"></v-date-picker>
                       </v-menu>
 
                       <v-menu v-model="endDateMenu" :close-on-content-click="false" min-width="auto">
@@ -48,7 +48,7 @@
                             prepend-inner-icon="mdi-calendar" readonly v-bind="props" variant="outlined"
                             class="date-input"></v-text-field>
                         </template>
-                        <v-date-picker v-model="endDate" @update:model-value="endDateMenu = false"></v-date-picker>
+                        <v-date-picker v-model="endDate" @update:model-value="endDateMenu = false" locale="pt-BR"></v-date-picker>
                       </v-menu>
                     </div>
                   </div>
@@ -426,13 +426,25 @@ const loadTickets = async (page = 1) => {
       params.append('priority', searchPriority.value);
     }
 
+    
     if (startDate.value) {
-      params.append('start_date', startDate.value);
+      // Certifique-se de que a data está no formato ISO
+      let formattedStartDate = startDate.value;
+      if (startDate.value instanceof Date) {
+        formattedStartDate = startDate.value.toISOString().split('T')[0];
+      }
+      params.append('start_date', formattedStartDate);
     }
+    
     if (endDate.value) {
-      params.append('end_date', endDate.value);
+      // Certifique-se de que a data está no formato ISO
+      let formattedEndDate = endDate.value;
+      if (endDate.value instanceof Date) {
+        formattedEndDate = endDate.value.toISOString().split('T')[0];
+      }
+      params.append('end_date', formattedEndDate);
     }
-
+    
     const response = await api.get(`/service/my-tickets?${params.toString()}`);
 
 
@@ -710,36 +722,55 @@ onMounted(() => {
   /* Leve efeito de elevação ao passar o mouse */
 }
 
-.date-label {
-  display: block;
-  font-size: 0.875rem;
-  color: rgba(0, 0, 0, 0.6);
-  margin-bottom: 4px;
+/* Solução revisada para o componente de período */
+.date-compact {
+  display: flex;
+  flex-direction: column;
+  height: 56px; /* Altura fixa para corresponder aos outros campos */
+  padding-top: 0; /* Remove o padding superior */
 }
 
-.date-range-compact {
+.date-label {
+  font-size: 12px; /* Tamanho de fonte reduzido para corresponder aos labels do Vuetify */
+  color: rgba(0, 0, 0, 0.6);
+  padding-top: 0;
+  margin-bottom: 3px; /* Espaçamento menor entre o label e os campos */
+  line-height: 12px; /* Altura da linha reduzida */
+
+  transform: translateY(-4px); /* Move o label 4px para cima */
+
+}
+
+.date-inputs {
   display: flex;
   gap: 8px;
-  align-items: center;
+  height: 40px; /* Altura fixa para os inputs */
 }
 
-.date-field {
+.date-input {
   flex: 1;
+  margin-top: 0 !important; /* Remove margens automáticas */
+  margin-bottom: 0 !important;
 }
 
-/* Reduzindo o tamanho dos campos de data */
-:deep(.date-field .v-field__input) {
+/* Remover padding interno dos campos para alinhar corretamente */
+:deep(.date-input .v-field__field) {
+  padding-top: 0 !important;
+  padding-bottom: 0 !important;
+}
+
+/* Garantir que os campos de data tenham o mesmo estilo que os outros */
+:deep(.date-input .v-field__outline) {
+  --v-field-border-width: 1px !important;
+  border-width: var(--v-field-border-width) !important;
+}
+
+/* Aplicar estilo consistente aos inputs */
+:deep(.v-col) {
   padding-top: 6px;
   padding-bottom: 6px;
-  min-height: 36px;
 }
 
-:deep(.date-field .v-field) {
-  border-radius: 4px;
-  font-size: 0.875rem;
-}
+/* Corrige o alinhamento do container do período */
 
-:deep(.date-field .v-input__details) {
-  display: none;
-}
 </style>

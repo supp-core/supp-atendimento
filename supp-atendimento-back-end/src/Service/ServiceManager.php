@@ -133,7 +133,7 @@ class ServiceManager
                                 } else {
                                     $fileSize = 0; // Valor padrão em caso de erro
                                 }
-                                
+
                                 $filename = $this->attachmentManager->uploadFile($uploadedFile);
 
                                 $attachment = new ServiceAttachment();
@@ -146,7 +146,7 @@ class ServiceManager
                                 $mimeType = $mimeMap[strtolower($extension)] ?? 'application/octet-stream';
 
                                 $attachment->setMimeType($mimeType);
-                            
+
                                 $attachment->setFileSize($fileSize);
 
                                 $this->entityManager->persist($attachment);
@@ -519,6 +519,18 @@ class ServiceManager
             $queryBuilder->andWhere('s.priority = :priority')
                 ->setParameter('priority', $filters['priority']);
         }
+
+        // Adicionar filtros de data
+        if (!empty($filters['start_date'])) {
+            $queryBuilder->andWhere('s.date_create >= :start_date')
+                ->setParameter('start_date', new \DateTime($filters['start_date'] . ' 00:00:00'));
+        }
+
+        if (!empty($filters['end_date'])) {
+            $queryBuilder->andWhere('s.date_create <= :end_date')
+                ->setParameter('end_date', new \DateTime($filters['end_date'] . ' 23:59:59'));
+        }
+
 
         // Mantemos a ordenação padrão
         $queryBuilder->orderBy('s.date_create', 'DESC');

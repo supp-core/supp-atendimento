@@ -459,10 +459,15 @@ class ServiceController extends AbstractController
                 ], 401);
             }
 
+            $startDate = $request->query->get('start_date');
+        $endDate = $request->query->get('end_date');
+
             $filters = [
                 'title' => $request->query->get('title'),
                 'status' => $request->query->get('status'),
-                'priority' => $request->query->get('priority')
+                'priority' => $request->query->get('priority'),
+                'start_date' => $startDate,
+                'end_date' => $endDate
             ];
 
             // Removemos filtros vazios
