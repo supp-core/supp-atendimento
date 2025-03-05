@@ -24,10 +24,32 @@
                   <v-select v-model="searchStatus" :items="statusOptions" item-title="title" item-value="value"
                     label="Status" outlined dense @change="handleFilter"></v-select>
                 </v-col>
-                <v-col cols="12" sm="3">
-                  <v-text-field v-model="searchDateRange" label="Intervalo de Datas" readonly outlined dense
-                    @change="fetchTickets"></v-text-field>
-                </v-col>
+                <div class="intervalo-datas">
+                  <label>Intervalo de Datas</label>
+                  <div class="date-inputs">
+                    <v-menu v-model="startDateMenu" :close-on-content-click="false" transition="scale-transition"
+                      max-width="290px" min-width="auto">
+                      <template v-slot:activator="{ props }">
+                        <v-text-field v-model="formattedStartDate" label="Data inicial"
+                          prepend-inner-icon="mdi-calendar" readonly v-bind="props" density="compact" variant="outlined"
+                          class="date-field"></v-text-field>
+                      </template>
+                      <v-date-picker v-model="startDate" @update:model-value="startDateMenu = false"></v-date-picker>
+                    </v-menu>
+
+                    <span class="date-separator">até</span>
+
+                    <v-menu v-model="endDateMenu" :close-on-content-click="false" transition="scale-transition"
+                      max-width="290px" min-width="auto">
+                      <template v-slot:activator="{ props }">
+                        <v-text-field v-model="formattedEndDate" label="Data final" prepend-inner-icon="mdi-calendar"
+                          readonly v-bind="props" density="compact" variant="outlined"
+                          class="date-field"></v-text-field>
+                      </template>
+                      <v-date-picker v-model="endDate" @update:model-value="endDateMenu = false"></v-date-picker>
+                    </v-menu>
+                  </div>
+                </div>
                 <v-col cols="12" sm="3">
 
                   <v-select v-model="searchPriority" :items="priorityOptions" item-title="title" item-value="value"
@@ -140,15 +162,83 @@
 <script setup>
 
 import TicketDetailsModal from '@/components/tickets/TicketDetailsModal.vue'
-import { ref, onMounted } from 'vue';
+import { ref, onMounted, computed ,watch } from 'vue';
 import { useRouter } from 'vue-router';
-import { format } from 'date-fns';
+import { format, parseISO } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import api from '@/services/api';
 import AppHeader from '@/components/common/AppHeader.vue';
 import AppSidebar from '@/components/common/AppSidebar.vue';
 import { useSidebar } from '@/composables/useSidebar';
 import { authService } from '@/services/auth.service';
+import DateRangeSelector from '@/components/common/DateRangeSelector.vue';
+
+
+// Estado para os menus de data
+const startDateMenu = ref(false);
+const endDateMenu = ref(false);
+
+// Valores das datas
+const startDate = ref(null);
+const endDate = ref(null);
+
+// Formatação para exibição
+// Substitua as funções computed existentes por estas versões corrigidas
+const formattedStartDate = computed(() => {
+  if (!startDate.value) return '';
+  
+  try {
+    // Verificar se é um objeto Date
+    if (startDate.value instanceof Date) {
+      return format(startDate.value, 'dd/MM/yyyy', { locale: ptBR });
+    }
+    
+    // Verificar se é uma string ISO
+    if (typeof startDate.value === 'string') {
+      return format(new Date(startDate.value), 'dd/MM/yyyy', { locale: ptBR });
+    }
+    
+    return '';
+  } catch (error) {
+    console.error('Erro ao formatar data inicial:', error);
+    return '';
+  }
+});
+
+const formattedEndDate = computed(() => {
+  if (!endDate.value) return '';
+  
+  try {
+    // Verificar se é um objeto Date
+    if (endDate.value instanceof Date) {
+      return format(endDate.value, 'dd/MM/yyyy', { locale: ptBR });
+    }
+    
+    // Verificar se é uma string ISO
+    if (typeof endDate.value === 'string') {
+      return format(new Date(endDate.value), 'dd/MM/yyyy', { locale: ptBR });
+    }
+    
+    return '';
+  } catch (error) {
+    console.error('Erro ao formatar data final:', error);
+    return '';
+  }
+});
+
+// Adicione também um tratamento mais robusto na função watch
+watch([startDate, endDate], () => {
+  if (startDate.value || endDate.value) {
+    console.log('Datas selecionadas:', { startDate: startDate.value, endDate: endDate.value });
+    handleFilter();
+  }
+});
+
+watch([startDate, endDate], () => {
+  if (startDate.value || endDate.value) {
+    handleFilter();
+  }
+});
 
 
 const selectedTicket = ref(null)
@@ -229,7 +319,9 @@ const meta = ref({
 // Filtros de pesquisa
 const searchName = ref('');
 const searchStatus = ref('');
-const searchDateRange = ref([]);
+/*const searchDateRange = ref([]);*/
+const dateRange = ref({ startDate: null, endDate: null });
+
 const searchPriority = ref('');
 const dateMenu = ref(false);
 
@@ -267,6 +359,8 @@ const resetFilters = () => {
   searchName.value = '';
   searchStatus.value = '';
   searchPriority.value = '';
+  startDate.value = null;
+  endDate.value = null;
 
   // Recarrega os dados
   currentPage.value = 1;
@@ -279,6 +373,10 @@ const handlePageChange = async (page) => {
   await loadTickets(page);
 };
 
+const handleDateRangeChange = () => {
+  // Quando o intervalo de datas mudar, acionar a pesquisa
+  handleFilter();
+};
 
 const translateStatus = (status) => {
   const translations = {
@@ -310,8 +408,6 @@ const loadTickets = async (page = 1) => {
       return;
     }
 
-
-
     // Construir os parâmetros de filtro
     const params = new URLSearchParams({
       page: page.toString()
@@ -327,6 +423,12 @@ const loadTickets = async (page = 1) => {
       params.append('priority', searchPriority.value);
     }
 
+    if (startDate.value) {
+      params.append('start_date', startDate.value);
+    }
+    if (endDate.value) {
+      params.append('end_date', endDate.value);
+    }
 
     const response = await api.get(`/service/my-tickets?${params.toString()}`);
 
@@ -389,6 +491,24 @@ onMounted(() => {
 </script>
 
 <style scoped>
+.intervalo-datas {
+  width: 100%;
+}
+
+.date-inputs {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.date-field {
+  flex: 1;
+}
+
+.date-separator {
+  margin: 0 4px;
+  color: rgba(0, 0, 0, 0.6);
+}
 .create-button {
   display: flex !important;
   align-items: center !important;
@@ -585,4 +705,6 @@ onMounted(() => {
   transform: translateY(-1px);
   /* Leve efeito de elevação ao passar o mouse */
 }
+
+
 </style>
