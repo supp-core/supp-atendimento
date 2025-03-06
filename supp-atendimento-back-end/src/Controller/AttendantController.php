@@ -215,6 +215,7 @@ public function index(): JsonResponse
         try {
             $data = json_decode($request->getContent(), true);
 
+        
             if (!isset($data['status'])) {
                 return new JsonResponse([
                     'success' => false,

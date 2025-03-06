@@ -1,0 +1,93 @@
+version: '3.8'
+
+services:
+  # Serviço PHP/Symfony
+  backend:
+    build:
+      context: ./docker/php
+      dockerfile: Dockerfile
+    container_name: supp-backend
+    volumes:
+      - ./supp-atendimento-back-end:/var/www/html
+    depends_on:
+      - database
+    networks:
+      - supp-network
+    environment:
+      - APP_ENV=dev
+      - DATABASE_URL=postgresql://suppadmin:supppass@database:5432/suppdb
+
+  # Serviço Nginx (para o backend)
+  webserver:
+    build:
+      context: ./docker/nginx
+      dockerfile: Dockerfile
+    container_name: supp-webserver
+    ports:
+      - "8000:80"
+    depends_on:
+      - backend
+    volumes:
+      - ./supp-atendimento-back-end:/var/www/html
+    networks:
+      - supp-network
+
+  # Serviço Node.js para o frontend Vue.js
+  frontend:
+    build:
+      context: ./docker/node
+      dockerfile: Dockerfile
+    container_name: supp-frontend
+    ports:
+      - "5173:5173"
+    volumes:
+      - ./supp-atendimento-front-end:/app
+    command: sh -c "npm install && npm run dev"
+    networks:
+      - supp-network
+
+  # Serviço PostgreSQL
+  database:
+    image: postgres:15-alpine
+    container_name: supp-database
+    environment:
+      POSTGRES_DB: suppdb
+      POSTGRES_USER: suppadmin
+      POSTGRES_PASSWORD: supppass
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    networks:
+      - supp-network
+
+  # Serviço pgAdmin (opcional para administração do banco de dados)
+  pgadmin:
+    image: dpage/pgadmin4
+    container_name: supp-pgadmin
+    environment:
+      PGADMIN_DEFAULT_EMAIL: admin@supp.com
+      PGADMIN_DEFAULT_PASSWORD: admin
+    ports:
+      - "5050:80"
+    depends_on:
+      - database
+    networks:
+      - supp-network
+  
+  # Serviço Mailhog para testes de e-mail
+  mailhog:
+    image: mailhog/mailhog
+    container_name: supp-mailhog
+    ports:
+      - "1025:1025"  # SMTP port
+      - "8025:8025"  # Web interface port
+    networks:
+      - supp-network
+
+networks:
+  supp-network:
+    driver: bridge
+
+volumes:
+  postgres_data:

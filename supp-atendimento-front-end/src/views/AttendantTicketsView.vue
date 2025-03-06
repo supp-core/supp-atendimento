@@ -201,6 +201,37 @@
                   class="mb-4"></v-textarea>
               </div>
 
+
+
+              <!-- Após a seção do formulário no evolveDialog -->
+
+              <!-- Anexos -->
+              <template v-if="ticket?.attachments && ticket.attachments.length > 0">
+                <v-divider></v-divider>
+                <v-card-text class="pa-4">
+                  <h4 class="text-h6 mb-4">Anexos</h4>
+                  <v-list>
+                    <v-list-item v-for="attachment in ticket.attachments" :key="attachment.id" class="px-2">
+                      <template v-slot:prepend>
+                        <v-icon icon="mdi-file-document-outline"></v-icon>
+                      </template>
+
+                      <v-list-item-title>{{ attachment.originalFilename }}</v-list-item-title>
+
+                      <template v-slot:append>
+                        <v-btn color="primary" variant="text" size="small" @click="downloadAttachment(attachment)"
+                          :loading="loading">
+                          <v-icon left>mdi-download</v-icon>
+                          Download
+                        </v-btn>
+                      </template>
+                    </v-list-item>
+                  </v-list>
+                </v-card-text>
+              </template>
+
+
+
               <!-- Linha do tempo -->
               <div class="timeline">
                 <div v-for="(history, index) in evolveDialog.ticket?.histories" :key="index" class="timeline-item">
@@ -446,27 +477,71 @@ const formatDate = (dateString) => {
 
 const loadServiceHistory = async (serviceId) => {
   try {
-    const response = await api.get(`/service/${serviceId}/history`);
-    if (response.data.success) {
-      evolveDialog.value.ticket.histories = response.data.data;
+    console.log('Carregando histórico para o ticket:', serviceId);
+
+    // Carrega o histórico
+    const historyResponse = await api.get(`/service/${serviceId}/history`);
+
+    console.log('HISTORY ATENDIMENTO=========>>>>', historyResponse);
+
+
+    if (historyResponse.data.success) {
+      evolveDialog.value.ticket.histories = historyResponse.data.data;
+      console.log('Histórico carregado com sucesso:', historyResponse.data.data);
+    } else {
+      console.warn('Resposta de histórico sem sucesso:', historyResponse.data);
+    }
+
+    // Carrega os detalhes completos do ticket para ter acesso aos anexos
+    console.log('Carregando detalhes para o ticket:', serviceId);
+    const detailsResponse = await api.get(`/service/${serviceId}`);
+
+    console.e
+
+
+    if (detailsResponse.data.success) {
+      // Mantém o histórico já carregado, mas atualiza o resto das informações
+      evolveDialog.value.ticket = {
+        ...detailsResponse.data.data,
+        histories: evolveDialog.value.ticket.histories || []
+      };
+      console.log('Detalhes carregados com sucesso:', detailsResponse.data.data);
+    } else {
+      console.warn('Resposta de detalhes sem sucesso:', detailsResponse.data);
     }
   } catch (error) {
-    console.error('Erro ao carregar histórico:', error);
+    console.error('Erro ao carregar dados do ticket:', error);
+    // Não deixe o erro parar a execução - mantenha o que já temos
   }
 };
 
 
-// Funções de ação
 const openEvolveDialog = async (ticket) => {
+  // Primeiro definimos os dados básicos do diálogo
   evolveDialog.value = {
     show: true,
-    ticket: { ...ticket },
+    ticket: { ...ticket }, // Clone inicial do ticket
     newStatus: ticket.status,
     comment: '',
     loading: false
   };
 
-  await loadServiceHistory(ticket.id);
+  try {
+    // Carregamos os detalhes completos do ticket, incluindo anexos
+    const response = await api.get(`/service/${ticket.id}/history`);
+    if (response.data && response.data.success) {
+      // Atualizamos o ticket com dados completos, mantendo as propriedades já existentes
+      evolveDialog.value.ticket = {
+        ...evolveDialog.value.ticket,
+        ...response.data.data
+      };
+    }
+
+    // Carregamos o histórico em uma chamada separada
+    await loadServiceHistory(ticket.id);
+  } catch (error) {
+    console.error('Erro ao carregar detalhes do ticket: aaaaaaaaaaaaaaaaaaaaaaaaaaa', error);
+  }
 };
 
 const openTransferDialog = (ticket) => {
@@ -620,6 +695,52 @@ const priorityOptions = [
   { title: 'Alta', value: 'ALTA' },
   { title: 'Urgente', value: 'URGENTE' }
 ]
+
+
+
+// Variável de controle para download
+const downloadingAttachment = ref(null);
+
+// Função para baixar anexos
+const downloadAttachment = async (attachment) => {
+  try {
+
+    console.log('attachment=====>', attachment);
+
+    // Mostrar indicador de carregamento
+    loading.value = true;
+
+    // Fazer a requisição de download
+    const blob = await ticketsService.downloadAttachment(attachment.id);
+
+    // Criar URL objeto temporário para o blob
+    const url = window.URL.createObjectURL(blob);
+
+    // Criar elemento de link para acionar o download
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = attachment.originalFilename;
+
+    // Adicionar à página, clicar e remover
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+
+    // Liberar o objeto URL
+    window.URL.revokeObjectURL(url);
+  } catch (error) {
+    // Exibir notificação de erro
+    feedback.value = {
+      show: true,
+      message: 'Erro ao baixar o anexo',
+      type: 'error'
+    };
+    console.error('Erro ao baixar anexo:', error);
+  } finally {
+    loading.value = false;
+  }
+};
+
 
 // Carrega dados iniciais
 onMounted(() => {
@@ -833,5 +954,66 @@ onMounted(() => {
 /* Estilo para o conteúdo quando houver hover */
 .timeline-item:hover .timeline-content {
   background: #f0f2f5;
+}
+
+
+.attachments-section {
+  background-color: #f8f9fa;
+  border-radius: 8px;
+  padding: 16px;
+  margin-top: 20px;
+}
+
+.section-title {
+  color: #1a237e;
+  border-bottom: 1px solid #e0e0e0;
+  padding-bottom: 8px;
+}
+
+.attachment-list {
+  background-color: transparent !important;
+  padding: 0;
+}
+
+.attachment-item {
+  border-radius: 4px;
+  transition: background-color 0.2s ease;
+}
+
+.attachment-item:hover {
+  background-color: rgba(0, 0, 0, 0.03);
+}
+
+/* Adicionar padding à direita para evitar que o botão fique muito próximo do texto */
+:deep(.attachment-item .v-list-item__content) {
+  padding-right: 16px;
+}
+
+.attachments-container {
+  background-color: #f8f9fa;
+  border-radius: 8px;
+  padding: 16px;
+  border: 1px solid #e0e0e0;
+}
+
+.attachments-header {
+  font-weight: 500;
+  color: #1a237e;
+  display: flex;
+  align-items: center;
+}
+
+.attachments-list {
+  background-color: white;
+  border-radius: 4px;
+  overflow: hidden;
+}
+
+:deep(.v-list-item) {
+  border-bottom: 1px solid #f0f0f0;
+}
+
+:deep(.v-list-item:last-child) {
+  border-bottom: none;
 }
 </style>

@@ -299,16 +299,22 @@ class ServiceController extends AbstractController
     public function updateStatus(int $id, Request $request): JsonResponse
     {
         try {
+  
+
             // Decodifica o corpo da requisição
             $data = json_decode($request->getContent(), true);
-
+            
+      
+          
             // Validação básica dos dados recebidos
             if (!isset($data['status']) || !isset($data['comment'])) {
                 throw new BadRequestException('Status and comment are required');
             }
-
+    
             // Busca o serviço no ServiceManager
             $service = $this->serviceManager->findById($id);
+    
+        
 
             if (!$service) {
                 return new JsonResponse([
@@ -316,14 +322,55 @@ class ServiceController extends AbstractController
                     'message' => 'Service not found'
                 ], 404);
             }
+    
+            // Obter o usuário atual
+            $currentUser = $this->getUser();
+            
 
-            // Atualiza o status do serviço
+           
+            // Verificar se o usuário é um atendente admin
+            $isAdmin = false;
+            $adminAttendant = null;
+            
+            if ($currentUser) {
+                
+                $attendant = $this->entityManager->getRepository(Attendant::class)
+                    ->findOneBy(['user' => $currentUser]);
+
+                if ($attendant && $attendant->getFunction() === 'Admin') {
+                    $isAdmin = true;
+                    $adminAttendant = $attendant;
+                }
+            }
+            
+            // Se for admin e o ticket não tiver responsável, atribuir o admin como responsável
+            if ($isAdmin && $adminAttendant && !$service->getReponsible()) {
+                $service->setReponsible($adminAttendant);
+                $this->entityManager->flush();
+            }
+
+            $debug = [
+                'id' => $adminAttendant?->getId(),
+                'name' => $adminAttendant?->getName(),
+                'function' => $adminAttendant?->getFunction(),
+                'sector' => [
+                    'id' => $adminAttendant?->getSector() ? $adminAttendant?->getSector()->getId() : null,
+                    'name' => $adminAttendant?->getSector() ? $adminAttendant?->getSector()->getName() : null
+                ]
+            ];
+            
+            header('Content-Type: application/json');
+            echo json_encode($debug, JSON_PRETTY_PRINT);
+        
+    
+            // Atualiza o status do serviço com o atendente responsável correto
             $this->serviceManager->updateServiceStatus(
                 service: $service,
                 newStatus: $data['status'],
-                comment: $data['comment']
+                comment: $data['comment'],
+                attendant: $isAdmin ? $adminAttendant : null  // Passa o atendente admin se aplicável
             );
-
+    
             // Prepara a resposta com os dados atualizados
             return new JsonResponse([
                 'success' => true,

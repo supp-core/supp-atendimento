@@ -18,7 +18,7 @@ use Twig\Environment;
 
 class ServiceManager
 {
-    private const VALID_STATUS = ['NEW', 'OPEN', 'IN_PROGRESS', 'RESOLVED', 'CONCLUDED'];
+    private const VALID_STATUS = ['NEW', 'OPEN', 'IN_PROGRESS', 'RESOLVED', 'CONCLUDED', 'NOVO'];
     private string $uploadDir;
 
     public function __construct(
@@ -206,8 +206,10 @@ class ServiceManager
         return $service;
     }
 
-    public function updateServiceStatus(Service $service, string $newStatus, string $comment,  array $files = []): void
+    public function updateServiceStatus(Service $service, string $newStatus, string $comment, array $files = [], ?Attendant $attendant = null): void
     {
+
+       
         if (!in_array(strtoupper($newStatus), self::VALID_STATUS)) {
             throw new BadRequestException('Invalid status provided');
         }
@@ -232,8 +234,14 @@ class ServiceManager
             }
         }
         // Criar histórico da alteração
-        $this->createServiceHistory($service, $currentStatus, $newStatus, $comment);
+        
+       // $this->createServiceHistory($service, $currentStatus, $newStatus, $comment);
+        $this->createServiceHistory($service, $currentStatus, $newStatus, $comment, $attendant);
 
+
+        if ($attendant && !$service->getReponsible()) {
+            $service->setReponsible($attendant);
+        }
         // Atualizar o serviço
         $service->setStatus($newStatus);
         $service->setDateUpdate(new DateTime());
@@ -260,7 +268,7 @@ class ServiceManager
             ->getOneOrNullResult();
     }
 
-    private function createServiceHistory(Service $service, string $prevStatus, string $newStatus, string $comment): void
+    private function createServiceHistory(Service $service, string $prevStatus, string $newStatus, string $comment,?Attendant $attendant = null): void
     {
         $history = new ServiceHistory();
         $history->setService($service);
@@ -268,6 +276,15 @@ class ServiceManager
         $history->setStatusPost($newStatus);
         $history->setComment($comment);
         $history->setDateHistory(new DateTime());
+
+        if ($attendant) {
+            $history->setResponsible($attendant);
+
+            if (!$service->getReponsible()) {
+                $service->setReponsible($attendant);
+            }
+        }
+    
 
         $this->entityManager->persist($history);
     }
@@ -380,7 +397,8 @@ class ServiceManager
         // Se for admin, retorna todos os tickets
         if ($attendant->getFunction() === 'Admin') {
 
-            $queryBuilder->where('s.reponsible IS NULL');
+            $queryBuilder->where('s.reponsible IS NULL OR s.reponsible = :attendantId')
+            ->setParameter('attendantId', $attendantId);
         } else {
 
             // Se não for admin, retorna apenas os tickets atribuídos ao atendente

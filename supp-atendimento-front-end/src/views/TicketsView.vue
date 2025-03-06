@@ -288,7 +288,7 @@ const getStatusColor = (status) => {
 // Adicione a função que abre o modal
 const openTicketDetails = async (ticket) => {
   try {
-    console.log('Abrindo detalhes do ticket:', ticket) // Log para debug
+    console.log('Abrindo detalhes do ticket aq:', ticket) // Log para debug
     selectedTicket.value = ticket
     showDetailsModal.value = true
 
