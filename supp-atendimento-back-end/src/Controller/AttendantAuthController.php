@@ -15,7 +15,7 @@ class AttendantAuthController extends AbstractController
 {
     public function __construct(
         private AttendantAuthService $authService,
-        private JWTTokenManagerInterface $jwtManager
+        private JWTTokenManagerInterface $jwtManager, // Este deve ser o mesmo serviço usado no AuthController
     ) {}
 
     #[Route('/api/attendant/login', methods: ['POST'])]

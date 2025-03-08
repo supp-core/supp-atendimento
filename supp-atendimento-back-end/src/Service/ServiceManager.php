@@ -169,8 +169,7 @@ class ServiceManager
                                 ];
 
                                 echo  $attachmentData;
-                                die();
-                            }
+                             }
                         } else {
                             error_log('Upload inválido: ' . $uploadedFile->getErrorMessage());
                         }
@@ -209,6 +208,7 @@ class ServiceManager
     public function updateServiceStatus(Service $service, string $newStatus, string $comment, array $files = [], ?Attendant $attendant = null): void
     {
 
+//   die('parou uuuuuuuuuuuuuuuuu');
        
         if (!in_array(strtoupper($newStatus), self::VALID_STATUS)) {
             throw new BadRequestException('Invalid status provided');
@@ -234,7 +234,7 @@ class ServiceManager
             }
         }
         // Criar histórico da alteração
-        
+      
        // $this->createServiceHistory($service, $currentStatus, $newStatus, $comment);
         $this->createServiceHistory($service, $currentStatus, $newStatus, $comment, $attendant);
 
@@ -270,6 +270,8 @@ class ServiceManager
 
     private function createServiceHistory(Service $service, string $prevStatus, string $newStatus, string $comment,?Attendant $attendant = null): void
     {
+
+   
         $history = new ServiceHistory();
         $history->setService($service);
         $history->setStatusPrev($prevStatus);
@@ -277,14 +279,18 @@ class ServiceManager
         $history->setComment($comment);
         $history->setDateHistory(new DateTime());
 
+      
         if ($attendant) {
+           
             $history->setResponsible($attendant);
 
             if (!$service->getReponsible()) {
+            
+
                 $service->setReponsible($attendant);
             }
         }
-    
+    //    die('chega de palhaçada');
 
         $this->entityManager->persist($history);
     }
