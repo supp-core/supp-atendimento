@@ -653,7 +653,6 @@ class ServiceController extends AbstractController
 
         try {
 
-
             // Verificar se o usuário logado é um atendente admin
             $user = $this->getUser();
 
@@ -710,7 +709,7 @@ class ServiceController extends AbstractController
 
 
             // Criar o serviço
-            $service = $this->serviceManager->createService($data);
+            $service = $this->serviceManager->createService($data, $admin = true);
 
             return new JsonResponse([
                 'success' => true,

@@ -40,12 +40,14 @@ class ServiceManager
     }
 
 
-    public function createService(array $data): Service
+    public function createService(array $data,  bool $admin = false): Service
     {
 
 
-
-
+        echo '<pre>';
+        print_r($data);
+        echo '</pre>';
+      //  die('parou aqui');
         // Validar dados obrigatórios
         if (empty($data['title']) || empty($data['description']) || empty($data['sector_id']) || empty($data['requester_id'])) {
             throw new BadRequestException('Missing required fields');
@@ -53,7 +55,7 @@ class ServiceManager
 
         $createdByAdmin = !empty($data['created_by_admin']);
         $requester = null;
-
+   
         if ($createdByAdmin) {
             // Se o ticket está sendo criado por um admin, verificamos o ID do requisitante
             if (empty($data['requester_id'])) {
@@ -69,16 +71,16 @@ class ServiceManager
             $requester = $data['requester_id'];
         }
 
-
         // Buscar entidades relacionadas
         $sector = $this->entityManager->getRepository(Sector::class)->find($data['sector_id']);
         //   $requester = $this->entityManager->getRepository(User::class)->find($data['requester_id']);
         // $requester = $data['requester_id']; 
 
-
-        if (!$sector || !$requester) {
-            throw new BadRequestException('Invalid sector or requester');
-        }
+    
+            if (!$sector || !$requester) {
+                throw new BadRequestException('Invalid sector or requester');
+            }
+      
 
         $service = new Service();
         $service->setTitle($data['title']);
@@ -95,10 +97,11 @@ class ServiceManager
         // Configurações para tickets criados por admin
         if ($createdByAdmin && !empty($data['created_by_admin_id'])) {
             $adminAttendant = $this->entityManager->getRepository(Attendant::class)->find($data['created_by_admin_id']);
+
             if ($adminAttendant) {
                 $service->setCreatedByAdmin(true);
                 $service->setCreatedByAdminAttendant($adminAttendant);
-                $service->setReponsible($adminAttendant);
+                //$service->setReponsible($adminAttendant);
             }
         }
 
@@ -169,7 +172,7 @@ class ServiceManager
                                 ];
 
                                 echo  $attachmentData;
-                             }
+                            }
                         } else {
                             error_log('Upload inválido: ' . $uploadedFile->getErrorMessage());
                         }
@@ -208,8 +211,8 @@ class ServiceManager
     public function updateServiceStatus(Service $service, string $newStatus, string $comment, array $files = [], ?Attendant $attendant = null): void
     {
 
-//   die('parou uuuuuuuuuuuuuuuuu');
-       
+        //   die('parou uuuuuuuuuuuuuuuuu');
+
         if (!in_array(strtoupper($newStatus), self::VALID_STATUS)) {
             throw new BadRequestException('Invalid status provided');
         }
@@ -234,8 +237,8 @@ class ServiceManager
             }
         }
         // Criar histórico da alteração
-      
-       // $this->createServiceHistory($service, $currentStatus, $newStatus, $comment);
+
+        // $this->createServiceHistory($service, $currentStatus, $newStatus, $comment);
         $this->createServiceHistory($service, $currentStatus, $newStatus, $comment, $attendant);
 
 
@@ -268,10 +271,10 @@ class ServiceManager
             ->getOneOrNullResult();
     }
 
-    private function createServiceHistory(Service $service, string $prevStatus, string $newStatus, string $comment,?Attendant $attendant = null): void
+    private function createServiceHistory(Service $service, string $prevStatus, string $newStatus, string $comment, ?Attendant $attendant = null): void
     {
 
-   
+
         $history = new ServiceHistory();
         $history->setService($service);
         $history->setStatusPrev($prevStatus);
@@ -279,18 +282,18 @@ class ServiceManager
         $history->setComment($comment);
         $history->setDateHistory(new DateTime());
 
-      
+
         if ($attendant) {
-           
+
             $history->setResponsible($attendant);
 
             if (!$service->getReponsible()) {
-            
+
 
                 $service->setReponsible($attendant);
             }
         }
-    //    die('chega de palhaçada');
+        //    die('chega de palhaçada');
 
         $this->entityManager->persist($history);
     }
@@ -404,7 +407,7 @@ class ServiceManager
         if ($attendant->getFunction() === 'Admin') {
 
             $queryBuilder->where('s.reponsible IS NULL OR s.reponsible = :attendantId')
-            ->setParameter('attendantId', $attendantId);
+                ->setParameter('attendantId', $attendantId);
         } else {
 
             // Se não for admin, retorna apenas os tickets atribuídos ao atendente
