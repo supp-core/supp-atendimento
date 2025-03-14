@@ -18,7 +18,7 @@ use Symfony\Component\PasswordHasher\Hasher\UserPasswordHasherInterface;
 use App\Entity\Attendant;
 use App\Entity\ServiceAttachment; // Adicione esta linha para importar a classe
 use Symfony\Component\HttpFoundation\BinaryFileResponse; // Também adicione esta para o download
-
+use Symfony\Component\HttpFoundation\File\UploadedFile;
 use function Symfony\Component\DependencyInjection\Loader\Configurator\service;
 
 #[Route('/api/service')]
@@ -55,9 +55,14 @@ class ServiceController extends AbstractController
 
             $files = $request->files->get('files');
 
-            if (!is_array($files)) {
+            // Garantir que $files seja um array, mesmo que vazio
+            if ($files === null) {
+                $files = [];
+            } else if (!is_array($files)) {
                 $files = [$files];
             }
+
+
             $data = [
                 'title' => $request->request->get('title'),
                 'description' => $request->request->get('description'),
@@ -179,11 +184,11 @@ class ServiceController extends AbstractController
             $requester = $request->query->get('requester');
             $status = $request->query->get('status');
             $priority = $request->query->get('priority');
-            
+
             // Parâmetros de paginação
             $page = $request->query->get('page', 1);
             $perPage = $request->query->get('per_page', 10);
-            
+
             // Usar o método específico do ServiceManager que já verifica se é admin
             $attendant = $this->entityManager->getRepository(Attendant::class)->find($id);
             if (!$attendant) {
@@ -192,66 +197,68 @@ class ServiceController extends AbstractController
                     'message' => 'Atendente não encontrado'
                 ], 404);
             }
-            
+
             // Obter serviços usando a função apropriada
             $services = $this->serviceManager->getServicesByAttendant($id);
-            
 
-     // Aplicar filtros manualmente
+
+            // Aplicar filtros manualmente
             $filteredServices = [];
             foreach ($services as $service) {
                 $keepService = true;
-                
+
                 // Filtro por título
                 if ($title && !str_contains(strtolower($service->getTitle()), strtolower($title))) {
                     $keepService = false;
                 }
-                
+
                 // Filtro por solicitante
-                if ($requester && $service->getRequester() && 
-                    !str_contains(strtolower($service->getRequester()->getName()), strtolower($requester))) {
+                if (
+                    $requester && $service->getRequester() &&
+                    !str_contains(strtolower($service->getRequester()->getName()), strtolower($requester))
+                ) {
                     $keepService = false;
                 }
-                
+
                 // Filtro por status
                 if ($status && $service->getStatus() !== $status) {
                     $keepService = false;
                 }
-                
+
                 // Filtro por prioridade
                 if ($priority && $service->getPriority() !== $priority) {
                     $keepService = false;
                 }
-                
+
                 if ($keepService) {
                     $filteredServices[] = $service;
                 }
             }
-            
+
             // Ordenar por prioridade e depois por data (mais recente primeiro)
-            usort($filteredServices, function($a, $b) {
+            usort($filteredServices, function ($a, $b) {
                 $priorityOrder = [
                     'URGENTE' => 0,
                     'ALTA' => 1,
                     'NORMAL' => 2,
                     'BAIXA' => 3
                 ];
-                
+
                 $priorityA = $priorityOrder[$a->getPriority()] ?? 4;
                 $priorityB = $priorityOrder[$b->getPriority()] ?? 4;
-                
+
                 if ($priorityA === $priorityB) {
                     // Se prioridades iguais, ordena por data (mais recente primeiro)
                     return $b->getDateCreate() <=> $a->getDateCreate();
                 }
-                
+
                 return $priorityA <=> $priorityB;
             });
-            
+
             // Aplicar paginação
             $total = count($filteredServices);
             $paginatedServices = array_slice($filteredServices, ($page - 1) * $perPage, $perPage);
-            
+
             // Formatação dos dados para a resposta
             $response = array_map(function ($service) {
                 return [
@@ -276,7 +283,7 @@ class ServiceController extends AbstractController
                     ],
                 ];
             }, $paginatedServices);
-            
+
             return new JsonResponse([
                 'success' => true,
                 'data' => $response,
@@ -301,25 +308,25 @@ class ServiceController extends AbstractController
         try {
             // Decodifica o corpo da requisição
             $data = json_decode($request->getContent(), true);
-    
+
             // Validação básica dos dados recebidos
             if (!isset($data['status']) || !isset($data['comment'])) {
                 throw new BadRequestException('Status and comment are required');
             }
-    
+
             // Busca o serviço no ServiceManager
             $service = $this->serviceManager->findById($id);
-    
+
             if (!$service) {
                 return new JsonResponse([
                     'success' => false,
                     'message' => 'Service not found'
                 ], 404);
             }
-    
+
             // Obter o usuário logado
             $user = $this->getUser();
-            
+
             // Encontrar o atendente associado ao usuário logado
             $attendant = null;
             if ($user) {
@@ -331,7 +338,7 @@ class ServiceController extends AbstractController
                     ->getQuery()
                     ->getOneOrNullResult();
             }
-            
+
             // Atualiza o status do serviço e passa o atendente responsável
             $this->serviceManager->updateServiceStatus(
                 service: $service,
@@ -339,7 +346,7 @@ class ServiceController extends AbstractController
                 comment: $data['comment'],
                 attendant: $attendant // Passando o atendente logado
             );
-    
+
             // Prepara a resposta com os dados atualizados
             return new JsonResponse([
                 'success' => true,
@@ -494,7 +501,7 @@ class ServiceController extends AbstractController
             }
 
             $startDate = $request->query->get('start_date');
-        $endDate = $request->query->get('end_date');
+            $endDate = $request->query->get('end_date');
 
             $filters = [
                 'title' => $request->query->get('title'),
@@ -680,8 +687,13 @@ class ServiceController extends AbstractController
             $jsonData = json_decode($request->getContent(), true);
             $files = $request->files->get('files');
 
-            if (!is_array($files)) {
-                $files = [$files];
+            // Filtrar elementos vazios ou inválidos do array de arquivos
+            if (is_array($files)) {
+                $files = array_filter($files, function ($file) {
+                    return !empty($file) && $file instanceof UploadedFile && $file->isValid();
+                });
+            } else {
+                $files = []; // Garantir que $files seja um array vazio se não existir
             }
 
             $title = $request->request->get('title');

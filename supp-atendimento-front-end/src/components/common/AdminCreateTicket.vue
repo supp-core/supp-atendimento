@@ -172,38 +172,21 @@ const submitForm = async () => {
   try {
     // Criar FormData para envio com arquivos
     const submitData = new FormData();
-
     const attendant = attendantAuthService.getAttendantData();
-
-    console.log('Valores Formulario==========>>> ', formData.value);
-    console.log('DADOS ATTENDAT ', attendant.id);
-
-
-    console.log('Dados sendo enviados:', {
-      title: formData.value.title,
-      description: formData.value.description,
-      priority: formData.value.priority,
-      sector_id: formData.value.sector_id,
-      requester_id: formData.value.requester_id,
-      created_by_admin_id: attendant.id
-    });
 
     // Adicionar campos básicos
     submitData.append('title', formData.value.title);
     submitData.append('description', formData.value.description);
     submitData.append('priority', formData.value.priority);
     submitData.append('sector_id', formData.value.sector_id);
-
-    // Corrigir aqui: enviar apenas o ID do usuário selecionado
     submitData.append('requester_id', formData.value.requester_id);
-
     submitData.append('created_by_admin_id', attendant.id);
     submitData.append('created_by_admin', 'true');
     
-
-    // Adicionar arquivos
+    // Adicionar arquivos apenas se existirem
     if (formData.value.files && formData.value.files.length > 0) {
-      formData.value.files.forEach((file) => {
+      const validFiles = formData.value.files.filter(file => file != null);
+      validFiles.forEach((file) => {
         submitData.append('files[]', file);
       });
     }
@@ -213,27 +196,35 @@ const submitForm = async () => {
         'Content-Type': 'multipart/form-data'
       }
     });
-
-
-    console.log('Response====>>> ',response);
-    const rawData = response.data;
-
-// Passo 2: Separar as partes e pegar a segunda (pois estão concatenadas)
-const jsonParts = rawData.split("}{"); // Quebra no ponto onde há dois JSONs colados
-let cleanedJson = "{" + jsonParts[1]; // Pegando a parte correta
-
-// Passo 3: Transformar em objeto JavaScript
-const parsedData = JSON.parse(cleanedJson);
-
-
-    if (parsedData.success) {
+    
+    console.log('Resposta do servidor:', response.data);
+    
+    // Verificar se a resposta contém código de status HTTP 201 (Created)
+    if (response.status === 201) {
+      // Se o status é 201, consideramos sucesso mesmo se não conseguirmos interpretar a resposta
+      emit('created', { message: 'Atendimento criado com sucesso' });
+      closeDialog();
+      return;
+    }
+    
+    // Tenta processar a resposta como JSON
+    if (typeof response.data === 'object' && response.data.success) {
       emit('created', response.data.data);
       closeDialog();
+    } else {
+      // Se não conseguiu processar como JSON mas o status é positivo, consideramos sucesso
+      if (response.status >= 200 && response.status < 300) {
+        emit('created', { message: 'Atendimento criado com sucesso' });
+        closeDialog();
+      } else {
+        throw new Error("Resposta inesperada do servidor");
+      }
     }
   } catch (error) {
     console.error('Erro ao criar o atendimento:', error);
-    // Mostrar mensagem de erro mais detalhada
-    alert('Erro ao criar o atendimento: ' + (error.response?.data?.message || 'Erro desconhecido'));
+    console.error('Detalhes adicionais:', error.response?.data);
+    
+    alert('Erro ao criar o atendimento: ' + (error.response?.data?.message || error.message || 'Erro desconhecido'));
   } finally {
     loading.value = false;
   }

@@ -110,9 +110,13 @@ class ServiceManager
 
 
             foreach ($data['files'] as $uploadedFile) {
+                if (!$uploadedFile) {
+                    continue;
+                }
+
                 if ($uploadedFile instanceof UploadedFile) {
                     try {
-                        if ($uploadedFile->isValid()) {
+                        if ($uploadedFile->isValid()  && $this->attachmentManager->validateFile($uploadedFile)) {
 
 
                             if ($this->attachmentManager->validateFile($uploadedFile)) {
@@ -131,6 +135,7 @@ class ServiceManager
 
                                 $fileSize = $uploadedFile->getSize();
                                 // Garantir que o tamanho é um inteiro válido
+
                                 if (is_numeric($fileSize)) {
                                     $fileSize = (int)$fileSize;
                                 } else {
@@ -138,7 +143,7 @@ class ServiceManager
                                 }
 
                                 $filename = $this->attachmentManager->uploadFile($uploadedFile);
-
+                                $extension = $uploadedFile->getClientOriginalExtension();
                                 $attachment = new ServiceAttachment();
                                 $attachment->setService($service);
 
