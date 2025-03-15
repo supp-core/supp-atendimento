@@ -50,6 +50,12 @@ const routes = [
     name: 'ticket-details',
     component: () => import('@/views/TicketsView.vue'),
     props: true
+  },
+  {
+    path: '/attendant/admin/users',
+    name: 'admin-users',
+    component: () => import('@/views/AdminUsersView.vue'),
+    meta: { requiresAuth: true, requiresAdmin: true }
   }
 ];
 
