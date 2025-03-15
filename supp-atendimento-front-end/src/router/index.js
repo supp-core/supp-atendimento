@@ -3,6 +3,7 @@ import DashboardView from '../views/DashboardView.vue';
 import LoginView from '../views/LoginView.vue';
 import TicketsView from '../views/TicketsView.vue';
 import AttendantLoginView from '../views/AttendantLoginView.vue'; // Adicione esta linha
+import { attendantAuthService } from '@/services/attendant-auth.service';
 
 const routes = [
   {
@@ -55,8 +56,11 @@ const routes = [
     path: '/attendant/admin/users',
     name: 'admin-users',
     component: () => import('@/views/AdminUsersView.vue'),
-    meta: { requiresAuth: true, requiresAdmin: true }
-  }
+    meta: { 
+        requiresAttendantAuth: true, 
+        requiresAdmin: true 
+    }
+}
 ];
 
 const router = createRouter({
@@ -66,27 +70,39 @@ const router = createRouter({
 
 // router/index.js
 
+// No arquivo de rotas (router/index.js)
 router.beforeEach((to, from, next) => {
   if (to.matched.some(record => record.meta.requiresAttendantAuth)) {
       // Verifica autenticação de atendente
-      const attendantToken = localStorage.getItem('attendant_token')
+      const attendantToken = localStorage.getItem('attendant_token');
       if (!attendantToken) {
-          next('/attendant/login')
+          next('/attendant/login');
       } else {
-          next()
+          // Verifica se a rota precisa de permissão de admin
+          if (to.matched.some(record => record.meta.requiresAdmin)) {
+              const attendantData = attendantAuthService.getAttendantData();
+              // Se não for admin, redireciona para o dashboard
+              if (!attendantData || attendantData.function !== 'Admin') {
+                  next('/attendant/dashboard');
+              } else {
+                  next();
+              }
+          } else {
+              next();
+          }
       }
   } else if (to.matched.some(record => record.meta.requiresAuth)) {
       // Verifica autenticação de usuário comum
-      const userToken = localStorage.getItem('token')
+      const userToken = localStorage.getItem('token');
       if (!userToken) {
-          next('/login')
+          next('/login');
       } else {
-          next()
+          next();
       }
   } else {
-      next()
+      next();
   }
-})
+});
 
 // Aqui está a exportação que estava faltando
 export default router;

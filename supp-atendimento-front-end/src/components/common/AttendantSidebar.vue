@@ -17,19 +17,40 @@
                         <span class="text" v-show="!isCollapsed">Evoluir Atendimentos</span>
                     </router-link>
                 </li>
+
+                 <!-- Mostrar apenas se o atendente for Admin -->
+                 <li v-if="isAdmin">
+                    <router-link to="/attendant/admin/users" active-class="active">
+                        <span class="icon">👥</span>
+                        <span class="text" v-show="!isCollapsed">Gerenciar Usuários</span>
+                    </router-link>
+                </li>
             </ul>
         </nav>
     </aside>
 </template>
 
 <script setup>
-import { ref } from 'vue';
-
+import { ref,  computed, onMounted } from 'vue';
+import { attendantAuthService } from '@/services/attendant-auth.service';
 const isCollapsed = ref(false);
+const attendantData = ref(null);
+
+// Computed property para verificar se é admin
+const isAdmin = computed(() => {
+    return attendantData.value && attendantData.value.function === 'Admin';
+});
+
 
 const toggleSidebar = () => {
     isCollapsed.value = !isCollapsed.value;
 };
+
+// Carregar dados do atendente ao montar o componente
+onMounted(() => {
+    attendantData.value = attendantAuthService.getAttendantData();
+});
+
 </script>
 
 <style scoped>
