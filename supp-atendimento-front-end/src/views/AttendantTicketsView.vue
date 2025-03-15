@@ -202,33 +202,30 @@
               </div>
 
 
-
-              <!-- Após a seção do formulário no evolveDialog -->
-
-              <!-- Anexos -->
-              <template v-if="ticket?.attachments && ticket.attachments.length > 0">
-                <v-divider></v-divider>
-                <v-card-text class="pa-4">
-                  <h4 class="text-h6 mb-4">Anexos</h4>
-                  <v-list>
-                    <v-list-item v-for="attachment in ticket.attachments" :key="attachment.id" class="px-2">
-                      <template v-slot:prepend>
-                        <v-icon icon="mdi-file-document-outline"></v-icon>
-                      </template>
-
-                      <v-list-item-title>{{ attachment.originalFilename }}</v-list-item-title>
-
-                      <template v-slot:append>
-                        <v-btn color="primary" variant="text" size="small" @click="downloadAttachment(attachment)"
-                          :loading="loading">
-                          <v-icon left>mdi-download</v-icon>
-                          Download
-                        </v-btn>
-                      </template>
-                    </v-list-item>
-                  </v-list>
-                </v-card-text>
-              </template>
+              <!-- Exibição de anexos -->
+              <div v-if="evolveDialog.ticket?.attachments && evolveDialog.ticket.attachments.length > 0"
+                class="attachments-section mb-4 mt-4">
+                <div class="section-title d-flex align-center mb-2">
+                  <v-icon icon="mdi-paperclip" class="mr-2"></v-icon>
+                  <span>Anexos ({{ evolveDialog.ticket.attachments.length }})</span>
+                </div>
+                <v-list class="attachment-list">
+                  <v-list-item v-for="attachment in evolveDialog.ticket.attachments" :key="attachment.id"
+                    class="attachment-item">
+                    <template v-slot:prepend>
+                      <v-icon icon="mdi-file-document-outline"></v-icon>
+                    </template>
+                    <v-list-item-title>{{ attachment.originalFilename }}</v-list-item-title>
+                    <template v-slot:append>
+                      <v-btn color="primary" variant="text" size="small" @click="downloadAttachment(attachment)"
+                        :loading="downloading === attachment.id">
+                        <v-icon start>mdi-download</v-icon>
+                        Download
+                      </v-btn>
+                    </template>
+                  </v-list-item>
+                </v-list>
+              </div>
 
 
 
@@ -372,8 +369,9 @@ const handleTicketCreated = (newTicket) => {
 // Estado para os diálogos
 const evolveDialog = ref({
   show: false,
-  ticket: null,
-  newStatus: '',
+  ticket: {
+    attachments: [] // Inicialização explícita
+  }, newStatus: '',
   comment: '',
   loading: false
 })
@@ -482,9 +480,6 @@ const loadServiceHistory = async (serviceId) => {
     // Carrega o histórico
     const historyResponse = await api.get(`/service/${serviceId}/history`);
 
-    console.log('HISTORY ATENDIMENTO=========>>>>', historyResponse);
-
-
     if (historyResponse.data.success) {
       evolveDialog.value.ticket.histories = historyResponse.data.data;
       console.log('Histórico carregado com sucesso:', historyResponse.data.data);
@@ -495,8 +490,6 @@ const loadServiceHistory = async (serviceId) => {
     // Carrega os detalhes completos do ticket para ter acesso aos anexos
     console.log('Carregando detalhes para o ticket:', serviceId);
     const detailsResponse = await api.get(`/service/${serviceId}`);
-
-    console.e
 
 
     if (detailsResponse.data.success) {
@@ -510,39 +503,60 @@ const loadServiceHistory = async (serviceId) => {
       console.warn('Resposta de detalhes sem sucesso:', detailsResponse.data);
     }
   } catch (error) {
-    console.error('Erro ao carregar dados do ticket:', error);
+    console.error('Erro ao carregar dados do ticket aqqqqqqqqq:', error);
     // Não deixe o erro parar a execução - mantenha o que já temos
   }
 };
 
 
+
+
 const openEvolveDialog = async (ticket) => {
-  // Primeiro definimos os dados básicos do diálogo
-  evolveDialog.value = {
-    show: true,
-    ticket: { ...ticket }, // Clone inicial do ticket
-    newStatus: ticket.status,
-    comment: '',
-    loading: false
-  };
-
   try {
-    // Carregamos os detalhes completos do ticket, incluindo anexos
-    const response = await api.get(`/service/${ticket.id}/history`);
-    if (response.data && response.data.success) {
-      // Atualizamos o ticket com dados completos, mantendo as propriedades já existentes
-      evolveDialog.value.ticket = {
-        ...evolveDialog.value.ticket,
-        ...response.data.data
-      };
-    }
+    // Inicializa o diálogo com os dados básicos do ticket
+    evolveDialog.value = {
+      show: true,
+      ticket: {
+        ...ticket,
+        // Garantir que attachments seja sempre um array, mesmo que seja null ou undefined
+        attachments: ticket.attachments || [],
+        histories: [] // Inicializa histórico como array vazio
+      },
+      newStatus: ticket.status,
+      comment: '',
+      loading: true
+    };
 
-    // Carregamos o histórico em uma chamada separada
+
+    // Carrega detalhes completos do ticket, incluindo anexos
+    console.log('Carregando detalhes do ticket:', ticket.id);
+    // Primeiro carrega o histórico para manter a compatibilidade
     await loadServiceHistory(ticket.id);
+
+    // Agora busca os detalhes completos, incluindo anexos
+    const response = await api.get(`/service/${ticket.id}`);
+
+    if (response.data.success) {
+      // Mescla os dados recebidos com o estado atual preservando o histórico
+      evolveDialog.value.ticket = {
+        ...response.data.data,
+        histories: evolveDialog.value.ticket.histories || [],
+        attachments: response.data.data.attachments || evolveDialog.value.ticket.attachments || []
+      };
+
+
+
+
+    }
   } catch (error) {
-    console.error('Erro ao carregar detalhes do ticket: aaaaaaaaaaaaaaaaaaaaaaaaaaa', error);
+    console.error('Erro ao carregar detalhes do ticket:', error);
+  } finally {
+    evolveDialog.value.loading = false;
   }
 };
+
+
+
 
 const openTransferDialog = (ticket) => {
   transferDialog.value = {
@@ -699,24 +713,26 @@ const priorityOptions = [
 
 
 // Variável de controle para download
-const downloadingAttachment = ref(null);
+// No script setup do componente
+// Adicione um novo ref para controlar o download
+const downloading = ref(null);
 
-// Função para baixar anexos
+// Adicione a função para download
 const downloadAttachment = async (attachment) => {
   try {
+    downloading.value = attachment.id;
 
-    console.log('attachment=====>', attachment);
+    // Fazer requisição para baixar o anexo
+    const response = await api.get(`/service/attachment/${attachment.id}`, {
+      responseType: 'blob'
+    });
 
-    // Mostrar indicador de carregamento
-    loading.value = true;
+    console.log('DOnwload====>>>');
 
-    // Fazer a requisição de download
-    const blob = await ticketsService.downloadAttachment(attachment.id);
+    // Criar URL de objeto para o blob
+    const url = window.URL.createObjectURL(response.data);
 
-    // Criar URL objeto temporário para o blob
-    const url = window.URL.createObjectURL(blob);
-
-    // Criar elemento de link para acionar o download
+    // Criar elemento de link para download
     const link = document.createElement('a');
     link.href = url;
     link.download = attachment.originalFilename;
@@ -728,16 +744,12 @@ const downloadAttachment = async (attachment) => {
 
     // Liberar o objeto URL
     window.URL.revokeObjectURL(url);
+
   } catch (error) {
-    // Exibir notificação de erro
-    feedback.value = {
-      show: true,
-      message: 'Erro ao baixar o anexo',
-      type: 'error'
-    };
     console.error('Erro ao baixar anexo:', error);
+    // Exibir mensagem de erro se necessário
   } finally {
-    loading.value = false;
+    downloading.value = null;
   }
 };
 

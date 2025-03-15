@@ -38,7 +38,63 @@ class ServiceController extends AbstractController
     }
 
 
+// Adicione este método ao ServiceController.php
+#[Route('/{id}', methods: ['GET'])]
+public function getService(int $id): JsonResponse
+{
+    try {
+        $service = $this->serviceManager->findById($id);
 
+        if (!$service) {
+            return new JsonResponse([
+                'success' => false,
+                'message' => 'Service not found'
+            ], 404);
+        }
+
+        return new JsonResponse([
+            'success' => true,
+            'data' => [
+                'id' => $service->getId(),
+                'title' => $service->getTitle(),
+                'description' => $service->getDescription(),
+                'status' => $service->getStatus(),
+                'priority' => $service->getPriority(),
+                'sector' => [
+                    'id' => $service->getSector()?->getId(),
+                    'name' => $service->getSector()?->getName(),
+                ],
+                'requester' => [
+                    'id' => $service->getRequester()?->getId(),
+                    'name' => $service->getRequester()?->getName(),
+                    'email' => $service->getRequester()?->getEmail(),
+                ],
+                'responsible' => [
+                    'id' => $service->getReponsible()?->getId(),
+                    'name' => $service->getReponsible()?->getName(),
+                    'function' => $service->getReponsible()?->getFunction(),
+                ],
+                'dates' => [
+                    'created' => $service->getDateCreate()?->format('Y-m-d H:i:s'),
+                    'updated' => $service->getDateUpdate()?->format('Y-m-d H:i:s'),
+                    'concluded' => $service->getDateConclusion()?->format('Y-m-d H:i:s'),
+                ],
+                'attachments' => array_map(function ($attachment) {
+                    return [
+                        'id' => $attachment->getId(),
+                        'filename' => $attachment->getFilename(),
+                        'originalFilename' => $attachment->getOriginalFilename()
+                    ];
+                }, $service->getAttachments()->toArray())
+            ]
+        ]);
+    } catch (\Exception $e) {
+        return new JsonResponse([
+            'success' => false,
+            'message' => 'Error fetching service: ' . $e->getMessage()
+        ], 500);
+    }
+}
 
     #[Route('', methods: ['POST'])]
     public function create(Request $request): JsonResponse
@@ -103,7 +159,9 @@ class ServiceController extends AbstractController
                         return [
                             'id' => $attachment->getId(),
                             'filename' => $attachment->getFilename(),
-                            'originalFilename' => $attachment->getOriginalFilename()
+                            'originalFilename' => $attachment->getOriginalFilename(),
+                            'mimeType' => $attachment->getMimeType(),
+                            'fileSize' => $attachment->getFileSize()
                         ];
                     }, $service->getAttachments()->toArray())
                 ]
