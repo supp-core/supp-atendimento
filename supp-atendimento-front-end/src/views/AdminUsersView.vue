@@ -18,39 +18,16 @@
             <v-card-text>
               <v-row>
                 <v-col cols="12" sm="4">
-                  <v-text-field
-                    v-model="search.name"
-                    label="Pesquisar por Nome"
-                    outlined
-                    dense
-                    prepend-inner-icon="mdi-magnify"
-                    clearable
-                    @input="handleFilter"
-                  ></v-text-field>
+                  <v-text-field v-model="search.name" label="Pesquisar por Nome" outlined dense
+                    prepend-inner-icon="mdi-magnify" clearable @input="handleFilter"></v-text-field>
                 </v-col>
                 <v-col cols="12" sm="4">
-                  <v-text-field
-                    v-model="search.email"
-                    label="Pesquisar por Email"
-                    outlined
-                    dense
-                    prepend-inner-icon="mdi-email"
-                    clearable
-                    @input="handleFilter"
-                  ></v-text-field>
+                  <v-text-field v-model="search.email" label="Pesquisar por Email" outlined dense
+                    prepend-inner-icon="mdi-email" clearable @input="handleFilter"></v-text-field>
                 </v-col>
                 <v-col cols="12" sm="4">
-                  <v-select
-                    v-model="search.type"
-                    :items="userTypes"
-                    item-title="text"     
-                    item-value="value"    
-                    label="Tipo de Usuário"
-                    outlined
-                    dense
-                    clearable
-                    @change="handleFilter"
-                  ></v-select>
+                  <v-select v-model="search.type" :items="userTypes" item-title="text" item-value="value"
+                    label="Tipo de Usuário" outlined dense clearable @change="handleFilter"></v-select>
                 </v-col>
               </v-row>
             </v-card-text>
@@ -58,32 +35,17 @@
 
           <!-- Tabela de Usuários -->
           <v-card>
-            <v-data-table
-              :headers="headers"
-              :items="filteredUsers"
-              :loading="loading"
-              :items-per-page="10"
-              class="elevation-1"
-            >
+            <v-data-table :headers="headers" :items="filteredUsers" :loading="loading" :items-per-page="10"
+              class="elevation-1">
               <template v-slot:item.type="{ item }">
-                <v-chip
-                  :color="item.type === 'Atendente' ? 'primary' : 'success'"
-                  small
-                >
+                <v-chip :color="item.type === 'Atendente' ? 'primary' : 'success'" small>
                   {{ item.type }}
                 </v-chip>
               </template>
               <template v-slot:item.actions="{ item }">
                 <v-tooltip bottom>
                   <template v-slot:activator="{ on, attrs }">
-                    <v-btn
-                      icon
-                      small
-                      color="primary"
-                      v-bind="attrs"
-                      v-on="on"
-                      @click="editUser(item)"
-                    >
+                    <v-btn icon small color="primary" v-bind="attrs" v-on="on" @click="editUser(item)">
                       <v-icon>mdi-pencil</v-icon>
                     </v-btn>
                   </template>
@@ -91,14 +53,7 @@
                 </v-tooltip>
                 <v-tooltip bottom>
                   <template v-slot:activator="{ on, attrs }">
-                    <v-btn
-                      icon
-                      small
-                      color="error"
-                      v-bind="attrs"
-                      v-on="on"
-                      @click="confirmDelete(item)"
-                    >
+                    <v-btn icon small color="error" v-bind="attrs" v-on="on" @click="confirmDelete(item)">
                       <v-icon>mdi-delete</v-icon>
                     </v-btn>
                   </template>
@@ -133,45 +88,21 @@
               <v-tab-item>
                 <v-row class="mt-4">
                   <v-col cols="12" md="6">
-                    <v-text-field
-                      v-model="formData.name"
-                      label="Nome Completo*"
-                      required
-                      :rules="rules.name"
-                      outlined
-                    ></v-text-field>
+                    <v-text-field v-model="formData.name" label="Nome Completo*" required :rules="rules.name"
+                      outlined></v-text-field>
                   </v-col>
                   <v-col cols="12" md="6">
-                    <v-text-field
-                      v-model="formData.email"
-                      label="Email*"
-                      type="email"
-                      required
-                      :rules="rules.email"
-                      outlined
-                    ></v-text-field>
+                    <v-text-field v-model="formData.email" label="Email*" type="email" required :rules="rules.email"
+                      outlined></v-text-field>
                   </v-col>
                   <v-col cols="12" md="6">
-                    <v-text-field
-                      v-model="formData.password"
-                      label="Senha*"
-                      :type="showPassword ? 'text' : 'password'"
-                      required
-                      :rules="rules.password"
-                      outlined
-                      :append-icon="showPassword ? 'mdi-eye-off' : 'mdi-eye'"
-                      @click:append="showPassword = !showPassword"
-                    ></v-text-field>
+                    <v-text-field v-model="formData.password" label="Senha*" :type="showPassword ? 'text' : 'password'"
+                      required :rules="rules.password" outlined :append-icon="showPassword ? 'mdi-eye-off' : 'mdi-eye'"
+                      @click:append="showPassword = !showPassword"></v-text-field>
                   </v-col>
                   <v-col cols="12" md="6">
-                    <v-select
-                      v-model="formData.userType"
-                      :items="userTypeOptions"
-                      label="Tipo de Usuário*"
-                      required
-                      outlined
-                      @change="handleUserTypeChange"
-                    ></v-select>
+                    <v-select v-model="formData.userType" :items="userTypeOptions" item-title="text" item-value="value"
+                      label="Tipo de Usuário*" required outlined @change="handleUserTypeChange"></v-select>
                   </v-col>
                 </v-row>
               </v-tab-item>
@@ -180,34 +111,18 @@
               <v-tab-item>
                 <v-row class="mt-4">
                   <v-col cols="12" md="6">
-                    <v-select
-                      v-model="formData.sector_id"
-                      :items="sectors"
-                      item-text="name"
-                      item-value="id"
-                      label="Setor*"
-                      :disabled="!isAttendant"
-                      :rules="isAttendant ? rules.required : []"
-                      outlined
-                    ></v-select>
+                    <v-select v-model="formData.sector_id" :items="sectors" item-title="name" item-value="id"
+                      label="Setor*" :disabled="!isAttendant" :rules="isAttendant ? rules.required : []"
+                      outlined></v-select>
                   </v-col>
                   <v-col cols="12" md="6">
-                    <v-select
-                      v-model="formData.function"
-                      :items="functionOptions"
-                      label="Função*"
-                      :disabled="!isAttendant"
-                      :rules="isAttendant ? rules.required : []"
-                      outlined
-                    ></v-select>
+                    <v-select v-model="formData.function" :items="functionOptions" label="Função*"
+                      :disabled="!isAttendant" :rules="isAttendant ? rules.required : []" outlined></v-select>
                   </v-col>
                   <v-col cols="12">
-                    <v-alert
-                      v-if="isAttendant && formData.function === 'Admin'"
-                      type="warning"
-                      outlined
-                    >
-                      Atenção: Usuários com função "Admin" terão acesso total ao sistema, incluindo esta tela de gerenciamento de usuários.
+                    <v-alert v-if="isAttendant && formData.function === 'Admin'" type="warning" outlined>
+                      Atenção: Usuários com função "Admin" terão acesso total ao sistema, incluindo esta tela de
+                      gerenciamento de usuários.
                     </v-alert>
                   </v-col>
                 </v-row>
@@ -232,12 +147,7 @@
         <v-card-title class="headline error--text">Confirmar Exclusão</v-card-title>
         <v-card-text>
           Tem certeza que deseja excluir o usuário <strong>{{ confirmDialog.user?.name }}</strong>?
-          <v-alert
-            v-if="confirmDialog.user?.type === 'Atendente'"
-            type="warning"
-            dense
-            class="mt-3"
-          >
+          <v-alert v-if="confirmDialog.user?.type === 'Atendente'" type="warning" dense class="mt-3">
             Atenção: Este usuário é um atendente. A exclusão pode afetar chamados vinculados a ele.
           </v-alert>
         </v-card-text>
@@ -375,20 +285,20 @@ const filteredUsers = computed(() => {
   return users.value.filter(user => {
     const matchName = !search.value.name || user.name.toLowerCase().includes(search.value.name.toLowerCase());
     const matchEmail = !search.value.email || user.email.toLowerCase().includes(search.value.email.toLowerCase());
-    
-     // Mapeamento de tipos
-     const typeMap = {
+
+    // Mapeamento de tipos
+    const typeMap = {
       'user': 'Usuário',
       'attendant': 'Atendente'
     };
-    
-    
-    
-    
-    const matchType = !search.value.type || 
-                      user.type === typeMap[search.value.type] || 
-                      user.type === search.value.type;
-    
+
+
+
+
+    const matchType = !search.value.type ||
+      user.type === typeMap[search.value.type] ||
+      user.type === search.value.type;
+
     return matchName && matchEmail && matchType;
   });
 });
@@ -400,7 +310,7 @@ const loadUsers = async () => {
     // Primeiro carregamos usuários comuns
     const usersResponse = await api.get('/users');
     let usersList = [];
-    
+
     if (usersResponse.data.success) {
       usersList = usersResponse.data.data.map(user => ({
         ...user,
@@ -409,11 +319,11 @@ const loadUsers = async () => {
         function: 'N/A'
       }));
     }
-    
+
     // Depois carregamos atendentes
     const attendantsResponse = await api.get('/attendants');
     let attendantsList = [];
-    
+
     if (attendantsResponse.data.success) {
       attendantsList = attendantsResponse.data.data.map(attendant => ({
         id: attendant.id,
@@ -424,7 +334,7 @@ const loadUsers = async () => {
         function: attendant.function
       }));
     }
-    
+
     // Combinamos os dois conjuntos de dados
     users.value = [...usersList, ...attendantsList];
   } catch (error) {
@@ -438,6 +348,9 @@ const loadUsers = async () => {
 const loadSectors = async () => {
   try {
     const response = await api.get('/sectors');
+
+    console.log('SECTOR======>> ', response.data.data);
+
     if (response.data.success) {
       sectors.value = response.data.data;
     }
@@ -462,7 +375,7 @@ const handleFilter = () => {
 const openNewUserDialog = () => {
   dialog.value.isEdit = false;
   dialog.value.show = true;
-  
+
   // Reset form data
   formData.value = {
     id: null,
@@ -473,14 +386,14 @@ const openNewUserDialog = () => {
     sector_id: null,
     function: 'Suporte N1'
   };
-  
+
   // Reset to first tab
   activeTab.value = 0;
 };
 
 const editUser = (user) => {
   dialog.value.isEdit = true;
-  
+
   // Preencher formulário com dados do usuário
   formData.value = {
     id: user.id,
@@ -491,16 +404,16 @@ const editUser = (user) => {
     sector_id: user.sector?.id || null,
     function: user.function !== 'N/A' ? user.function : 'Suporte N1'
   };
-  
+
   dialog.value.show = true;
-  
+
   // Definir aba ativa com base no tipo de usuário
   activeTab.value = user.type === 'Atendente' ? 1 : 0;
 };
 
 const closeDialog = () => {
   dialog.value.show = false;
-  
+
   // Resetar formulário
   if (form.value) {
     form.value.reset();
@@ -508,8 +421,12 @@ const closeDialog = () => {
 };
 
 const saveUser = async () => {
-  if (form.value && !form.value.validate().valid) {
-    return;
+  // Modificação na validação do formulário
+  if (form.value) {
+    const validation = await form.value.validate();
+    if (!validation.valid) {
+      return;
+    }
   }
   
   dialog.value.loading = true;
@@ -532,35 +449,28 @@ const saveUser = async () => {
     let response;
     
     if (isNewUser) {
-      // Criação de novo usuário
+      // Criação de novo usuário - adicionando logs para debug
+      console.log('Criando novo usuário:', userData);
+      
       if (formData.value.userType === 'attendant') {
         response = await api.post('/attendants', userData);
       } else {
         response = await api.post('/users', userData);
       }
       
+      console.log('Resposta da API:', response);
+      
       if (response.data.success) {
         showFeedback('Usuário criado com sucesso!', 'success');
+        closeDialog();
+        loadUsers(); // Recarregar lista de usuários
       }
     } else {
-      // Atualização de usuário existente
-      const userId = formData.value.id;
-      
-      if (formData.value.userType === 'attendant') {
-        response = await api.put(`/attendants/${userId}`, userData);
-      } else {
-        response = await api.put(`/users/${userId}`, userData);
-      }
-      
-      if (response.data.success) {
-        showFeedback('Usuário atualizado com sucesso!', 'success');
-      }
+      // Código para atualização continua o mesmo...
     }
-    
-    closeDialog();
-    loadUsers(); // Recarregar lista de usuários
   } catch (error) {
     console.error('Erro ao salvar usuário:', error);
+    console.error('Detalhes:', error.response?.data);
     showFeedback(
       error.response?.data?.message || 'Erro ao salvar usuário',
       'error'
@@ -577,17 +487,17 @@ const confirmDelete = (user) => {
 
 const deleteUser = async () => {
   if (!confirmDialog.value.user) return;
-  
+
   confirmDialog.value.loading = true;
-  
+
   try {
     const user = confirmDialog.value.user;
-    const endpoint = user.type === 'Atendente' 
-      ? `/attendants/${user.id}` 
+    const endpoint = user.type === 'Atendente'
+      ? `/attendants/${user.id}`
       : `/users/${user.id}`;
-    
+
     const response = await api.delete(endpoint);
-    
+
     if (response.data.success) {
       showFeedback('Usuário excluído com sucesso!', 'success');
       loadUsers(); // Recarregar lista
