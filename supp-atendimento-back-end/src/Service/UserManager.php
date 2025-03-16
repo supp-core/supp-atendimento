@@ -36,7 +36,7 @@ class UserManager
         $user = new User();
         $user->setName($data['name']);
         $user->setEmail($data['email']);
-        
+        $user->setIsAttendant(isset($data['isAttendant']) ? (bool)$data['isAttendant'] : false);
         // Em um cenário real, você deve usar password_hash() ou um serviço específico 
         // do Symfony para hash de senha
         $hashedPassword = $this->passwordHasher->hashPassword(

@@ -79,6 +79,7 @@ public function index(): JsonResponse
             $user->setEmail($data['email']);
             $user->setName($data['name']);
             $user->setPassword($this->passwordHasher->hashPassword($user, $data['password']));
+            $user->setIsAttendant(true);
             $user->setRoles(['ROLE_USER', 'ROLE_ATTENDANT']);
 
             // Criar novo atendente

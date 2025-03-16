@@ -44,9 +44,7 @@ class ServiceManager
     {
 
 
-        echo '<pre>';
-        print_r($data);
-        echo '</pre>';
+      
       //  die('parou aqui');
         // Validar dados obrigatórios
         if (empty($data['title']) || empty($data['description']) || empty($data['sector_id']) || empty($data['requester_id'])) {
