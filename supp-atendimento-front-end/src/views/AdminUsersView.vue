@@ -43,6 +43,8 @@
                   <v-select
                     v-model="search.type"
                     :items="userTypes"
+                    item-title="text"     
+                    item-value="value"    
                     label="Tipo de Usuário"
                     outlined
                     dense
@@ -292,8 +294,8 @@ const search = ref({
 
 // Opções para os selects
 const userTypes = [
-  { text: 'Usuário Comum', value: 'user' },
-  { text: 'Atendente', value: 'attendant' }
+  { text: 'Usuário Comum', value: 'Usuário' },
+  { text: 'Atendente', value: 'Atendente' }
 ];
 
 const userTypeOptions = [
@@ -373,7 +375,19 @@ const filteredUsers = computed(() => {
   return users.value.filter(user => {
     const matchName = !search.value.name || user.name.toLowerCase().includes(search.value.name.toLowerCase());
     const matchEmail = !search.value.email || user.email.toLowerCase().includes(search.value.email.toLowerCase());
-    const matchType = !search.value.type || user.type.toLowerCase() === search.value.type.toLowerCase();
+    
+     // Mapeamento de tipos
+     const typeMap = {
+      'user': 'Usuário',
+      'attendant': 'Atendente'
+    };
+    
+    
+    
+    
+    const matchType = !search.value.type || 
+                      user.type === typeMap[search.value.type] || 
+                      user.type === search.value.type;
     
     return matchName && matchEmail && matchType;
   });
