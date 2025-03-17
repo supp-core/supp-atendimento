@@ -1,7 +1,7 @@
 <template>
     <header class="header">
       <div class="logo">
-        <img src="/assets/supp.png" alt="SUPP/PBH" class="logo-img">
+        <ProcuradoriaLogoCabecalho :width="140" :height="40" color="#1a237e" />
         <span class="portal-text">Portal do Atendente</span>
       </div>
       <div class="user-actions">
@@ -20,6 +20,7 @@
   import { ref, onMounted } from 'vue'
   import { useRouter } from 'vue-router'
   import { attendantAuthService } from '@/services/attendant-auth.service'
+  import ProcuradoriaLogoCabecalho from '@/components/common/ProcuradoriaLogoCabecalho.vue'
   
   const router = useRouter()
   const nomeAtendente = ref('')
@@ -39,19 +40,15 @@
   onMounted(() => {
     console.log('Component mounted');
     const attendant = attendantAuthService.getAttendantData()
-    console.log('Dados recuperados:', attendant.sector.name);
+    console.log('Dados recuperados:', attendant?.sector?.name);
     
     if (attendant) {
-
-
-
         nomeAtendente.value = attendant.name
         funcaoAtendente.value = attendant.function
-        sector.value = attendant.sector.name
+        sector.value = attendant.sector?.name || ''
         console.log('Nome:', nomeAtendente.value);
         console.log('Função:', funcaoAtendente.value);
-        console.log('Sector:', sector.value );
-        
+        console.log('Sector:', sector.value);
     } else {
         console.log('Nenhum dado de atendente encontrado');
     }
@@ -80,10 +77,6 @@
       gap: 12px;
   }
   
-  .logo-img {
-      height: 40px;
-  }
-  
   .portal-text {
       font-weight: 500;
       color: #1a237e;
@@ -100,7 +93,7 @@
       color: #333;
   }
   
-  .function {
+  .function, .sector {
       color: #666;
       font-size: 0.875rem;
   }

@@ -1,8 +1,7 @@
 <template>
   <header class="header">
     <div class="logo">
-      <img src="/assets/supp.png" alt="SUPP/PBH" class="logo-img">
-    </div>
+      <ProcuradoriaLogoCabecalho :width="140" :height="40" color="#1a237e" />    </div>
     <div class="user-actions">
       <span class="username">{{ nomeUsuario }}</span>
       <button @click="fazerLogout" class="logout-button">
@@ -16,7 +15,7 @@
 import { ref, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { authService } from '@/services/auth.service'
-
+import ProcuradoriaLogoCabecalho from '@/components/common/ProcuradoriaLogoCabecalho.vue'
 const router = useRouter()
 const nomeUsuario = ref('')
 
@@ -55,10 +54,6 @@ onMounted(() => {
     align-items: center;
     box-shadow: 0 2px 4px rgba(0,0,0,0.1);
     z-index: 1000;
-}
-
-.logo-img {
-    height: 40px;
 }
 
 .user-actions {

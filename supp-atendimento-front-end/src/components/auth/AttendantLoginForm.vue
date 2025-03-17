@@ -6,7 +6,7 @@
           <v-card-item>
             <div class="d-flex align-center mb-4">
               <v-img
-                src="/assets/supp.png"
+               
                 alt="SUPP/PBH"
                 width="80"
                 class="me-4"

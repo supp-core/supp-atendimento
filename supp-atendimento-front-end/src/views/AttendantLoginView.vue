@@ -1,190 +1,140 @@
 <template>
-    <div class="parent-container">
-        <v-card class="login-card">
-            <v-card-text>
-                <div class="login-header">
-                    <div class="logo-text-container">
-                        <img src="/assets/supp.png" alt="SUPP/PBH" class="logo">
-                        <div class="text-wrapper">
-                            <h1 class="supp-text">SUPP/PBH</h1>
-                            <p class="environment">Portal do Atendente</p>
-                        </div>
-                    </div>
+    <v-container fluid class="fill-height login-container">
+      <v-row align="center" justify="center">
+        <v-col cols="12" sm="8" md="6" lg="4">
+          <v-card class="login-card elevation-3">
+            <v-card-item>
+              <div class="d-flex flex-column align-center mb-4">
+                <!-- Logo com tamanho aumentado -->
+                <div class="logo-wrapper mb-4">
+                  <ProcuradoriaLogoLogin width="400" height="150" />
                 </div>
-
-                <v-form @submit.prevent="handleSubmit">
-                    <div class="form-group">
-                        <label>Email Corporativo</label>
-                        <v-text-field v-model="email" type="email" required placeholder="Digite seu email"
-                            variant="outlined" density="comfortable"></v-text-field>
-                    </div>
-
-                    <div class="form-group">
-                        <label>Senha</label>
-                        <v-text-field v-model="password" :type="showPassword ? 'text' : 'password'" required
-                            placeholder="Digite sua senha" variant="outlined" density="comfortable"
-                            :append-inner-icon="showPassword ? 'mdi-eye-off' : 'mdi-eye'"
-                            @click:append-inner="showPassword = !showPassword"></v-text-field>
-                    </div>
-
-                    <v-btn type="submit" color="primary" block :loading="loading" size="large">
-                        Entrar
-                    </v-btn>
-                </v-form>
-
-                <v-alert v-if="error" type="error" class="mt-4">
-                    {{ error }}
+                <div class="text-center">
+                  <v-card-subtitle class="text-subtitle-1 pa-0">
+                    Portal do Atendente
+                  </v-card-subtitle>
+                </div>
+              </div>
+  
+              <v-form @submit.prevent="handleSubmit" ref="form">
+                <v-text-field
+                  v-model="email"
+                  label="Email Corporativo"
+                  type="email"
+                  :rules="[
+                    v => !!v || 'Email é obrigatório',
+                    v => /.+@.+\..+/.test(v) || 'Email deve ser válido'
+                  ]"
+                  required
+                  variant="outlined"
+                  prepend-inner-icon="mdi-email"
+                  class="mb-4"
+                ></v-text-field>
+  
+                <v-text-field
+                  v-model="password"
+                  label="Senha"
+                  :type="showPassword ? 'text' : 'password'"
+                  :rules="[v => !!v || 'Senha é obrigatória']"
+                  required
+                  variant="outlined"
+                  prepend-inner-icon="mdi-lock"
+                  :append-inner-icon="showPassword ? 'mdi-eye-off' : 'mdi-eye'"
+                  @click:append-inner="showPassword = !showPassword"
+                  class="mb-6"
+                ></v-text-field>
+  
+                <v-btn
+                  type="submit"
+                  color="primary"
+                  size="large"
+                  block
+                  :loading="loading"
+                  class="mb-4"
+                >
+                  {{ loading ? 'Entrando...' : 'Entrar' }}
+                </v-btn>
+  
+                <v-alert
+                  v-if="error"
+                  type="error"
+                  variant="tonal"
+                  closable
+                  class="mb-4"
+                >
+                  {{ error }}
                 </v-alert>
-
-                <div v-if="error" class="error-message">
-                    {{ error }}
-                </div>
-            </v-card-text>
-        </v-card>
-    </div>
-</template>
-
-<script setup>
-import { ref } from 'vue'
-import { useRouter } from 'vue-router'
-import { attendantAuthService } from '@/services/attendant-auth.service'
-
-const router = useRouter()
-const email = ref('')
-const password = ref('')
-const showPassword = ref(false)
-const loading = ref(false)
-const error = ref('')
-
-const handleSubmit = async () => {
+              </v-form>
+            </v-card-item>
+          </v-card>
+        </v-col>
+      </v-row>
+    </v-container>
+  </template>
+  
+  <script setup>
+  import { ref } from 'vue'
+  import { useRouter } from 'vue-router'
+  import { attendantAuthService } from '@/services/attendant-auth.service'
+  import ProcuradoriaLogoLogin from '@/components/common/ProcuradoriaLogoLogin.vue'
+  
+  const router = useRouter()
+  const form = ref(null)
+  const email = ref('')
+  const password = ref('')
+  const showPassword = ref(false)
+  const loading = ref(false)
+  const error = ref('')
+  
+  const handleSubmit = async () => {
+    const { valid } = await form.value.validate()
+    
+    if (!valid) {
+          error.value = 'Por favor, preencha todos os campos corretamente'
+          return
+      }
+    
     loading.value = true
     error.value = ''
-
+  
     try {
-        await attendantAuthService.login(email.value, password.value)
-        router.push('/attendant/dashboard')
+      await attendantAuthService.login(email.value, password.value)
+         // Se chegou aqui, o login foi bem-sucedido
+         loading.value = false
+          
+      router.push('/attendant/dashboard')
     } catch (err) {
-        error.value = err.message
+      error.value = err.message || 'Erro ao fazer login'
     } finally {
-        loading.value = false
+      loading.value = false
     }
-}
-</script>
-
-<style scoped>
-.parent-container {
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    min-height: 100vh;
+  }
+  </script>
+  
+  <style scoped>
+  .login-container {
     background-color: #f5f5f5;
-}
-
-.login-card {
-    background: white;
-    padding: 2.5rem;
-    border-radius: 8px;
-    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-    width: 100%;
-    max-width: 400px;
-    margin: 2rem auto;
-}
-
-
-.login-header {
-    margin-bottom: 2rem;
-}
-
-
-.logo-text-container {
-    display: flex;
-    align-items: center;
-    gap: 1rem;
-}
-
-.logo-wrapper {
-    flex-shrink: 0;
-}
-
-.logo {
-    width: 80px;
-    height: auto;
-}
-
-.text-wrapper {
-    flex-grow: 1;
-}
-
-.supp-text {
-    font-size: 1.5rem;
-    color: #1a237e;
-    margin: 0;
-    font-weight: 500;
-    margin: 0 0 0.25rem 0;
-}
-
-.environment {
-    color: #666;
-    font-weight: 500;
-    margin: 0.5rem 0 0 0;
-}
-
-.form-group {
-    margin-bottom: 1.5rem;
-}
-
-
-.form-input {
-    width: 100%;
-    padding: 0.75rem;
-    border: 1px solid #e0e0e0;
-    border-radius: 4px;
-    font-size: 1rem;
-    transition: border-color 0.2s;
-}
-
-.form-input:focus {
-    outline: none;
-    border-color: #1a237e;
-}
-
-.login-button {
-    width: 100%;
-    padding: 0.875rem;
-    background-color: #1a237e;
-    color: white;
-    border: none;
-    border-radius: 4px;
-    font-size: 1rem;
-    cursor: pointer;
-    transition: background-color 0.2s;
-}
-
-.login-button:hover {
-    background-color: #0d47a1;
-}
-
-.login-button:disabled {
-    background-color: #9fa8da;
-    cursor: not-allowed;
-}
-
-.error-message {
-    color: #f44336;
-    font-size: 0.875rem;
-    margin-top: 1rem;
-    padding: 0.75rem;
-    background-color: #ffebee;
-    border-radius: 4px;
-    text-align: center;
-}
-
-.parent-container {
-    display: flex;
-    justify-content: center;
-    align-items: center;
     min-height: 100vh;
-    padding: 1rem;
-    background-color: #f5f5f5;
-}
-</style>
+  }
+  
+  .login-card {
+    border-radius: 8px !important;
+    padding: 20px;
+  }
+  
+  .logo-wrapper {
+    width: 400px;
+    height: 150px;
+    margin: 0 auto;
+  }
+  
+  :deep(.v-field) {
+    border-radius: 8px !important;
+  }
+  
+  :deep(.v-btn) {
+    text-transform: none !important;
+    font-weight: 500 !important;
+    letter-spacing: 0.5px !important;
+  }
+  </style>

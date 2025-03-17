@@ -1,15 +1,9 @@
 <template>
   <div class="login-card">
-    <!-- Header com logo ao lado -->
+    <!-- Header com logo modificado -->
     <div class="login-header">
-      <div class="logo-text-container">
-        <div class="logo-wrapper">
-          <img src="/assets/supp.png" alt="SUPP/PBH" class="logo">
-        </div>
-        <div class="text-wrapper">
-          <p class="supp-text">SUPP/PBH</p>
-          <p class="environment">Atendimentos</p>
-        </div>
+      <div class="logo-container">
+        <ProcuradoriaLogoLogin />
       </div>
     </div>
 
@@ -71,6 +65,7 @@
 import { ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { authService } from '@/services/auth.service'
+import ProcuradoriaLogoLogin from '@/components/common/ProcuradoriaLogoLogin.vue'
 
 const router = useRouter()
 const email = ref('')
@@ -106,44 +101,13 @@ const handleSubmit = async () => {
 
 .login-header {
   margin-bottom: 2rem;
-}
-
-.logo-text-container {
   display: flex;
-  align-items: center;
-  gap: 1rem;
+  justify-content: center;
 }
 
-.logo-wrapper {
-  flex-shrink: 0;
-}
-
-.logo {
-  width: 80px;
-  height: auto;
-}
-
-.text-wrapper {
-  flex-grow: 1;
-}
-
-.supp-text {
-  font-size: 1.2rem;
-  color: #1a237e;
-  font-weight: 500;
-  margin: 0 0 0.25rem 0;
-}
-
-.environment {
-  color: #1a237e;
-  font-weight: 500;
-  margin: 0 0 0.25rem 0;
-}
-
-.version {
-  color: #666;
-  font-size: 0.875rem;
-  margin: 0;
+.logo-container {
+  width: 300px;
+  margin: 0 auto 1.5rem;
 }
 
 .login-form h2 {
