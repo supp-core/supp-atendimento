@@ -514,6 +514,12 @@ const loadServiceHistory = async (serviceId) => {
 const openEvolveDialog = async (ticket) => {
   try {
     // Inicializa o diálogo com os dados básicos do ticket
+
+    if (ticket.status == 'NOVO'){
+      ticket.status = 'OPEN'
+    }else {
+        ticket.status = ticket.status 
+    }
     evolveDialog.value = {
       show: true,
       ticket: {
@@ -522,6 +528,7 @@ const openEvolveDialog = async (ticket) => {
         attachments: ticket.attachments || [],
         histories: [] // Inicializa histórico como array vazio
       },
+
       newStatus: ticket.status,
       comment: '',
       loading: true

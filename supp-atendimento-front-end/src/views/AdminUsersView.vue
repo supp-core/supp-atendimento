@@ -428,9 +428,9 @@ const saveUser = async () => {
       return;
     }
   }
-  
+
   dialog.value.loading = true;
-  
+
   try {
     const isNewUser = !dialog.value.isEdit;
     const userData = {
@@ -438,36 +438,54 @@ const saveUser = async () => {
       email: formData.value.email,
       password: formData.value.password,
     };
-    
+
     if (formData.value.userType === 'attendant') {
       // Dados específicos de atendente
       userData.is_attendant = true;
       userData.sector_id = formData.value.sector_id;
       userData.function = formData.value.function;
     }
-    
+
     let response;
-    
+
     if (isNewUser) {
       // Criação de novo usuário - adicionando logs para debug
       console.log('Criando novo usuário:', userData);
-      
+
       if (formData.value.userType === 'attendant') {
         response = await api.post('/attendants', userData);
       } else {
         response = await api.post('/users', userData);
       }
-      
+
       console.log('Resposta da API:', response);
-      
+
       if (response.data.success) {
         showFeedback('Usuário criado com sucesso!', 'success');
         closeDialog();
         loadUsers(); // Recarregar lista de usuários
       }
     } else {
-      // Código para atualização continua o mesmo...
+      const userId = formData.value.id;
+
+      // Log para debug
+      console.log('Atualizando usuário:', userId, userData);
+
+      if (formData.value.userType === 'attendant') {
+        response = await api.put(`/attendants/${userId}`, userData);
+      } else {
+        response = await api.put(`/users/${userId}`, userData);
+      }
+      console.log('Resposta da atualização:', response);
+
+      if (response.data.success) {
+        showFeedback('Usuário atualizado com sucesso!', 'success');
+      }
+
     }
+    closeDialog();
+    await loadUsers(); // Recarregar lista de usuários
+
   } catch (error) {
     console.error('Erro ao salvar usuário:', error);
     console.error('Detalhes:', error.response?.data);

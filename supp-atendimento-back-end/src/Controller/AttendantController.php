@@ -252,4 +252,90 @@ public function index(): JsonResponse
             ], 500);
         }
     }
+
+
+    // Adicione este método ao AttendantController.php
+
+#[Route('/{id}', methods: ['PUT'])]
+public function update(int $id, Request $request): JsonResponse
+{
+    try {
+        $data = json_decode($request->getContent(), true);
+        
+        // Buscar o atendente existente
+        $attendant = $this->entityManager->getRepository(Attendant::class)->find($id);
+        
+        if (!$attendant) {
+            return new JsonResponse([
+                'success' => false,
+                'message' => 'Atendente não encontrado'
+            ], 404);
+        }
+        
+        // Atualizar os dados do atendente
+        if (isset($data['name'])) {
+            $attendant->setName($data['name']);
+        }
+        
+        if (isset($data['function'])) {
+            $attendant->setFunction($data['function']);
+        }
+        
+        if (isset($data['sector_id'])) {
+            $sector = $this->entityManager->getRepository(Sector::class)->find($data['sector_id']);
+            if ($sector) {
+                $attendant->setSector($sector);
+            }
+        }
+        
+        // Atualizar o usuário associado
+        $user = $attendant->getUser();
+        
+        if ($user && isset($data['email'])) {
+            // Verificar se o email já está em uso por outro usuário
+            $existingUser = $this->entityManager->getRepository(User::class)
+                ->findOneBy(['email' => $data['email']]);
+            
+            if ($existingUser && $existingUser->getId() !== $user->getId()) {
+                return new JsonResponse([
+                    'success' => false,
+                    'message' => 'Email já está em uso por outro usuário'
+                ], 400);
+            }
+            
+            $user->setEmail($data['email']);
+        }
+        
+        if ($user && isset($data['name'])) {
+            $user->setName($data['name']);
+        }
+        
+        if ($user && isset($data['password']) && !empty($data['password'])) {
+            $user->setPassword($this->passwordHasher->hashPassword($user, $data['password']));
+        }
+        
+        // Persistir as alterações
+        $this->entityManager->flush();
+        
+        return new JsonResponse([
+            'success' => true,
+            'message' => 'Atendente atualizado com sucesso',
+            'data' => [
+                'id' => $attendant->getId(),
+                'name' => $attendant->getName(),
+                'email' => $user->getEmail(),
+                'function' => $attendant->getFunction(),
+                'sector' => [
+                    'id' => $attendant->getSector()?->getId(),
+                    'name' => $attendant->getSector()?->getName()
+                ]
+            ]
+        ]);
+    } catch (\Exception $e) {
+        return new JsonResponse([
+            'success' => false,
+            'message' => 'Erro ao atualizar atendente: ' . $e->getMessage()
+        ], 500);
+    }
+}
 }
