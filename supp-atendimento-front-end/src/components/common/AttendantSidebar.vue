@@ -31,25 +31,28 @@
 </template>
 
 <script setup>
+import { useSidebar } from '@/composables/useSidebar';
 import { ref,  computed, onMounted } from 'vue';
 import { attendantAuthService } from '@/services/attendant-auth.service';
-const isCollapsed = ref(false);
 const attendantData = ref(null);
-
+const { sidebarCollapsed, toggleSidebar } = useSidebar();
 // Computed property para verificar se é admin
 const isAdmin = computed(() => {
     return attendantData.value && attendantData.value.function === 'Admin';
 });
 
 
-const toggleSidebar = () => {
+const toggleSidebars = () => {
     isCollapsed.value = !isCollapsed.value;
 };
 
+const isCollapsed = sidebarCollapsed;
 // Carregar dados do atendente ao montar o componente
 onMounted(() => {
     attendantData.value = attendantAuthService.getAttendantData();
 });
+
+
 
 </script>
 

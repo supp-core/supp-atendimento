@@ -215,10 +215,10 @@ const userTypeOptions = [
 
 const functionOptions = [
   'Admin',
-  'Suporte N1',
-  'Suporte N2',
-  'Analista',
-  'Coordenador'
+  'Analista Desenvolvedor',
+  'Analista DevOps',
+  'Analista de Infraestrutura',
+  'Estagiário'
 ];
 
 // Cabeçalhos da tabela

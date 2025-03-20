@@ -1,20 +1,20 @@
 <template>
-  <aside :class="['sidebar', { 'collapsed': isCollapsed }]">
+  <aside :class="['sidebar', { 'collapsed': sidebarCollapsed }]">
     <button class="toggle-button" @click="toggleSidebar">
-      <span class="toggle-icon">{{ isCollapsed ? '→' : '←' }}</span>
+      <span class="toggle-icon">{{ sidebarCollapsed ? '→' : '←' }}</span>
     </button>
     <nav>
       <ul>
         <li>
           <router-link to="/dashboard" active-class="active">
             <span class="icon">📊</span>
-            <span class="text" v-show="!isCollapsed">Dashboard</span>
+            <span class="text" v-show="!sidebarCollapsed">Dashboard</span>
           </router-link>
         </li>
         <li>
           <router-link to="/tickets" active-class="active">
             <span class="icon">🎫</span>
-            <span class="text" v-show="!isCollapsed">Chamados</span>
+            <span class="text" v-show="!sidebarCollapsed">Chamados</span>
           </router-link>
         </li>
       </ul>
@@ -23,20 +23,17 @@
 </template>
 
 <script setup>
-import { ref } from 'vue';
+import { useSidebar } from '@/composables/useSidebar';
 
-const isCollapsed = ref(false);
-
-const toggleSidebar = () => {
-  isCollapsed.value = !isCollapsed.value;
-};
+// Usar o estado compartilhado
+const { sidebarCollapsed, toggleSidebar } = useSidebar();
 </script>
 
 <style scoped>
 .sidebar {
   position: fixed;
   left: 0;
-  top: 60px; /* Altura do header */
+  top: 60px;
   bottom: 0;
   width: 250px;
   background: white;
