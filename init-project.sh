@@ -11,6 +11,11 @@ echo "Configurando o backend Symfony..."
 docker-compose exec backend composer install
 docker-compose exec backend php bin/console doctrine:migrations:migrate --no-interaction
 
+# Carregar os fixtures
+echo "Carregando os dados iniciais (fixtures)..."
+docker-compose exec backend php bin/console doctrine:fixtures:load --no-interaction
+
+
 # Configurar o frontend Vue.js
 echo "Configurando o frontend Vue.js..."
 docker-compose exec frontend npm install

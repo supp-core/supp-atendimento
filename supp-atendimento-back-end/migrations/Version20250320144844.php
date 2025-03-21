@@ -10,7 +10,7 @@ use Doctrine\Migrations\AbstractMigration;
 /**
  * Auto-generated Migration: Please modify to your needs!
  */
-final class Version20250202201429 extends AbstractMigration
+final class Version20250320144844 extends AbstractMigration
 {
     public function getDescription(): string
     {
@@ -25,10 +25,14 @@ final class Version20250202201429 extends AbstractMigration
         $this->addSql('CREATE INDEX IDX_EF0EE00FED5CA9E6 ON service_attachment (service_id)');
         $this->addSql('ALTER TABLE service_attachment ADD CONSTRAINT FK_EF0EE00FED5CA9E6 FOREIGN KEY (service_id) REFERENCES service (id) NOT DEFERRABLE INITIALLY IMMEDIATE');
         $this->addSql('ALTER TABLE attendant DROP CONSTRAINT fk_attendant_user');
-        $this->addSql('DROP INDEX IDX_B2508F91A76ED395');
+       
         $this->addSql('ALTER TABLE attendant ALTER user_id SET NOT NULL');
         $this->addSql('ALTER TABLE attendant ADD CONSTRAINT FK_B2508F91A76ED395 FOREIGN KEY (user_id) REFERENCES "user" (id) NOT DEFERRABLE INITIALLY IMMEDIATE');
         $this->addSql('CREATE UNIQUE INDEX UNIQ_B2508F91A76ED395 ON attendant (user_id)');
+       # $this->addSql('ALTER TABLE service ADD created_by_admin_id INT DEFAULT NULL');
+       # $this->addSql('ALTER TABLE service ADD created_by_admin BOOLEAN DEFAULT false NOT NULL');
+       # $this->addSql('ALTER TABLE service ADD CONSTRAINT FK_E19D9AD264F1F4EE FOREIGN KEY (created_by_admin_id) REFERENCES attendant (id) NOT DEFERRABLE INITIALLY IMMEDIATE');
+       # $this->addSql('CREATE INDEX IDX_E19D9AD264F1F4EE ON service (created_by_admin_id)');
     }
 
     public function down(Schema $schema): void
@@ -42,6 +46,10 @@ final class Version20250202201429 extends AbstractMigration
         $this->addSql('DROP INDEX UNIQ_B2508F91A76ED395');
         $this->addSql('ALTER TABLE attendant ALTER user_id DROP NOT NULL');
         $this->addSql('ALTER TABLE attendant ADD CONSTRAINT fk_attendant_user FOREIGN KEY (user_id) REFERENCES "user" (id) ON DELETE SET NULL NOT DEFERRABLE INITIALLY IMMEDIATE');
-        $this->addSql('CREATE INDEX IDX_B2508F91A76ED395 ON attendant (user_id)');
+      
+        #$this->addSql('ALTER TABLE service DROP CONSTRAINT FK_E19D9AD264F1F4EE');
+        #$this->addSql('DROP INDEX IDX_E19D9AD264F1F4EE');
+        #$this->addSql('ALTER TABLE service DROP created_by_admin_id');
+        #'$this->addSql('ALTER TABLE service DROP created_by_admin');
     }
 }

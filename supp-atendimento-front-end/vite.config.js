@@ -1,18 +1,32 @@
-import { fileURLToPath, URL } from 'node:url'
-
+// vite.config.js
 import { defineConfig } from 'vite'
 import vue from '@vitejs/plugin-vue'
-import vueDevTools from 'vite-plugin-vue-devtools'
+// Remova a importação incorreta do vuetify
+// import vuetify from 'vuetify'
 
-// https://vite.dev/config/
 export default defineConfig({
   plugins: [
     vue(),
-    vueDevTools(),
   ],
+  server: {
+    host: '0.0.0.0',  // Expõe para todas as interfaces de rede
+    port: 5173        // Porta desejada
+  },
   resolve: {
     alias: {
-      '@': fileURLToPath(new URL('./src', import.meta.url))
+      '@': '/src',
     },
+  },
+  css: {
+    preprocessorOptions: {
+      scss: {
+        // Se você estiver usando SCSS
+        additionalData: `@import "vuetify/styles";`,
+      },
+    },
+  },
+  // Adicione esta configuração para garantir que o Vuetify seja carregado corretamente
+  build: {
+    transpile: ['vuetify'],
   },
 })
