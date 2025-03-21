@@ -4,3 +4,8 @@
  mkdir -p public/uploads/attachments
  chmod 777 public/uploads/attachments
  chmod -R 777 public/uploads/attachments
+
+Chave JWT - caso seja necessario
+
+https://claude.ai/chat/23edd382-2291-468a-b133-0dbe5c583968 
+
