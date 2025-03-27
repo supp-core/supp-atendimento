@@ -1,0 +1,14 @@
+FROM nginx:alpine
+
+# Remover configuração padrão
+RUN rm /etc/nginx/conf.d/default.conf
+
+# Copiar nova configuração
+COPY nginx.prod.conf /etc/nginx/conf.d/default.conf
+
+# Criar diretório para SSL
+RUN mkdir -p /etc/nginx/ssl
+
+EXPOSE 80 443
+
+CMD ["nginx", "-g", "daemon off;"]

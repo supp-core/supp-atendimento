@@ -1,0 +1,55 @@
+FROM php:8.2-fpm
+
+# Instalar dependências do sistema
+RUN apt-get update && apt-get install -y \
+    git \
+    unzip \
+    libzip-dev \
+    libicu-dev \
+    libpq-dev \
+    && apt-get clean \
+    && rm -rf /var/lib/apt/lists/*
+
+# Instalar extensões PHP necessárias
+RUN docker-php-ext-install \
+    pdo \
+    pdo_pgsql \
+    zip \
+    intl \
+    opcache
+
+# Configurar PHP para produção
+COPY php.prod.ini /usr/local/etc/php/conf.d/app.ini
+COPY opcache.ini /usr/local/etc/php/conf.d/opcache.ini
+
+# Instalar Composer
+COPY --from=composer:latest /usr/bin/composer /usr/bin/composer
+
+# Definir diretório de trabalho
+WORKDIR /var/www/html
+
+# Copiar código da aplicação
+COPY . /var/www/html/
+
+# Instalar dependências do Composer (sem dev)
+RUN composer install --prefer-dist --no-dev --no-scripts --no-progress --no-suggest --optimize-autoloader
+
+# Configurar permissões
+RUN chown -R www-data:www-data /var/www/html \
+    && chmod -R 755 /var/www/html/public \
+    && chmod -R 777 /var/www/html/var \
+    && chmod -R 777 /var/www/html/public/uploads
+
+# Gerar chaves JWT (se necessário)
+RUN mkdir -p config/jwt \
+    && openssl genpkey -out config/jwt/private.pem -aes256 -algorithm rsa -pkeyopt rsa_keygen_bits:4096 -pass pass:${JWT_PASSPHRASE} \
+    && openssl pkey -in config/jwt/private.pem -out config/jwt/public.pem -pubout -passin pass:${JWT_PASSPHRASE}
+
+# Remover Composer após a instalação
+RUN rm /usr/bin/composer
+
+USER www-data
+
+EXPOSE 9000
+
+CMD ["php-fpm"]

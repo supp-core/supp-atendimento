@@ -1,0 +1,86 @@
+version: '3.8'
+
+services:
+  # Serviço PHP/Symfony
+  backend:
+    build:
+      context: ./docker/php
+      dockerfile: Dockerfile.prod
+    container_name: supp-backend
+    restart: unless-stopped
+    volumes:
+      - ./supp-atendimento-back-end:/var/www/html
+      - app_var:/var/www/html/var
+      - app_uploads:/var/www/html/public/uploads
+    depends_on:
+      - database
+    networks:
+      - supp-network
+    environment:
+      - APP_ENV=prod
+      - APP_DEBUG=0
+      - DATABASE_URL=postgresql://suppadmin:${DB_PASSWORD}@database:5432/suppdb
+
+  # Serviço Nginx (para o backend)
+  webserver:
+    build:
+      context: ./docker/nginx
+      dockerfile: Dockerfile.prod
+    container_name: supp-webserver
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+    depends_on:
+      - backend
+    volumes:
+      - ./supp-atendimento-back-end:/var/www/html
+      - ./docker/nginx/ssl:/etc/nginx/ssl
+      - app_uploads:/var/www/html/public/uploads
+    networks:
+      - supp-network
+
+  # Serviço de Frontend
+  frontend:
+    build:
+      context: ./docker/node
+      dockerfile: Dockerfile.prod
+    container_name: supp-frontend
+    restart: unless-stopped
+    ports:
+      - "3000:80"
+    networks:
+      - supp-network
+
+  # Serviço PostgreSQL
+  database:
+    image: postgres:15-alpine
+    container_name: supp-database
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: suppdb
+      POSTGRES_USER: suppadmin
+      POSTGRES_PASSWORD: ${DB_PASSWORD}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./docker/postgres/init:/docker-entrypoint-initdb.d
+    networks:
+      - supp-network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U suppadmin -d suppdb"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+
+networks:
+  supp-network:
+    driver: bridge
+
+volumes:
+  postgres_data:
+    driver: local
+  app_var:
+    driver: local
+  app_uploads:
+    driver: local
