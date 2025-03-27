@@ -39,3 +39,5 @@ const dataToSubmit = {
       ...formData.value,
       sector_id: 1 // ID do setor Admin
     };
+
+submitData.append('sector_id', '1');

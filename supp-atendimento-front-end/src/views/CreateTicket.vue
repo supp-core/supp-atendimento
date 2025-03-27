@@ -157,7 +157,6 @@ const handleSubmit = async () => {
       sector_id: 5 // ID do setor Admin
     };
 
-    console.log('DaTA SUBMIt ', dataToSubmit);
 
     const response = await api.post('/service', dataToSubmit);
 
