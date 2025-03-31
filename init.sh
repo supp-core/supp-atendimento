@@ -1,6 +1,12 @@
 #!/bin/bash
 set -e
 
+# Criar diretório para dados do PostgreSQL
+echo "Criando diretório para dados do PostgreSQL..."
+sudo mkdir -p ./docker-data/postgres
+sudo chmod 777 ./docker-data/postgres
+
+
 echo "Iniciando os containers..."
 docker-compose up -d
 

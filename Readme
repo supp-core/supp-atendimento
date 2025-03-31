@@ -1,0 +1,3 @@
+ Gerar o dump
+ docker exec supp-database pg_dump -U suppadmin suppdb > meu_banco.sql 
+ 
