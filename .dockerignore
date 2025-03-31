@@ -1,0 +1,8 @@
+.git
+.github
+.gitignore
+*.md
+supp-atendimento-back-end/var/
+supp-atendimento-back-end/vendor/
+supp-atendimento-front-end/node_modules/
+supp-atendimento-front-end/dist/
