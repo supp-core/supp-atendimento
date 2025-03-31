@@ -1,0 +1,65 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: supp-frontend
+  labels:
+    app: supp-frontend
+spec:
+  replicas: 2  # Aumentamos para ter alta disponibilidade
+  selector:
+    matchLabels:
+      app: supp-frontend
+  template:
+    metadata:
+      labels:
+        app: supp-frontend
+    spec:
+      containers:
+      - name: frontend
+        image: ${ACR_NAME}.azurecr.io/supp-frontend:latest
+        ports:
+        - containerPort: 5173
+        resources:
+          requests:
+            cpu: "100m"
+            memory: "256Mi"
+          limits:
+            cpu: "500m"
+            memory: "512Mi"
+        env:
+        - name: NODE_ENV
+          valueFrom:
+            configMapKeyRef:
+              name: supp-config
+              key: NODE_ENV
+        - name: HOST
+          value: "0.0.0.0"
+        - name: API_BASE_URL
+          valueFrom:
+            configMapKeyRef:
+              name: supp-config
+              key: API_BASE_URL
+        readinessProbe:
+          httpGet:
+            path: /
+            port: 5173
+          initialDelaySeconds: 10
+          periodSeconds: 30
+        livenessProbe:
+          httpGet:
+            path: /
+            port: 5173
+          initialDelaySeconds: 30
+          periodSeconds: 60
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: supp-frontend
+spec:
+  selector:
+    app: supp-frontend
+  ports:
+  - port: 80
+    targetPort: 5173
+  type: ClusterIP  # Será exposto através de Ingress

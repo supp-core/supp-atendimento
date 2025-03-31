@@ -1,0 +1,45 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: supp-mailhog
+  labels:
+    app: supp-mailhog
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: supp-mailhog
+  template:
+    metadata:
+      labels:
+        app: supp-mailhog
+    spec:
+      containers:
+      - name: mailhog
+        image: mailhog/mailhog
+        ports:
+        - containerPort: 1025  # SMTP
+        - containerPort: 8025  # Web UI
+        resources:
+          requests:
+            cpu: "50m"
+            memory: "128Mi"
+          limits:
+            cpu: "100m"
+            memory: "256Mi"
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: supp-mailhog
+spec:
+  selector:
+    app: supp-mailhog
+  ports:
+  - name: smtp
+    port: 1025
+    targetPort: 1025
+  - name: ui
+    port: 8025
+    targetPort: 8025
+  type: ClusterIP

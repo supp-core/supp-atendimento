@@ -1,0 +1,70 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: supp-backend
+  labels:
+    app: supp-backend
+spec:
+  replicas: 2  # Aumentamos para ter alta disponibilidade
+  selector:
+    matchLabels:
+      app: supp-backend
+  template:
+    metadata:
+      labels:
+        app: supp-backend
+    spec:
+      containers:
+      - name: backend
+        image: ${ACR_NAME}.azurecr.io/supp-backend:latest
+        ports:
+        - containerPort: 9000
+        resources:
+          requests:
+            cpu: "100m"
+            memory: "256Mi"
+          limits:
+            cpu: "500m"
+            memory: "512Mi"
+        env:
+        - name: APP_ENV
+          valueFrom:
+            configMapKeyRef:
+              name: supp-config
+              key: APP_ENV
+        - name: DATABASE_URL
+          valueFrom:
+            secretKeyRef:
+              name: supp-secrets
+              key: DATABASE_URL
+        volumeMounts:
+        - name: uploads-volume
+          mountPath: /var/www/html/public/uploads
+        readinessProbe:
+          exec:
+            command: ["php", "-v"]
+          initialDelaySeconds: 10
+          periodSeconds: 30
+          timeoutSeconds: 10
+        livenessProbe:
+          exec:
+            command: ["php", "-v"]
+          initialDelaySeconds: 30
+          periodSeconds: 60
+          timeoutSeconds: 10
+      volumes:
+      - name: uploads-volume
+        persistentVolumeClaim:
+          claimName: uploads-pvc
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: supp-backend
+spec:
+  selector:
+    app: supp-backend
+  ports:
+  - port: 9000
+    targetPort: 9000
+  type: ClusterIP  # Não exposto externamente, apenas dentro do cluster

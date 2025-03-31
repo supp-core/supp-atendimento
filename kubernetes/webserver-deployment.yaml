@@ -1,0 +1,103 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: supp-webserver
+  labels:
+    app: supp-webserver
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: supp-webserver
+  template:
+    metadata:
+      labels:
+        app: supp-webserver
+    spec:
+      containers:
+      - name: nginx
+        image: nginx:alpine
+        ports:
+        - containerPort: 80
+        resources:
+          requests:
+            cpu: "100m"
+            memory: "128Mi"
+          limits:
+            cpu: "200m"
+            memory: "256Mi"
+        volumeMounts:
+        - name: nginx-config
+          mountPath: /etc/nginx/conf.d/default.conf
+          subPath: nginx.conf
+        - name: uploads-volume
+          mountPath: /var/www/html/public/uploads
+        readinessProbe:
+          httpGet:
+            path: /healthz
+            port: 80
+          initialDelaySeconds: 5
+          periodSeconds: 10
+        livenessProbe:
+          httpGet:
+            path: /healthz
+            port: 80
+          initialDelaySeconds: 15
+          periodSeconds: 20
+      volumes:
+      - name: nginx-config
+        configMap:
+          name: nginx-config
+      - name: uploads-volume
+        persistentVolumeClaim:
+          claimName: uploads-pvc
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: supp-webserver
+spec:
+  selector:
+    app: supp-webserver
+  ports:
+  - port: 80
+    targetPort: 80
+  type: ClusterIP  # Será exposto através de Ingress
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: nginx-config
+data:
+  nginx.conf: |
+    server {
+        listen 80;
+        server_name localhost;
+        root /var/www/html/public;
+
+        location /healthz {
+            return 200 'healthy';
+            add_header Content-Type text/plain;
+        }
+
+        location / {
+            try_files $uri /index.php$is_args$args;
+        }
+
+        location ~ ^/index\.php(/|$) {
+            fastcgi_pass supp-backend:9000;
+            fastcgi_split_path_info ^(.+\.php)(/.*)$;
+            include fastcgi_params;
+            fastcgi_param SCRIPT_FILENAME $document_root$fastcgi_script_name;
+            fastcgi_param DOCUMENT_ROOT $document_root;
+            internal;
+        }
+
+        location ~ \.php$ {
+            return 404;
+        }
+
+        # Configuração de logs
+        error_log /var/log/nginx/error.log;
+        access_log /var/log/nginx/access.log;
+    }

@@ -1,0 +1,11 @@
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: uploads-pvc
+spec:
+  accessModes:
+    - ReadWriteMany  # Necessário para múltiplas réplicas
+  storageClassName: azurefile  # Classe de armazenamento Azure que suporta ReadWriteMany
+  resources:
+    requests:
+      storage: 5Gi
