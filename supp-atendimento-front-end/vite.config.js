@@ -6,22 +6,11 @@ import vue from '@vitejs/plugin-vue'
 
 export default defineConfig({
   plugins: [
-    vue()
+    vue(),
   ],
   server: {
     host: '0.0.0.0',  // Expõe para todas as interfaces de rede
-    port: 5173,       // Porta desejada
-    watch: {
-      usePolling: true
-    },
-    proxy: {
-      '/api': {
-        target: 'http://webserver',
-        changeOrigin: true,
-        secure: false,
-        rewrite: (path) => path
-      }
-    }
+    port: 5173        // Porta desejada
   },
   resolve: {
     alias: {

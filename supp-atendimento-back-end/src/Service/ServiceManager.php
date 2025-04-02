@@ -296,7 +296,7 @@ class ServiceManager
                 $service->setReponsible($attendant);
             }
         }
-    
+        //    die('chega de palhaçada');
 
         $this->entityManager->persist($history);
     }
