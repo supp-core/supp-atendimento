@@ -1,3 +1,28 @@
+# apiVersion: networking.k8s.io/v1
+# kind: Ingress
+# metadata:
+#   name: atendimento-ingress
+#   namespace: atendimento
+#   annotations:
+#     kubernetes.io/ingress.class: "nginx"
+#     cert-manager.io/cluster-issuer: "letsencrypt-prod"
+# spec:
+#   tls:
+#     - hosts:
+#         - helpdesk.pgmbh.org
+#       secretName: supp-pgmbh-tls-secret
+#   rules:
+#     - host: helpdesk.pgmbh.org
+#       http:
+#         paths:
+#           - path: /
+#             pathType: Prefix
+#             backend:
+#               service:
+#                 name: webserver
+#                 port:
+#                   number: 80
+
 apiVersion: networking.k8s.io/v1
 kind: Ingress
 metadata:
@@ -6,6 +31,7 @@ metadata:
   annotations:
     kubernetes.io/ingress.class: "nginx"
     cert-manager.io/cluster-issuer: "letsencrypt-prod"
+    nginx.ingress.kubernetes.io/app-root: "/login"
 spec:
   tls:
     - hosts:
