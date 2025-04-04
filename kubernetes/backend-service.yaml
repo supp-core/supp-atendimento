@@ -2,7 +2,7 @@ apiVersion: v1
 kind: Service
 metadata:
   name: backend
-  namespace: atendimento
+  namespace: helpdesk
 spec:
   selector:
     io.kompose.service: backend
