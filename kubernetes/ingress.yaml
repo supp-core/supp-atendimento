@@ -26,8 +26,8 @@
 apiVersion: networking.k8s.io/v1
 kind: Ingress
 metadata:
-  name: atendimento-ingress
-  namespace: atendimento
+  name: helpdesk-ingress
+  namespace: helpdesk
   annotations:
     kubernetes.io/ingress.class: "nginx"
     cert-manager.io/cluster-issuer: "letsencrypt-prod"
