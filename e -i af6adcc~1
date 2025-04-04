@@ -1,0 +1,25 @@
+[33mcommit af6adcc9a74e64d21bb37420f0885c3c0c66339e[m[33m ([m[1;36mHEAD -> [m[1;32mmaster[m[33m)[m
+Author: Rafael Assumpção <rafael.assumpcao@pbh.gov.br>
+Date:   Fri Apr 4 13:20:21 2025 +0000
+
+    Adiciona .authgit ao .gitignore
+
+[1mdiff --git a/.auth-git b/.auth-git[m
+[1mnew file mode 100644[m
+[1mindex 0000000..4cceeba[m
+[1m--- /dev/null[m
+[1m+++ b/.auth-git[m
+[36m@@ -0,0 +1,12 @@[m
+[32m+[m[32mgitrepo:[m
+[32m+[m[32mhttps://github.com/danilopbh/supp-atendimento[m
+[32m+[m
+[32m+[m[32mgitacess:[m
+[32m+[m[32mmarcoribeiropbh[m
+[32m+[m
+[32m+[m[32mgittoken:[m
+[32m+[m[32m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[m
+[32m+[m
+[32m+[m
+[32m+[m[32mflux-publickey:[m
+[32m+[m[32m✔ public key: ecdsa-sha2-nistp384 AAAAE2VjZHNhLXNoYTItbmlzdHAzODQAAAAIbmlzdHAzODQAAABhBKFzc5kZBTM6C1y9j5miNh3VFnC5eRpul6p9ftvgIXq02a5aLu/UzolhADtljZ/WRrIkLaIuurA65X08DBX0OJDTjd04WCK3dj/utzJL+7rbN/tH6cjqobiTvLn8EALmIA==[m
+\ No newline at end of file[m
