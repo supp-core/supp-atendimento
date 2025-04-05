@@ -42,6 +42,26 @@
               {{ ticket.responsible.sector?.name ?? ticket.sector.name }}
             </div>
           </v-col>
+
+          <v-col cols="6">
+            <div class="metadata-item">
+              <v-icon size="small" class="mr-1">mdi-tag</v-icon>
+              <span class="metadata-label">Categoria:</span>
+              {{ ticket?.category?.name || 'Não especificada' }}
+            </div>
+          </v-col>
+
+
+          <v-col cols="6">
+            <div class="metadata-item">
+              <v-icon size="small" class="mr-1">mdi-shape</v-icon>
+              <span class="metadata-label">Tipo de Atendimento:</span>
+              {{ ticket?.serviceType?.name || 'Não especificado' }}
+            </div>
+          </v-col>
+
+
+
           <v-col cols="6">
             <div class="metadata-item">
               <v-icon size="small" class="mr-1">mdi-flag</v-icon>
