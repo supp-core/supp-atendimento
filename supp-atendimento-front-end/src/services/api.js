@@ -42,7 +42,7 @@ import axios from 'axios';
 // Remova a importação de authService se não existir ou ajuste o caminho
 // import { authService } from './auth.service';
 
-/*const api = axios.create({
+const api = axios.create({
     // Use um caminho relativo. O browser fará a requisição para
     // https://suppatendimento.pgmbh.org/api
     baseURL: '/api',
@@ -51,17 +51,17 @@ import axios from 'axios';
         'Content-Type': 'application/json',
         'X-Requested-With': 'XMLHttpRequest' // Frequentemente necessário para CORS/Frameworks
     }
-});*/
+});
 
-
-const api = axios.create({
+/*Rodar local*/
+/*const api = axios.create({
     // Se seu backend Symfony está rodando na porta 8000 (padrão do Symfony)
     baseURL: 'http://localhost:8000/api',
     headers: {
         'Accept': 'application/json',
         'Content-Type': 'application/json'
     }
-});
+});*/
 
 // Interceptor (mantido como estava, parece ok)
 api.interceptors.request.use(
