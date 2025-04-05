@@ -234,6 +234,8 @@ public function getService(int $id): JsonResponse
                 'priority' => $request->request->get('priority'),
                 'sector_id' => $request->request->get('sector_id'),
                 'requester_id' => $user,
+                'category_id' => $request->request->get('category_id'),
+                'service_type_id' => $request->request->get('service_type_id'),
                 'files' => $files // Pega os arquivos
             ];
 

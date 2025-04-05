@@ -9,3 +9,7 @@ Chave JWT - caso seja necessario
 
 https://claude.ai/chat/23edd382-2291-468a-b133-0dbe5c583968 
 
+
+Rodar Migrates
+
+php bin/console doctrine:migrations:migrate

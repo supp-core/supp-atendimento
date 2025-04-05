@@ -4,6 +4,8 @@ namespace App\Service;
 
 use App\Entity\Service;
 use App\Entity\Attendant;
+use App\Entity\Category;
+use App\Entity\ServiceType;
 use App\Entity\ServiceHistory;
 use App\Entity\ServiceAttachment;
 use App\Entity\Sector;
@@ -44,8 +46,8 @@ class ServiceManager
     {
 
 
-      
-      //  die('parou aqui');
+
+        //  die('parou aqui');
         // Validar dados obrigatórios
         if (empty($data['title']) || empty($data['description']) || empty($data['sector_id']) || empty($data['requester_id'])) {
             throw new BadRequestException('Missing required fields');
@@ -53,7 +55,7 @@ class ServiceManager
 
         $createdByAdmin = !empty($data['created_by_admin']);
         $requester = null;
-   
+
         if ($createdByAdmin) {
             // Se o ticket está sendo criado por um admin, verificamos o ID do requisitante
             if (empty($data['requester_id'])) {
@@ -69,16 +71,17 @@ class ServiceManager
             $requester = $data['requester_id'];
         }
 
+
         // Buscar entidades relacionadas
         $sector = $this->entityManager->getRepository(Sector::class)->find($data['sector_id']);
         //   $requester = $this->entityManager->getRepository(User::class)->find($data['requester_id']);
         // $requester = $data['requester_id']; 
 
-    
-            if (!$sector || !$requester) {
-                throw new BadRequestException('Invalid sector or requester');
-            }
-      
+
+        if (!$sector || !$requester) {
+            throw new BadRequestException('Invalid sector or requester');
+        }
+
 
         $service = new Service();
         $service->setTitle($data['title']);
@@ -87,6 +90,23 @@ class ServiceManager
         $service->setRequester($requester);
         $service->setStatus('NOVO');
         $service->setDateCreate(new DateTime());
+
+        if (!empty($data['category_id'])) {
+            $category = $this->entityManager->getRepository(Category::class)->find($data['category_id']);
+            if ($category) {
+                $service->setCategory($category);
+            }
+        }
+
+        // Buscar tipo de serviço se fornecido
+        if (!empty($data['service_type_id'])) {
+            $serviceType = $this->entityManager->getRepository(ServiceType::class)->find($data['service_type_id']);
+            if ($serviceType) {
+                $service->setServiceType($serviceType);
+            }
+        }
+
+
         $priority = $data['priority'] ?? Service::PRIORITY_NORMAL;
         $service->setPriority($priority);
 
