@@ -186,11 +186,28 @@
               </div>
 
 
+              <!-- Dentro do v-card-text do evolveDialog -->
+              <!-- Adicione após o formulário de nova evolução -->
+              <div v-if="isAdmin" class="admin-fields mt-4 mb-4">
+                <div class="section-title d-flex align-center mb-2">
+                  <v-icon icon="mdi-tune" class="mr-2"></v-icon>
+                  <span>Campos administrativos</span>
+                </div>
 
+                <v-row>
+                  <v-col cols="12" md="6">
+                    <v-select v-model="evolveDialog.category_id" :items="categories" item-title="name" item-value="id"
+                      label="Categoria" :disabled="evolveDialog.loading"
+                      :placeholder="evolveDialog.ticket?.category?.name || 'Selecione uma categoria'"></v-select>
+                  </v-col>
 
-
-
-
+                  <v-col cols="12" md="6">
+                    <v-select v-model="evolveDialog.service_type_id" :items="serviceTypes" item-title="name"
+                      item-value="id" label="Tipo de Atendimento" :disabled="evolveDialog.loading"
+                      :placeholder="evolveDialog.ticket?.serviceType?.name || 'Selecione um tipo'"></v-select>
+                  </v-col>
+                </v-row>
+              </div>
 
               <!-- Formulário de nova evolução -->
               <div class="new-update-form mb-6">
@@ -315,6 +332,32 @@ const { sidebarCollapsed } = useSidebar()
 const loading = ref(false)
 const tickets = ref([])
 
+// Dentro do script setup
+const loadCategoriesview = async () => {
+  try {
+    const response = await api.get('/categories');
+    if (response.data.success) {
+      console.log('Categorias carregadas =========>>>>>:', categories.value);
+      categories.value = response.data.data;
+    }
+  } catch (error) {
+    console.error('Erro ao carregar categorias:', error);
+  }
+};
+
+
+const loadServiceTypes = async () => {
+  try {
+    const response = await api.get('/service-types');
+    if (response.data.success) {
+      serviceTypes.value = response.data.data;
+    }
+  } catch (error) {
+    console.error('Erro ao carregar tipos de serviço:', error);
+  }
+};
+
+
 // Função principal de pesquisa
 const handleSearch = async () => {
   try {
@@ -336,7 +379,8 @@ const handleSearch = async () => {
 
 const createDialog = ref(false)
 const attendantData = ref(null)
-
+const categories = ref([]);
+const serviceTypes = ref([]);
 
 const isAdmin = computed(() => {
   return attendantData.value && attendantData.value.function === 'Admin'
@@ -373,6 +417,8 @@ const evolveDialog = ref({
     attachments: [] // Inicialização explícita
   }, newStatus: '',
   comment: '',
+  category_id: null,
+  service_type_id: null,
   loading: false
 })
 
@@ -515,10 +561,10 @@ const openEvolveDialog = async (ticket) => {
   try {
     // Inicializa o diálogo com os dados básicos do ticket
 
-    if (ticket.status == 'NOVO'){
+    if (ticket.status == 'NOVO') {
       ticket.status = 'OPEN'
-    }else {
-        ticket.status = ticket.status 
+    } else {
+      ticket.status = ticket.status
     }
     evolveDialog.value = {
       show: true,
@@ -531,6 +577,8 @@ const openEvolveDialog = async (ticket) => {
 
       newStatus: ticket.status,
       comment: '',
+      category_id: ticket.category?.id || null,
+      service_type_id: ticket.serviceType?.id || null,
       loading: true
     };
 
@@ -578,6 +626,22 @@ const openTransferDialog = (ticket) => {
 const evolveTicket = async () => {
   evolveDialog.value.loading = true
   try {
+    const updateData = {
+      status: evolveDialog.value.newStatus,
+      comment: evolveDialog.value.comment
+    };
+    
+    // Adiciona campos administrativos apenas se o usuário for admin
+    if (isAdmin.value) {
+      if (evolveDialog.value.category_id) {
+        updateData.category_id = evolveDialog.value.category_id;
+      }
+      
+      if (evolveDialog.value.service_type_id) {
+        updateData.service_type_id = evolveDialog.value.service_type_id;
+      }
+    }
+    
     await api.put(`/service/${evolveDialog.value.ticket.id}/status`, {
       status: evolveDialog.value.newStatus,
       comment: evolveDialog.value.comment
@@ -764,8 +828,10 @@ const downloadAttachment = async (attachment) => {
 // Carrega dados iniciais
 onMounted(() => {
   attendantData.value = attendantAuthService.getAttendantData()
-  loadTickets()
-  loadAttendants()
+  loadTickets();
+  loadAttendants();
+  loadCategoriesview();
+  loadServiceTypes();
 })
 </script>
 
@@ -801,6 +867,21 @@ onMounted(() => {
 
 .priority-chip {
   font-weight: 500;
+}
+
+
+.admin-fields {
+  background-color: #f5f5f5;
+  border-radius: 8px;
+  padding: 16px;
+  margin-top: 20px;
+  border: 1px dashed #1a237e;
+}
+
+.section-title {
+  font-weight: 500;
+  color: #1a237e;
+  margin-bottom: 12px;
 }
 
 .description-container {

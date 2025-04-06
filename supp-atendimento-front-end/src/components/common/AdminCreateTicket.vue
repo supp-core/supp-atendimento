@@ -115,9 +115,10 @@ const formData = ref({
   priority: 'NORMAL',
   sector_id: null,
   requester_id: null,
-  files: [],
   category_id: null,
   service_type_id: null,
+  files: []
+ 
 });
 
 // Observa cambios en la propiedad modelValue para actualizar el diálogo
@@ -217,10 +218,11 @@ const submitForm = async () => {
     submitData.append('description', formData.value.description);
     submitData.append('priority', formData.value.priority);
     submitData.append('sector_id', formData.value.sector_id);
-    submitData.append('requester_id', formData.value.requester_id);
-    submitData.append('created_by_admin_id', attendant.id);
     submitData.append('category_id', formData.value.category_id);
     submitData.append('service_type_id', formData.value.service_type_id);
+    submitData.append('requester_id', formData.value.requester_id);
+    submitData.append('created_by_admin_id', attendant.id);
+ 
     submitData.append('created_by_admin', 'true');
 
     // Adicionar arquivos apenas se existirem
