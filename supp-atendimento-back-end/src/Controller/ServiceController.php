@@ -503,8 +503,14 @@ class ServiceController extends AbstractController
             // Decodifica o corpo da requisição
             $data = json_decode($request->getContent(), true);
 
+            if (isset($data['updateData'])) {
+                $updateData = $data['updateData'];
+            } else {
+                $updateData = $data;
+            }
+
             // Validação básica dos dados recebidos
-            if (!isset($data['status']) || !isset($data['comment'])) {
+            if (!isset($updateData['status']) || !isset($updateData['comment'])) {
                 throw new BadRequestException('Status and comment are required');
             }
 
@@ -517,6 +523,12 @@ class ServiceController extends AbstractController
                     'message' => 'Service not found'
                 ], 404);
             }
+
+              // Captura category_id e service_type_id se existirem
+            $categoryId = $updateData['category_id'] ?? null;
+            $serviceTypeId = $updateData['service_type_id'] ?? null;
+
+
 
             // Obter o usuário logado
             $user = $this->getUser();
@@ -536,9 +548,11 @@ class ServiceController extends AbstractController
             // Atualiza o status do serviço e passa o atendente responsável
             $this->serviceManager->updateServiceStatus(
                 service: $service,
-                newStatus: $data['status'],
-                comment: $data['comment'],
-                attendant: $attendant // Passando o atendente logado
+                newStatus: $updateData['status'],
+                comment: $updateData['comment'],
+                attendant: $attendant,
+                categoryId: $categoryId,
+                serviceTypeId: $serviceTypeId
             );
 
             // Prepara a resposta com os dados atualizados

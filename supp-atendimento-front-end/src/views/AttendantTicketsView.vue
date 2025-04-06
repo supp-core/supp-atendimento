@@ -187,25 +187,42 @@
 
 
               <!-- Dentro do v-card-text do evolveDialog -->
-              <!-- Adicione após o formulário de nova evolução -->
-              <div v-if="isAdmin" class="admin-fields mt-4 mb-4">
+              <div class="admin-fields mt-4 mb-4">
                 <div class="section-title d-flex align-center mb-2">
                   <v-icon icon="mdi-tune" class="mr-2"></v-icon>
                   <span>Campos administrativos</span>
                 </div>
 
                 <v-row>
-                  <v-col cols="12" md="6">
-                    <v-select v-model="evolveDialog.category_id" :items="categories" item-title="name" item-value="id"
-                      label="Categoria" :disabled="evolveDialog.loading"
-                      :placeholder="evolveDialog.ticket?.category?.name || 'Selecione uma categoria'"></v-select>
-                  </v-col>
+                  <!-- Para administradores: comboboxes -->
+                  <template v-if="isAdmin">
+                    <v-col cols="12" md="6">
+                      <v-select v-model="evolveDialog.category_id" :items="categories" item-title="name" item-value="id"
+                        label="Categoria" :disabled="evolveDialog.loading"></v-select>
+                    </v-col>
 
-                  <v-col cols="12" md="6">
-                    <v-select v-model="evolveDialog.service_type_id" :items="serviceTypes" item-title="name"
-                      item-value="id" label="Tipo de Atendimento" :disabled="evolveDialog.loading"
-                      :placeholder="evolveDialog.ticket?.serviceType?.name || 'Selecione um tipo'"></v-select>
-                  </v-col>
+                    <v-col cols="12" md="6">
+                      <v-select v-model="evolveDialog.service_type_id" :items="serviceTypes" item-title="name"
+                        item-value="id" label="Tipo de Atendimento" :disabled="evolveDialog.loading"></v-select>
+                    </v-col>
+                  </template>
+
+                  <!-- Para atendentes comuns: apenas labels -->
+                  <template v-else>
+                    <v-col cols="12" md="6">
+                      <div class="field-label">Categoria:</div>
+                      <div class="field-value">
+                        {{ getCategoryName(evolveDialog.ticket?.category?.id) || 'Não definida' }}
+                      </div>
+                    </v-col>
+
+                    <v-col cols="12" md="6">
+                      <div class="field-label">Tipo de Atendimento:</div>
+                      <div class="field-value">
+                        {{ getServiceTypeName(evolveDialog.ticket?.serviceType?.id) || 'Não definido' }}
+                      </div>
+                    </v-col>
+                  </template>
                 </v-row>
               </div>
 
@@ -356,6 +373,21 @@ const loadServiceTypes = async () => {
     console.error('Erro ao carregar tipos de serviço:', error);
   }
 };
+
+
+// Funções auxiliares para obter nomes baseados nos IDs
+const getCategoryName = (categoryId) => {
+  if (!categoryId) return null;
+  const category = categories.value.find(c => c.id === categoryId);
+  return category ? category.name : null;
+};
+
+const getServiceTypeName = (serviceTypeId) => {
+  if (!serviceTypeId) return null;
+  const serviceType = serviceTypes.value.find(st => st.id === serviceTypeId);
+  return serviceType ? serviceType.name : null;
+};
+
 
 
 // Função principal de pesquisa
@@ -560,48 +592,40 @@ const loadServiceHistory = async (serviceId) => {
 const openEvolveDialog = async (ticket) => {
   try {
     // Inicializa o diálogo com os dados básicos do ticket
-
-    if (ticket.status == 'NOVO') {
-      ticket.status = 'OPEN'
-    } else {
-      ticket.status = ticket.status
-    }
     evolveDialog.value = {
       show: true,
       ticket: {
         ...ticket,
-        // Garantir que attachments seja sempre um array, mesmo que seja null ou undefined
         attachments: ticket.attachments || [],
-        histories: [] // Inicializa histórico como array vazio
+        histories: []
       },
-
-      newStatus: ticket.status,
+      newStatus: ticket.status === 'NOVO' ? 'OPEN' : ticket.status,
       comment: '',
+      // Inicializar com os valores existentes do ticket
       category_id: ticket.category?.id || null,
       service_type_id: ticket.serviceType?.id || null,
       loading: true
     };
 
-
-    // Carrega detalhes completos do ticket, incluindo anexos
-    console.log('Carregando detalhes do ticket:', ticket.id);
-    // Primeiro carrega o histórico para manter a compatibilidade
+    // Carrega detalhes completos do ticket
     await loadServiceHistory(ticket.id);
 
-    // Agora busca os detalhes completos, incluindo anexos
     const response = await api.get(`/service/${ticket.id}`);
 
     if (response.data.success) {
-      // Mescla os dados recebidos com o estado atual preservando o histórico
+      // Importante: preservar os valores de categoria e tipo de atendimento
+      const categoryId = response.data.data.category?.id || ticket.category?.id;
+      const serviceTypeId = response.data.data.serviceType?.id || ticket.serviceType?.id;
+
       evolveDialog.value.ticket = {
         ...response.data.data,
         histories: evolveDialog.value.ticket.histories || [],
-        attachments: response.data.data.attachments || evolveDialog.value.ticket.attachments || []
+        attachments: response.data.data.attachments || []
       };
 
-
-
-
+      // Atualizar os valores nos campos do formulário
+      evolveDialog.value.category_id = categoryId;
+      evolveDialog.value.service_type_id = serviceTypeId;
     }
   } catch (error) {
     console.error('Erro ao carregar detalhes do ticket:', error);
@@ -630,21 +654,20 @@ const evolveTicket = async () => {
       status: evolveDialog.value.newStatus,
       comment: evolveDialog.value.comment
     };
-    
+
     // Adiciona campos administrativos apenas se o usuário for admin
     if (isAdmin.value) {
       if (evolveDialog.value.category_id) {
         updateData.category_id = evolveDialog.value.category_id;
       }
-      
+
       if (evolveDialog.value.service_type_id) {
         updateData.service_type_id = evolveDialog.value.service_type_id;
       }
     }
-    
+
     await api.put(`/service/${evolveDialog.value.ticket.id}/status`, {
-      status: evolveDialog.value.newStatus,
-      comment: evolveDialog.value.comment
+      updateData
     })
     await loadTickets()
     evolveDialog.value.show = false
@@ -909,6 +932,26 @@ onMounted(() => {
   border: 1px solid #e9ecef;
   white-space: pre-wrap;
   margin-bottom: 16px;
+}
+
+
+.field-label {
+  font-weight: 500;
+  color: rgba(0, 0, 0, 0.6);
+  font-size: 0.875rem;
+}
+
+.field-value {
+  background-color: #f5f5f5;
+  padding: 12px;
+  border-radius: 4px;
+  margin-top: 4px;
+  font-size: 0.9rem;
+  color: rgba(0, 0, 0, 0.87);
+  border: 1px solid rgba(0, 0, 0, 0.12);
+  min-height: 48px;
+  display: flex;
+  align-items: center;
 }
 
 .ticket-metadata {

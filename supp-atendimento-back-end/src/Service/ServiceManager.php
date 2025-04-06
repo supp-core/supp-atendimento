@@ -43,127 +43,134 @@ class ServiceManager
 
 
     public function createService(array $data, bool $admin = false): Service
-{
-    // Validar dados obrigatórios
-    if (empty($data['title']) || empty($data['description']) || empty($data['sector_id']) || empty($data['requester_id'])) {
-        throw new BadRequestException('Missing required fields');
-    }
-
-    $createdByAdmin = !empty($data['created_by_admin']);
-    $requester = null;
-
-    if ($createdByAdmin) {
-        // Se o ticket está sendo criado por um admin, verificamos o ID do requisitante
-        if (empty($data['requester_id'])) {
-            throw new BadRequestException('Requester ID is required when creating ticket as admin');
+    {
+        // Validar dados obrigatórios
+        if (empty($data['title']) || empty($data['description']) || empty($data['sector_id']) || empty($data['requester_id'])) {
+            throw new BadRequestException('Missing required fields');
         }
 
-        $requester = $this->entityManager->getRepository(User::class)->find($data['requester_id']);
-        if (!$requester) {
-            throw new BadRequestException('Invalid requester');
-        }
-    } else {
-        // Caso padrão: ticket criado pelo próprio usuário
-        $requester = $data['requester_id'];
-    }
+        $createdByAdmin = !empty($data['created_by_admin']);
+        $requester = null;
 
-    // Buscar entidades relacionadas
-    $sector = $this->entityManager->getRepository(Sector::class)->find($data['sector_id']);
-    if (!$sector || !$requester) {
-        throw new BadRequestException('Invalid sector or requester');
-    }
-
-    $service = new Service();
-    $service->setTitle($data['title']);
-    $service->setDescription($data['description']);
-    $service->setSector($sector);
-    $service->setRequester($requester);
-    $service->setStatus('NOVO');
-    $service->setDateCreate(new DateTime());
-
-    // Buscar categoria se fornecida
-    if (!empty($data['category_id'])) {
-        $category = $this->entityManager->getRepository(Category::class)->find($data['category_id']);
-        if ($category) {
-            $service->setCategory($category);
-        }
-    }
-
-    // Buscar tipo de serviço se fornecido
-    if (!empty($data['service_type_id'])) {
-        $serviceType = $this->entityManager->getRepository(ServiceType::class)->find($data['service_type_id']);
-        if ($serviceType) {
-            $service->setServiceType($serviceType);
-        }
-    }
-
-    $priority = $data['priority'] ?? Service::PRIORITY_NORMAL;
-    $service->setPriority($priority);
-
-    // Configurações para tickets criados por admin
-    if ($createdByAdmin && !empty($data['created_by_admin_id'])) {
-        $adminAttendant = $this->entityManager->getRepository(Attendant::class)->find($data['created_by_admin_id']);
-
-        if ($adminAttendant) {
-            $service->setCreatedByAdmin(true);
-            $service->setCreatedByAdminAttendant($adminAttendant);
-        }
-    }
-
-    // Processar anexos
-    if (!empty($data['files'])) {
-        foreach ($data['files'] as $uploadedFile) {
-            if (!$uploadedFile) {
-                continue;
+        if ($createdByAdmin) {
+            // Se o ticket está sendo criado por um admin, verificamos o ID do requisitante
+            if (empty($data['requester_id'])) {
+                throw new BadRequestException('Requester ID is required when creating ticket as admin');
             }
 
-            if ($uploadedFile instanceof UploadedFile) {
-                try {
-                    if ($uploadedFile->isValid() && $this->attachmentManager->validateFile($uploadedFile)) {
-                        $filename = $this->attachmentManager->uploadFile($uploadedFile);
-                        $attachment = new ServiceAttachment();
-                        $attachment->setService($service);
-                        $attachment->setFilename($filename);
-                        $attachment->setOriginalFilename($uploadedFile->getClientOriginalName());
-                        $attachment->setMimeType($uploadedFile->getMimeType());
-                        $attachment->setFileSize($uploadedFile->getSize());
-                        
-                        $this->entityManager->persist($attachment);
-                        $service->addAttachment($attachment);
+            $requester = $this->entityManager->getRepository(User::class)->find($data['requester_id']);
+            if (!$requester) {
+                throw new BadRequestException('Invalid requester');
+            }
+        } else {
+            // Caso padrão: ticket criado pelo próprio usuário
+            $requester = $data['requester_id'];
+        }
+
+        // Buscar entidades relacionadas
+        $sector = $this->entityManager->getRepository(Sector::class)->find($data['sector_id']);
+        if (!$sector || !$requester) {
+            throw new BadRequestException('Invalid sector or requester');
+        }
+
+        $service = new Service();
+        $service->setTitle($data['title']);
+        $service->setDescription($data['description']);
+        $service->setSector($sector);
+        $service->setRequester($requester);
+        $service->setStatus('NOVO');
+        $service->setDateCreate(new DateTime());
+
+        // Buscar categoria se fornecida
+        if (!empty($data['category_id'])) {
+            $category = $this->entityManager->getRepository(Category::class)->find($data['category_id']);
+            if ($category) {
+                $service->setCategory($category);
+            }
+        }
+
+        // Buscar tipo de serviço se fornecido
+        if (!empty($data['service_type_id'])) {
+            $serviceType = $this->entityManager->getRepository(ServiceType::class)->find($data['service_type_id']);
+            if ($serviceType) {
+                $service->setServiceType($serviceType);
+            }
+        }
+
+        $priority = $data['priority'] ?? Service::PRIORITY_NORMAL;
+        $service->setPriority($priority);
+
+        // Configurações para tickets criados por admin
+        if ($createdByAdmin && !empty($data['created_by_admin_id'])) {
+            $adminAttendant = $this->entityManager->getRepository(Attendant::class)->find($data['created_by_admin_id']);
+
+            if ($adminAttendant) {
+                $service->setCreatedByAdmin(true);
+                $service->setCreatedByAdminAttendant($adminAttendant);
+            }
+        }
+
+        // Processar anexos
+        if (!empty($data['files'])) {
+            foreach ($data['files'] as $uploadedFile) {
+                if (!$uploadedFile) {
+                    continue;
+                }
+
+                if ($uploadedFile instanceof UploadedFile) {
+                    try {
+                        if ($uploadedFile->isValid() && $this->attachmentManager->validateFile($uploadedFile)) {
+                            $filename = $this->attachmentManager->uploadFile($uploadedFile);
+                            $attachment = new ServiceAttachment();
+                            $attachment->setService($service);
+                            $attachment->setFilename($filename);
+                            $attachment->setOriginalFilename($uploadedFile->getClientOriginalName());
+                            $attachment->setMimeType($uploadedFile->getMimeType());
+                            $attachment->setFileSize($uploadedFile->getSize());
+
+                            $this->entityManager->persist($attachment);
+                            $service->addAttachment($attachment);
+                        }
+                    } catch (\Exception $e) {
+                        error_log('Erro ao processar arquivo: ' . $e->getMessage());
+                        // Continue sem interromper o processo
                     }
-                } catch (\Exception $e) {
-                    error_log('Erro ao processar arquivo: ' . $e->getMessage());
-                    // Continue sem interromper o processo
                 }
             }
         }
+
+        // Persistir o serviço
+        $this->entityManager->persist($service);
+
+        // Criar histórico inicial
+        $history = new ServiceHistory();
+        $history->setService($service);
+        $history->setStatusPrev('Nenhum');
+        $history->setStatusPost('NEW');
+        $history->setDateHistory(new DateTime());
+
+        if ($createdByAdmin && $service->getCreatedByAdminAttendant()) {
+            $history->setComment('Ticket criado pelo atendente: ' . $service->getCreatedByAdminAttendant()->getName());
+            $history->setResponsible($service->getCreatedByAdminAttendant());
+        } else {
+            $history->setComment('Ticket criado pelo usuário');
+        }
+
+        $this->entityManager->persist($history);
+        $this->entityManager->flush();
+
+        return $service;
     }
 
-    // Persistir o serviço
-    $this->entityManager->persist($service);
-
-    // Criar histórico inicial
-    $history = new ServiceHistory();
-    $history->setService($service);
-    $history->setStatusPrev('Nenhum');
-    $history->setStatusPost('NEW');
-    $history->setDateHistory(new DateTime());
-
-    if ($createdByAdmin && $service->getCreatedByAdminAttendant()) {
-        $history->setComment('Ticket criado pelo atendente: ' . $service->getCreatedByAdminAttendant()->getName());
-        $history->setResponsible($service->getCreatedByAdminAttendant());
-    } else {
-        $history->setComment('Ticket criado pelo usuário');
-    }
-
-    $this->entityManager->persist($history);
-    $this->entityManager->flush();
-
-    return $service;
-}
-
-    public function updateServiceStatus(Service $service, string $newStatus, string $comment, array $files = [], ?Attendant $attendant = null): void
-    {
+    public function updateServiceStatus(
+        Service $service,
+        string $newStatus,
+        string $comment,
+        array $files = [],
+        ?Attendant $attendant = null,
+        ?int $categoryId = null,
+        ?int $serviceTypeId = null
+    ): void {
 
         //   die('parou uuuuuuuuuuuuuuuuu');
 
@@ -172,6 +179,20 @@ class ServiceManager
         }
 
         $currentStatus = $service->getStatus();
+        if ($categoryId !== null) {
+            $category = $this->entityManager->getRepository(Category::class)->find($categoryId);
+            if ($category) {
+                $service->setCategory($category);
+            }
+        }
+
+        // Atualizar tipo de serviço se fornecido
+        if ($serviceTypeId !== null) {
+            $serviceType = $this->entityManager->getRepository(ServiceType::class)->find($serviceTypeId);
+            if ($serviceType) {
+                $service->setServiceType($serviceType);
+            }
+        }
 
         if (!empty($files)) {
             foreach ($files as $file) {
