@@ -13,3 +13,7 @@ https://claude.ai/chat/23edd382-2291-468a-b133-0dbe5c583968
 Rodar Migrates
 
 php bin/console doctrine:migrations:migrate
+
+
+Rodar Migrates no Kubernet
+kubectl exec -it [nome-do-pod] -n [namespace] -- php bin/console doctrine:migrations:execute 'DoctrineMigrations\Version20250405154207' --up
