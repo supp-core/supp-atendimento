@@ -376,7 +376,9 @@ class ServiceManager
             ->from(Service::class, 's')
             ->leftJoin('s.sector', 'sect')
             ->leftJoin('s.requester', 'u')
-            ->leftJoin('s.reponsible', 'a');
+            ->leftJoin('s.reponsible', 'a')
+            ->leftJoin('s.category', 'c')         // Join com categoria
+            ->leftJoin('s.serviceType', 'st');  
 
         // Se for admin, retorna todos os tickets
         if ($attendant->getFunction() === 'Admin') {

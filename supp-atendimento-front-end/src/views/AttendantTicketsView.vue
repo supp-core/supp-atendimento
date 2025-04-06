@@ -40,7 +40,15 @@
                   <v-select v-model="searchPriority" :items="priorityOptions" label="Prioridade" outlined dense
                     @change="handleFilter"></v-select>
                 </v-col>
+                <v-col cols="12" sm="3">
+                  <v-select v-model="searchCategory" :items="categoryOptions" item-title="title" item-value="value"
+                    label="Categoria" outlined dense @change="handleFilter"></v-select>
+                </v-col>
 
+                <v-col cols="12" sm="3">
+                  <v-select v-model="searchServiceType" :items="serviceTypeOptions" item-title="title"
+                    item-value="value" label="Tipo de Serviço" outlined dense @change="handleFilter"></v-select>
+                </v-col>
                 <!-- Nova linha para botões -->
                 <v-col cols="12" class="d-flex align-center mt-2">
                   <v-btn color="primary" @click="handleSearch" :loading="loading" class="me-2">
@@ -424,6 +432,8 @@ const resetFilters = () => {
   searchRequester.value = '';
   searchStatus.value = '';
   searchPriority.value = '';
+  searchCategory.value = '';
+  searchServiceType.value = '';
 
   // Recarrega os dados sem filtros
   currentPage.value = 1;
@@ -434,6 +444,8 @@ const searchTitle = ref('');
 const searchRequester = ref('');
 const searchStatus = ref('');
 const searchPriority = ref('');
+const searchCategory = ref('');
+const searchServiceType = ref('');
 
 const handleTicketCreated = (newTicket) => {
   // Adicionar o novo ticket à lista ou recarregar os dados
@@ -474,6 +486,30 @@ const availableStatuses = [
   { text: 'Resolvido', value: 'RESOLVED' },
   { text: 'Concluído', value: 'CONCLUDED' }
 ]
+
+// Adicione estes computed properties para formatar as opções dos selects
+const categoryOptions = computed(() => {
+  // Adicionar opção vazia no início
+  return [
+    { title: 'Todas as categorias', value: '' },
+    ...categories.value.map(category => ({
+      title: category.name,
+      value: category.id
+    }))
+  ];
+});
+
+
+const serviceTypeOptions = computed(() => {
+  // Adicionar opção vazia no início
+  return [
+    { title: 'Todos os tipos de serviço', value: '' },
+    ...serviceTypes.value.map(type => ({
+      title: type.name,
+      value: type.id
+    }))
+  ];
+});
 
 const currentPage = ref(1);
 
@@ -735,6 +771,12 @@ const loadTickets = async (page = 1) => {
     if (searchPriority.value) {
       params.append('priority', searchPriority.value);
     }
+    if (searchCategory.value) {
+      params.append('category_id', searchCategory.value);
+    }
+    if (searchServiceType.value) {
+      params.append('service_type_id', searchServiceType.value);
+    }
 
     // Log para debug da URL construída
     console.log('URL da requisição:', `/service/attendant/${attendant.id}?${params.toString()}`);
@@ -847,6 +889,29 @@ const downloadAttachment = async (attachment) => {
   }
 };
 
+const loadCategoriesAndServiceTypes = async () => {
+  try {
+    // Carrega categorias
+    const categoryResponse = await api.get('/categories');
+    if (categoryResponse.data.success) {
+      categories.value = categoryResponse.data.data;
+      console.log('Categorias carregadas com sucesso:', categories.value);
+    } else {
+      console.warn('Falha ao carregar categorias:', categoryResponse.data);
+    }
+
+    // Carrega tipos de serviço
+    const serviceTypeResponse = await api.get('/service-types');
+    if (serviceTypeResponse.data.success) {
+      serviceTypes.value = serviceTypeResponse.data.data;
+      console.log('Tipos de serviço carregados com sucesso:', serviceTypes.value);
+    } else {
+      console.warn('Falha ao carregar tipos de serviço:', serviceTypeResponse.data);
+    }
+  } catch (error) {
+    console.error('Erro ao carregar dados de filtro:', error);
+  }
+};
 
 // Carrega dados iniciais
 onMounted(() => {
@@ -855,6 +920,7 @@ onMounted(() => {
   loadAttendants();
   loadCategoriesview();
   loadServiceTypes();
+  loadCategoriesAndServiceTypes(); // Nova função combinada
 })
 </script>
 

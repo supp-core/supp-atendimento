@@ -378,6 +378,8 @@ class ServiceController extends AbstractController
             $requester = $request->query->get('requester');
             $status = $request->query->get('status');
             $priority = $request->query->get('priority');
+            $categoryId = $request->query->get('category_id');
+            $serviceTypeId = $request->query->get('service_type_id');
 
             // Parâmetros de paginação
             $page = $request->query->get('page', 1);
@@ -421,6 +423,16 @@ class ServiceController extends AbstractController
 
                 // Filtro por prioridade
                 if ($priority && $service->getPriority() !== $priority) {
+                    $keepService = false;
+                }
+
+                // Filtro por categoria
+                if ($categoryId && (!$service->getCategory() || $service->getCategory()->getId() != $categoryId)) {
+                    $keepService = false;
+                }
+
+                // Filtro por tipo de serviço
+                if ($serviceTypeId && (!$service->getServiceType() || $service->getServiceType()->getId() != $serviceTypeId)) {
                     $keepService = false;
                 }
 
@@ -470,6 +482,17 @@ class ServiceController extends AbstractController
                         'id' => $service->getSector()?->getId(),
                         'name' => $service->getSector()?->getName(),
                     ],
+                    'category' => $service->getCategory() ? [
+                        'id' => $service->getCategory()->getId(),
+                        'name' => $service->getCategory()->getName(),
+                        'description' => $service->getCategory()->getDescription()
+                    ] : null,
+                    // Adicionando informações de tipo de serviço
+                    'serviceType' => $service->getServiceType() ? [
+                        'id' => $service->getServiceType()->getId(),
+                        'name' => $service->getServiceType()->getName(),
+                        'description' => $service->getServiceType()->getDescription()
+                    ] : null,
                     'dates' => [
                         'created' => $service->getDateCreate()?->format('Y-m-d H:i:s'),
                         'updated' => $service->getDateUpdate()?->format('Y-m-d H:i:s'),
@@ -524,7 +547,7 @@ class ServiceController extends AbstractController
                 ], 404);
             }
 
-              // Captura category_id e service_type_id se existirem
+            // Captura category_id e service_type_id se existirem
             $categoryId = $updateData['category_id'] ?? null;
             $serviceTypeId = $updateData['service_type_id'] ?? null;
 
