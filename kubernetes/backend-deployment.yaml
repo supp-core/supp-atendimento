@@ -23,6 +23,6 @@ spec:
     spec:
       containers:
         # - image: suppregistry.azurecr.io/helpdesk/supp-backend-kubernetes:1.0.0
-        - image: suppregistry.azurecr.io/helpdesk/supp-backend-kubernetes:1.0.1
+        - image: suppregistry.azurecr.io/helpdesk/supp-backend-kubernetes:IMAGE_TAG
           name: prod-backend-appservice
       restartPolicy: Always
