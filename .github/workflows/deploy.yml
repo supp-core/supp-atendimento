@@ -65,7 +65,7 @@ env:
   REGISTRY: suppregistry.azurecr.io
   BACKEND_IMAGE_NAME: helpdesk/supp-backend-kubernetes
   WEBSERVER_IMAGE_NAME: helpdesk/supp-webserver-kubernetes
-  IMAGE_TAG: v1.0.${{ github.run_number }}  # Tag incremental com prefixo
+  IMAGE_TAG: v1.0.${{ github.run_number }}  # Tag incremental com prefixo w
 
 jobs:
   build-and-deploy:
