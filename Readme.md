@@ -34,8 +34,4 @@ kubectl delete -f kubernetes/backend-deployment.yaml -n helpdesk
 kubectl delete -f kubernetes/mailhog-deployment.yaml -n helpdesk
 kubectl delete -f kubernetes/webserver-deployment.yaml -n helpdesk
 kubectl delete -f kubernetes/webserver-service.yaml -n helpdesk
-<<<<<<< HEAD
 kubectl delete -f kubernetes/ingress.yaml -n helpdesk
-=======
-kubectl delete -f kubernetes/ingress.yaml -n helpdesk
->>>>>>> master
