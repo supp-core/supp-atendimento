@@ -66,14 +66,16 @@ version: '3.7'
 
 services:
   backend:
-    image: suppregistry.azurecr.io/helpdesk/supp-backend-kube:1.0.0
+    # image: suppregistry.azurecr.io/helpdesk/supp-backend-kube:1.0.0
+    image: suppregistry.azurecr.io/helpdesk/supp-backend-kube:1.0.1
     container_name: prod-backend-appservice 
     networks:
       - prod-network
     restart: always
 
   webserver:
-    image: suppregistry.azurecr.io/helpdesk/supp-webserver-kube:1.0.0
+    # image: suppregistry.azurecr.io/atendimento/supp-webserver-kube:1.0.0
+    image: suppregistry.azurecr.io/helpdesk/supp-backend-kube:1.0.1
     container_name: prod-webserver-appservice
     ports:
       - "80:80"

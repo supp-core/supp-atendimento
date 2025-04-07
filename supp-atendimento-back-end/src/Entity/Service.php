@@ -84,6 +84,17 @@ class Service
     #[ORM\JoinColumn(name: 'created_by_admin_id', referencedColumnName: 'id', nullable: true)]
     private ?Attendant $createdByAdminAttendant = null;
 
+
+    // Relacionamento com Category
+    #[ORM\ManyToOne(inversedBy: 'services')]
+    #[ORM\JoinColumn(nullable: true)]
+    private ?Category $category = null;
+
+    // Relacionamento com ServiceType
+    #[ORM\ManyToOne(inversedBy: 'services')]
+    #[ORM\JoinColumn(nullable: true)]
+    private ?ServiceType $serviceType = null;
+
     public function __construct()
     {
         $this->attachments = new ArrayCollection();
@@ -321,6 +332,29 @@ class Service
     public function setCreatedByAdminAttendant(?Attendant $attendant): self
     {
         $this->createdByAdminAttendant = $attendant;
+        return $this;
+    }
+
+    // Adicione os getters e setters
+    public function getCategory(): ?Category
+    {
+        return $this->category;
+    }
+
+    public function setCategory(?Category $category): static
+    {
+        $this->category = $category;
+        return $this;
+    }
+
+    public function getServiceType(): ?ServiceType
+    {
+        return $this->serviceType;
+    }
+
+    public function setServiceType(?ServiceType $serviceType): static
+    {
+        $this->serviceType = $serviceType;
         return $this;
     }
 }

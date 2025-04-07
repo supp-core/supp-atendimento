@@ -22,6 +22,7 @@ spec:
         io.kompose.service: backend
     spec:
       containers:
-        - image: suppregistry.azurecr.io/helpdesk/supp-backend-kubernetes:1.0.0
+        # - image: suppregistry.azurecr.io/helpdesk/supp-backend-kubernetes:1.0.0
+        - image: suppregistry.azurecr.io/helpdesk/supp-backend-kubernetes:1.0.1
           name: prod-backend-appservice
       restartPolicy: Always

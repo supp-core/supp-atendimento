@@ -36,6 +36,16 @@
                 density="comfortable"></v-select>
             </v-col>
 
+            <v-col cols="12" md="6">
+              <v-select v-model="formData.category_id" :items="categories" item-title="name" item-value="id"
+                label="Categoria*" required variant="outlined" density="comfortable"></v-select>
+            </v-col>
+
+            <v-col cols="12" md="6">
+              <v-select v-model="formData.service_type_id" :items="serviceTypes" item-title="name" item-value="id"
+                label="Tipo de Atendimento*" required variant="outlined" density="comfortable"></v-select>
+            </v-col>
+
             <!-- Descrição -->
             <v-col cols="12">
               <v-textarea v-model="formData.description" label="Descrição do Atendimento*"
@@ -87,6 +97,8 @@ const loadingUsers = ref(false);
 const loadingSectors = ref(false);
 const users = ref([]);
 const sectors = ref([]);
+const categories = ref([]);
+const serviceTypes = ref([]);
 
 // Opciones de prioridad
 const priorityOptions = [
@@ -103,7 +115,10 @@ const formData = ref({
   priority: 'NORMAL',
   sector_id: null,
   requester_id: null,
+  category_id: null,
+  service_type_id: null,
   files: []
+ 
 });
 
 // Observa cambios en la propiedad modelValue para actualizar el diálogo
@@ -151,6 +166,30 @@ const loadSectors = async () => {
   }
 };
 
+// Função para carregar categorias
+const loadCategories = async () => {
+  try {
+    const response = await api.get('/categories');
+    if (response.data.success) {
+      categories.value = response.data.data;
+    }
+  } catch (error) {
+    console.error('Erro ao carregar categorias:', error);
+  }
+};
+
+// Função para carregar tipos de serviço
+const loadServiceTypes = async () => {
+  try {
+    const response = await api.get('/service-types');
+    if (response.data.success) {
+      serviceTypes.value = response.data.data;
+    }
+  } catch (error) {
+    console.error('Erro ao carregar tipos de serviço:', error);
+  }
+};
+
 // Cerrar el diálogo y resetear el formulario
 const closeDialog = () => {
   showDialog.value = false;
@@ -179,10 +218,13 @@ const submitForm = async () => {
     submitData.append('description', formData.value.description);
     submitData.append('priority', formData.value.priority);
     submitData.append('sector_id', formData.value.sector_id);
+    submitData.append('category_id', formData.value.category_id);
+    submitData.append('service_type_id', formData.value.service_type_id);
     submitData.append('requester_id', formData.value.requester_id);
     submitData.append('created_by_admin_id', attendant.id);
+ 
     submitData.append('created_by_admin', 'true');
-    
+
     // Adicionar arquivos apenas se existirem
     if (formData.value.files && formData.value.files.length > 0) {
       const validFiles = formData.value.files.filter(file => file != null);
@@ -196,9 +238,9 @@ const submitForm = async () => {
         'Content-Type': 'multipart/form-data'
       }
     });
-    
+
     console.log('Resposta do servidor:', response.data);
-    
+
     // Verificar se a resposta contém código de status HTTP 201 (Created)
     if (response.status === 201) {
       // Se o status é 201, consideramos sucesso mesmo se não conseguirmos interpretar a resposta
@@ -206,7 +248,7 @@ const submitForm = async () => {
       closeDialog();
       return;
     }
-    
+
     // Tenta processar a resposta como JSON
     if (typeof response.data === 'object' && response.data.success) {
       emit('created', response.data.data);
@@ -223,7 +265,7 @@ const submitForm = async () => {
   } catch (error) {
     console.error('Erro ao criar o atendimento:', error);
     console.error('Detalhes adicionais:', error.response?.data);
-    
+
     alert('Erro ao criar o atendimento: ' + (error.response?.data?.message || error.message || 'Erro desconhecido'));
   } finally {
     loading.value = false;
@@ -234,6 +276,8 @@ const submitForm = async () => {
 onMounted(() => {
   loadUsers();
   loadSectors();
+  loadCategories();
+  loadServiceTypes();
 });
 </script>
 

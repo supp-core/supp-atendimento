@@ -106,6 +106,18 @@ class ServiceController extends AbstractController
                         'id' => $service->getSector()?->getId(),
                         'name' => $service->getSector()?->getName(),
                     ],
+                    // Adicione aqui os dados da categoria
+                    'category' => $service->getCategory() ? [
+                        'id' => $service->getCategory()->getId(),
+                        'name' => $service->getCategory()->getName(),
+                        'description' => $service->getCategory()->getDescription()
+                    ] : null,
+                    // Adicione aqui os dados do tipo de serviço
+                    'serviceType' => $service->getServiceType() ? [
+                        'id' => $service->getServiceType()->getId(),
+                        'name' => $service->getServiceType()->getName(),
+                        'description' => $service->getServiceType()->getDescription()
+                    ] : null,
                     'requester' => [
                         'id' => $service->getRequester()?->getId(),
                         'name' => $service->getRequester()?->getName(),
@@ -147,63 +159,75 @@ class ServiceController extends AbstractController
             ], 500);
         }
     }
-// Adicione este método ao ServiceController.php
-#[Route('/{id}', methods: ['GET'])]
-public function getService(int $id): JsonResponse
-{
-    try {
-        $service = $this->serviceManager->findById($id);
+    // Adicione este método ao ServiceController.php
+    #[Route('/{id}', methods: ['GET'])]
+    public function getService(int $id): JsonResponse
+    {
+        try {
+            $service = $this->serviceManager->findById($id);
 
-        if (!$service) {
+            if (!$service) {
+                return new JsonResponse([
+                    'success' => false,
+                    'message' => 'Service not found'
+                ], 404);
+            }
+
+            return new JsonResponse([
+                'success' => true,
+                'data' => [
+                    'id' => $service->getId(),
+                    'title' => $service->getTitle(),
+                    'description' => $service->getDescription(),
+                    'status' => $service->getStatus(),
+                    'priority' => $service->getPriority(),
+                    'sector' => [
+                        'id' => $service->getSector()?->getId(),
+                        'name' => $service->getSector()?->getName(),
+                    ],
+                    // Adicione aqui os dados da categoria
+                    'category' => $service->getCategory() ? [
+                        'id' => $service->getCategory()->getId(),
+                        'name' => $service->getCategory()->getName(),
+                        'description' => $service->getCategory()->getDescription()
+                    ] : null,
+                    // Adicione aqui os dados do tipo de serviço
+                    'serviceType' => $service->getServiceType() ? [
+                        'id' => $service->getServiceType()->getId(),
+                        'name' => $service->getServiceType()->getName(),
+                        'description' => $service->getServiceType()->getDescription()
+                    ] : null,
+                    'requester' => [
+                        'id' => $service->getRequester()?->getId(),
+                        'name' => $service->getRequester()?->getName(),
+                        'email' => $service->getRequester()?->getEmail(),
+                    ],
+                    'responsible' => [
+                        'id' => $service->getReponsible()?->getId(),
+                        'name' => $service->getReponsible()?->getName(),
+                        'function' => $service->getReponsible()?->getFunction(),
+                    ],
+                    'dates' => [
+                        'created' => $service->getDateCreate()?->format('Y-m-d H:i:s'),
+                        'updated' => $service->getDateUpdate()?->format('Y-m-d H:i:s'),
+                        'concluded' => $service->getDateConclusion()?->format('Y-m-d H:i:s'),
+                    ],
+                    'attachments' => array_map(function ($attachment) {
+                        return [
+                            'id' => $attachment->getId(),
+                            'filename' => $attachment->getFilename(),
+                            'originalFilename' => $attachment->getOriginalFilename()
+                        ];
+                    }, $service->getAttachments()->toArray())
+                ]
+            ]);
+        } catch (\Exception $e) {
             return new JsonResponse([
                 'success' => false,
-                'message' => 'Service not found'
-            ], 404);
+                'message' => 'Error fetching service: ' . $e->getMessage()
+            ], 500);
         }
-
-        return new JsonResponse([
-            'success' => true,
-            'data' => [
-                'id' => $service->getId(),
-                'title' => $service->getTitle(),
-                'description' => $service->getDescription(),
-                'status' => $service->getStatus(),
-                'priority' => $service->getPriority(),
-                'sector' => [
-                    'id' => $service->getSector()?->getId(),
-                    'name' => $service->getSector()?->getName(),
-                ],
-                'requester' => [
-                    'id' => $service->getRequester()?->getId(),
-                    'name' => $service->getRequester()?->getName(),
-                    'email' => $service->getRequester()?->getEmail(),
-                ],
-                'responsible' => [
-                    'id' => $service->getReponsible()?->getId(),
-                    'name' => $service->getReponsible()?->getName(),
-                    'function' => $service->getReponsible()?->getFunction(),
-                ],
-                'dates' => [
-                    'created' => $service->getDateCreate()?->format('Y-m-d H:i:s'),
-                    'updated' => $service->getDateUpdate()?->format('Y-m-d H:i:s'),
-                    'concluded' => $service->getDateConclusion()?->format('Y-m-d H:i:s'),
-                ],
-                'attachments' => array_map(function ($attachment) {
-                    return [
-                        'id' => $attachment->getId(),
-                        'filename' => $attachment->getFilename(),
-                        'originalFilename' => $attachment->getOriginalFilename()
-                    ];
-                }, $service->getAttachments()->toArray())
-            ]
-        ]);
-    } catch (\Exception $e) {
-        return new JsonResponse([
-            'success' => false,
-            'message' => 'Error fetching service: ' . $e->getMessage()
-        ], 500);
     }
-}
 
     #[Route('', methods: ['POST'])]
     public function create(Request $request): JsonResponse
@@ -234,8 +258,11 @@ public function getService(int $id): JsonResponse
                 'priority' => $request->request->get('priority'),
                 'sector_id' => $request->request->get('sector_id'),
                 'requester_id' => $user,
+                'category_id' => $request->request->get('category_id'),
+                'service_type_id' => $request->request->get('service_type_id'),
                 'files' => $files // Pega os arquivos
             ];
+
 
             // $data = json_decode($request->getContent(), true);
             //$data['requester_id'] = $user;
@@ -351,6 +378,8 @@ public function getService(int $id): JsonResponse
             $requester = $request->query->get('requester');
             $status = $request->query->get('status');
             $priority = $request->query->get('priority');
+            $categoryId = $request->query->get('category_id');
+            $serviceTypeId = $request->query->get('service_type_id');
 
             // Parâmetros de paginação
             $page = $request->query->get('page', 1);
@@ -394,6 +423,16 @@ public function getService(int $id): JsonResponse
 
                 // Filtro por prioridade
                 if ($priority && $service->getPriority() !== $priority) {
+                    $keepService = false;
+                }
+
+                // Filtro por categoria
+                if ($categoryId && (!$service->getCategory() || $service->getCategory()->getId() != $categoryId)) {
+                    $keepService = false;
+                }
+
+                // Filtro por tipo de serviço
+                if ($serviceTypeId && (!$service->getServiceType() || $service->getServiceType()->getId() != $serviceTypeId)) {
                     $keepService = false;
                 }
 
@@ -443,6 +482,17 @@ public function getService(int $id): JsonResponse
                         'id' => $service->getSector()?->getId(),
                         'name' => $service->getSector()?->getName(),
                     ],
+                    'category' => $service->getCategory() ? [
+                        'id' => $service->getCategory()->getId(),
+                        'name' => $service->getCategory()->getName(),
+                        'description' => $service->getCategory()->getDescription()
+                    ] : null,
+                    // Adicionando informações de tipo de serviço
+                    'serviceType' => $service->getServiceType() ? [
+                        'id' => $service->getServiceType()->getId(),
+                        'name' => $service->getServiceType()->getName(),
+                        'description' => $service->getServiceType()->getDescription()
+                    ] : null,
                     'dates' => [
                         'created' => $service->getDateCreate()?->format('Y-m-d H:i:s'),
                         'updated' => $service->getDateUpdate()?->format('Y-m-d H:i:s'),
@@ -476,8 +526,14 @@ public function getService(int $id): JsonResponse
             // Decodifica o corpo da requisição
             $data = json_decode($request->getContent(), true);
 
+            if (isset($data['updateData'])) {
+                $updateData = $data['updateData'];
+            } else {
+                $updateData = $data;
+            }
+
             // Validação básica dos dados recebidos
-            if (!isset($data['status']) || !isset($data['comment'])) {
+            if (!isset($updateData['status']) || !isset($updateData['comment'])) {
                 throw new BadRequestException('Status and comment are required');
             }
 
@@ -490,6 +546,12 @@ public function getService(int $id): JsonResponse
                     'message' => 'Service not found'
                 ], 404);
             }
+
+            // Captura category_id e service_type_id se existirem
+            $categoryId = $updateData['category_id'] ?? null;
+            $serviceTypeId = $updateData['service_type_id'] ?? null;
+
+
 
             // Obter o usuário logado
             $user = $this->getUser();
@@ -509,9 +571,11 @@ public function getService(int $id): JsonResponse
             // Atualiza o status do serviço e passa o atendente responsável
             $this->serviceManager->updateServiceStatus(
                 service: $service,
-                newStatus: $data['status'],
-                comment: $data['comment'],
-                attendant: $attendant // Passando o atendente logado
+                newStatus: $updateData['status'],
+                comment: $updateData['comment'],
+                attendant: $attendant,
+                categoryId: $categoryId,
+                serviceTypeId: $serviceTypeId
             );
 
             // Prepara a resposta com os dados atualizados
@@ -654,7 +718,7 @@ public function getService(int $id): JsonResponse
 
     // Then modify the ServiceController.php to use this new method:
 
-   
+
 
 
 
@@ -762,7 +826,8 @@ public function getService(int $id): JsonResponse
             $sector_id = $request->request->get('sector_id');
             $requester_id = $request->request->get('requester_id');
             $created_by_admin_id = $request->request->get('created_by_admin_id');
-
+            $category_id = $request->request->get('category_id');
+            $service_type_id = $request->request->get('service_type_id');
 
             $data = [
                 'title' => $title,
@@ -770,14 +835,12 @@ public function getService(int $id): JsonResponse
                 'priority' => $priority,
                 'sector_id' => $sector_id,
                 'requester_id' => $requester_id, // Usar o ID do usuário solicitante
+                'category_id' => $category_id,
+                'service_type_id' => $service_type_id,
                 'created_by_admin' => true,
                 'created_by_admin_id' => $created_by_admin_id, // ID do atendente admin
                 'files' => $files
             ];
-
-
-
-
 
 
             // Criar o serviço

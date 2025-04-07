@@ -53,6 +53,16 @@ const api = axios.create({
     }
 });
 
+/*Rodar local*/
+/*const api = axios.create({
+    // Se seu backend Symfony está rodando na porta 8000 (padrão do Symfony)
+    baseURL: 'http://localhost:8000/api',
+    headers: {
+        'Accept': 'application/json',
+        'Content-Type': 'application/json'
+    }
+});*/
+
 // Interceptor (mantido como estava, parece ok)
 api.interceptors.request.use(
     config => {
