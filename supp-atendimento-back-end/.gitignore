@@ -16,6 +16,3 @@
 /public/uploads/attachments/*
 !/public/uploads/attachments/.gitkeep
 
-docker-compose.yml
-.env
-config/packages/nelmio_cors.yaml
