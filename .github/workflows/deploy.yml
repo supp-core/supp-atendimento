@@ -14,6 +14,7 @@ env:
 jobs:
   build-and-deploy:
     runs-on: ubuntu-latest
+    environment: ${{ github.ref == 'refs/heads/master' && 'producao' || 'desenvolvimento' }}
 
     steps:
       - name: Checkout do repositório
@@ -22,7 +23,7 @@ jobs:
       - name: Definir variáveis de ambiente
         run: echo "IMAGE_TAG=$(echo ${GITHUB_SHA} | cut -c1-7)" >> $GITHUB_ENV
 
-      - name: Login no Azure Container Registry 
+      - name: Login no Azure Container Registry
         run: echo "${{ secrets.ACR_PASSWORD }}" | docker login ${{ env.REGISTRY }} -u ${{ secrets.ACR_USERNAME }} --password-stdin
 
       - name: Build e Push da imagem Backend
