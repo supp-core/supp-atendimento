@@ -40,7 +40,14 @@ jobs:
           mkdir -p ~/.kube
           echo "${{ secrets.KUBECONFIG }}" > ~/.kube/config
 
-      - name: Atualizar deployments no AKS
+      - name: Substituir IMAGE_TAG nos arquivos YAML
         run: |
-          kubectl set image deployment/supp-backend-kubernetes supp-backend-kubernetes=${{ env.REGISTRY }}/${{ env.BACKEND_IMAGE_NAME }}:${{ env.IMAGE_TAG }} --namespace=helpdesk
-          kubectl set image deployment/supp-webserver-kubernetes supp-webserver-kubernetes=${{ env.REGISTRY }}/${{ env.WEBSERVER_IMAGE_NAME }}:${{ env.IMAGE_TAG }} --namespace=helpdesk
+          find kubernetes/ -type f -name "*.yaml" -exec sed -i "s|IMAGE_TAG|${{ env.IMAGE_TAG }}|g" {} +
+
+      - name: Aplicar deployments no AKS
+        run: |
+          kubectl apply -f kubernetes/backend-deployment.yaml -n helpdesk
+          kubectl apply -f kubernetes/backend-service.yaml -n helpdesk
+          kubectl apply -f kubernetes/webserver-deployment.yaml -n helpdesk
+          kubectl apply -f kubernetes/webserver-service.yaml -n helpdesk
+          kubectl apply -f kubernetes/ingress.yaml -n helpdesk
