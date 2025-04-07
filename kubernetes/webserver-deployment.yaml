@@ -22,7 +22,8 @@ spec:
         io.kompose.service: webserver
     spec:
       containers:
-        - image: suppregistry.azurecr.io/atendimento/supp-webserver-kubernetes:1.0.0
+        # - image: suppregistry.azurecr.io/helpdesk/supp-webserver-kubernetes:1.0.0
+        - image: suppregistry.azurecr.io/helpdesk/supp-webserver-kubernetes:1.0.1
           name: prod-webserver-appservice
           ports:
             - containerPort: 80

@@ -1,18 +1,18 @@
 
 # Para realizar Build do Projeto:
-docker build -t suppregistry.azurecr.io/helpdesk/supp-backend-kubernetes:1.0.0 -f ./docker/php/Dockerfile .
-docker build -t suppregistry.azurecr.io/helpdesk/supp-webserver-kubernetes:1.0.0 -f ./docker/nginx/Dockerfile .
+docker build -t suppregistry.azurecr.io/helpdesk/supp-backend-kubernetes:1.0.1 -f ./docker/php/Dockerfile .
+docker build -t suppregistry.azurecr.io/helpdesk/supp-webserver-kubernetes:1.0.1 -f ./docker/nginx/Dockerfile .
 
 # Enviar as imagems para azure:
-docker push suppregistry.azurecr.io/helpdesk/supp-backend-kubernetes:1.0.0
-docker push suppregistry.azurecr.io/helpdesk/supp-webserver-kubernetes:1.0.0
+docker push suppregistry.azurecr.io/helpdesk/supp-backend-kubernetes:1.0.1
+docker push suppregistry.azurecr.io/helpdesk/supp-webserver-kubernetes:1.0.1
 
 # Executar para kubernetes:
-kubectl apply -f kubernetes/backend-deployment.yaml -n helpdesk && sleep 15 && \
-kubectl apply -f kubernetes/backend-service.yaml -n helpdesk && sleep 15 && \
-kubectl apply -f kubernetes/mailhog-deployment.yaml -n helpdesk && sleep 15 && \
-kubectl apply -f kubernetes/webserver-deployment.yaml -n helpdesk && sleep 15 && \
-kubectl apply -f kubernetes/webserver-service.yaml -n helpdesk && sleep 15 && \
+kubectl apply -f kubernetes/backend-deployment.yaml -n helpdesk && sleep 10 && \
+kubectl apply -f kubernetes/backend-service.yaml -n helpdesk && sleep 10 && \
+kubectl apply -f kubernetes/mailhog-deployment.yaml -n helpdesk && sleep 10 && \
+kubectl apply -f kubernetes/webserver-deployment.yaml -n helpdesk && sleep 10 && \
+kubectl apply -f kubernetes/webserver-service.yaml -n helpdesk
 
 # Certificado TLS PGMBH
 kubectl create secret tls supp-pgmbh-tls-secret \
