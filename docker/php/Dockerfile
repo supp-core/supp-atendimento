@@ -62,7 +62,7 @@
     WORKDIR /var/www
     
     # Copia e instala as dependências do projeto
-    COPY composer.json composer.lock ./
+    COPY supp-atendimento-back-end/composer.json supp-atendimento-back-end/composer.lock ./
     RUN composer install --no-dev --optimize-autoloader --no-scripts --prefer-dist
     
     # Copia o restante dos arquivos do projeto
