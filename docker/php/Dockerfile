@@ -71,7 +71,3 @@
     # Permissões e ownership (ajuste conforme seu user no host/container)
     RUN chown -R www-data:www-data /var/www
     
-    # Produção: opcache ligado
-    COPY ./docker/php/conf.d/php.ini /usr/local/etc/php/php.ini
-    COPY ./docker/php/conf.d/opcache.ini /usr/local/etc/php/conf.d/opcache.ini
-    

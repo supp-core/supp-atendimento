@@ -150,7 +150,7 @@
 #           kubectl apply -f kubernetes/webserver-service.yaml -n helpdesk
 #           kubectl apply -f kubernetes/ingress.yaml -n helpdesk
 ####################################################################################
-############   Deploy alterado para armazenar Cache no GITHUB TESTE3  ##############
+############   Deploy alterado para armazenar Cache no GITHUB TESTE4  ##############
 ####################################################################################
 name: CI/CD para AKS com Azure Container Registry
 
@@ -196,6 +196,7 @@ jobs:
           username: ${{ secrets.ACR_USERNAME }}
           password: ${{ secrets.ACR_PASSWORD }}
 
+      # Imagem Backend PHP-FPM
       - name: Build e push da imagem Backend
         uses: docker/build-push-action@v6
         with:
@@ -210,6 +211,7 @@ jobs:
             type=local,src=/tmp/.buildx-cache
           cache-to: type=local,dest=/tmp/.buildx-cache-new,mode=max
 
+      # Imagem Webserver (Nginx ou Angular)
       - name: Build e push da imagem Webserver
         uses: docker/build-push-action@v6
         with:
@@ -224,20 +226,24 @@ jobs:
             type=local,src=/tmp/.buildx-cache
           cache-to: type=local,dest=/tmp/.buildx-cache-new,mode=max
 
+      # Atualiza cache local para builds futuros
       - name: Atualizar cache do Docker
         run: |
           rm -rf /tmp/.buildx-cache
           mv /tmp/.buildx-cache-new /tmp/.buildx-cache
 
+      # Kubeconfig para se conectar ao cluster AKS
       - name: Configurar acesso ao Kubernetes
         run: |
           mkdir -p ~/.kube
           echo "${{ secrets.KUBECONFIG }}" > ~/.kube/config
 
+      # Substitui IMAGE_TAG nos YAMLs
       - name: Substituir IMAGE_TAG nos arquivos YAML
         run: |
           find kubernetes/ -type f -name "*.yaml" -exec sed -i "s|IMAGE_TAG|${{ env.IMAGE_TAG }}|g" {} +
 
+      # Aplica os manifests no namespace correto
       - name: Aplicar deployments no AKS
         run: |
           kubectl apply -f kubernetes/backend-deployment.yaml -n helpdesk
