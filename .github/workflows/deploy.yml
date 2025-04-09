@@ -150,7 +150,7 @@
 #           kubectl apply -f kubernetes/webserver-service.yaml -n helpdesk
 #           kubectl apply -f kubernetes/ingress.yaml -n helpdesk
 ####################################################################################
-############   Deploy alterado para armazenar Cache no GITHUB TESTE4  ##############
+############   Deploy alterado para armazenar Cache no GITHUB TESTE7  ##############
 ####################################################################################
 name: CI/CD para AKS com Azure Container Registry
 
