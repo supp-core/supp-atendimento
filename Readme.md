@@ -7,6 +7,10 @@ docker build -t suppregistry.azurecr.io/helpdesk/supp-webserver-kubernetes:1.0.1
 docker push suppregistry.azurecr.io/helpdesk/supp-backend-kubernetes:1.0.1
 docker push suppregistry.azurecr.io/helpdesk/supp-webserver-kubernetes:1.0.1
 
+
+# Criar namespace do helpdesk:
+kubectl create namespace helpdesk
+
 # Executar para kubernetes:
 kubectl apply -f kubernetes/backend-deployment.yaml -n helpdesk && sleep 10 && \
 kubectl apply -f kubernetes/backend-service.yaml -n helpdesk && sleep 10 && \
