@@ -10,16 +10,21 @@ env:
   REGISTRY: suppregistry.azurecr.io
   BACKEND_IMAGE_NAME: helpdesk/supp-backend-kubernetes
   WEBSERVER_IMAGE_NAME: helpdesk/supp-webserver-kubernetes
-  IMAGE_TAG: v1.0.${{ github.run_number }}  # Tag incremental com prefixo w
+  IMAGE_TAG: v1.0.${{ github.run_number }}
 
 jobs:
-  build-and-deploy:
+  build:
     runs-on: ubuntu-latest
-    environment: ${{ github.ref == 'refs/heads/master' && 'producao' || 'desenvolvimento' }}
+    outputs:
+      image_tag: ${{ steps.set_tag.outputs.image_tag }}
 
     steps:
       - name: Checkout do repositório
         uses: actions/checkout@v3
+
+      - name: Definir tag da imagem
+        id: set_tag
+        run: echo "image_tag=${{ env.IMAGE_TAG }}" >> $GITHUB_OUTPUT
 
       - name: Login no Azure Container Registry
         uses: docker/login-action@v3
@@ -44,6 +49,15 @@ jobs:
           push: true
           tags: ${{ env.REGISTRY }}/${{ env.WEBSERVER_IMAGE_NAME }}:${{ env.IMAGE_TAG }}
 
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment: ${{ github.ref == 'refs/heads/master' && 'producao' || 'desenvolvimento' }}
+
+    steps:
+      - name: Checkout do repositório
+        uses: actions/checkout@v3
+
       - name: Configurar acesso ao Kubernetes
         run: |
           mkdir -p ~/.kube
@@ -51,7 +65,7 @@ jobs:
 
       - name: Substituir IMAGE_TAG nos arquivos YAML
         run: |
-          find kubernetes/ -type f -name "*.yaml" -exec sed -i "s|IMAGE_TAG|${{ env.IMAGE_TAG }}|g" {} +
+          find kubernetes/ -type f -name "*.yaml" -exec sed -i "s|IMAGE_TAG|${{ needs.build.outputs.image_tag }}|g" {} +
 
       - name: Aplicar deployments no AKS
         run: |
