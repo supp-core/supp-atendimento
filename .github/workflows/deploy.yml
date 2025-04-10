@@ -74,6 +74,8 @@
 #           kubectl apply -f kubernetes/webserver-deployment.yaml -n helpdesk
 #           kubectl apply -f kubernetes/webserver-service.yaml -n helpdesk
 #           kubectl apply -f kubernetes/ingress.yaml -n helpdesk
+
+########## TESTE BUILD COM CACHE #############
 name: CI/CD para AKS com Azure Container Registry
 
 on:
