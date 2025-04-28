@@ -1,0 +1,78 @@
+name: Backend CI/CD
+
+on:
+  push:
+    branches: [ master, desenvolvimento ]
+    paths:
+      - 'supp-atendimento-back-end/**'
+  pull_request:
+    branches: [ master, desenvolvimento ]
+    paths:
+      - 'supp-atendimento-back-end/**'
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - uses: actions/checkout@v3
+    
+    - name: Setup PHP
+      uses: shivammathur/setup-php@v2
+      with:
+        php-version: '8.2'
+        extensions: mbstring, intl, pdo_pgsql
+        coverage: none
+    
+    - name: Validate composer.json and composer.lock
+      run: composer validate --strict
+      working-directory: ./supp-atendimento-back-end
+    
+    - name: Cache Composer packages
+      id: composer-cache
+      uses: actions/cache@v3
+      with:
+        path: supp-atendimento-back-end/vendor
+        key: ${{ runner.os }}-php-${{ hashFiles('**/composer.lock') }}
+        restore-keys: |
+          ${{ runner.os }}-php-
+    
+    - name: Install dependencies
+      run: composer install --prefer-dist --no-progress
+      working-directory: ./supp-atendimento-back-end
+    
+    - name: Run syntax check
+      run: |
+        php -l $(find ./src -type f -name "*.php")
+      working-directory: ./supp-atendimento-back-end
+    
+    # Adicione testes como PHPUnit se você tiver
+    
+    # Deploy para Azure (somente para branch master)
+    - name: Build and push Docker image
+      if: github.ref == 'refs/heads/master'
+      uses: azure/docker-login@v1
+      with:
+        login-server: suppregistry.azurecr.io
+        username: ${{ secrets.AZURE_ACR_USERNAME }}
+        password: ${{ secrets.AZURE_ACR_PASSWORD }}
+    
+    - name: Build and push backend image
+      if: github.ref == 'refs/heads/master'
+      run: |
+        docker build -t suppregistry.azurecr.io/atendimento/backend-atendimento:${{ github.sha }} -f docker/php/Dockerfile .
+        docker tag suppregistry.azurecr.io/atendimento/backend-atendimento:${{ github.sha }} suppregistry.azurecr.io/atendimento/backend-atendimento:latest
+        docker push suppregistry.azurecr.io/atendimento/backend-atendimento:${{ github.sha }}
+        docker push suppregistry.azurecr.io/atendimento/backend-atendimento:latest
+    
+    - name: Update Kubernetes deployment
+      if: github.ref == 'refs/heads/master'
+      uses: azure/k8s-set-context@v1
+      with:
+        kubeconfig: ${{ secrets.KUBE_CONFIG }}
+      
+    - name: Deploy to Kubernetes
+      if: github.ref == 'refs/heads/master'
+      run: |
+        kubectl set image deployment/backend-deployment php-fpm=suppregistry.azurecr.io/atendimento/backend-atendimento:${{ github.sha }} -n atendimento
+        kubectl rollout status deployment/backend-deployment -n atendimento
