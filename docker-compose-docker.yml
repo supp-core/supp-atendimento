@@ -13,7 +13,7 @@ services:
       - prod-network
     environment:
       - APP_ENV=prod
-      - DATABASE_URL=postgresql://postgres:P0stgre4Pgm25@supp-db-hml.postgres.database.azure.com:5432/supp-atendimento-db
+      - DATABASE_URL=postgresql://postgres:P0stgre4Pgm25@supp-postdb-hml.postgres.database.azure.com:5432/supp-atendimento-db
 
   # Serviço Nginx (Webserver)
   webserver:
