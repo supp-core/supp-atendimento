@@ -27,6 +27,13 @@ COPY supp-atendimento-back-end /var/www/html/
 # Instalar dependências Composer para PRODUÇÃO
 RUN composer install --no-dev --optimize-autoloader
 
+# Criar diretório JWT e gerar as chaves
+RUN mkdir -p config/jwt && \
+    openssl genrsa -out config/jwt/private.pem 4096 && \
+    openssl rsa -pubout -in config/jwt/private.pem -out config/jwt/public.pem && \
+    chown -R www-data:www-data config/jwt && \
+    chmod 644 config/jwt/private.pem config/jwt/public.pem
+
 # Configurar permissões para o usuário www-data
 RUN chown -R www-data:www-data /var/www/html \
     && chmod -R 775 /var/www/html
