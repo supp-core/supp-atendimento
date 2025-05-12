@@ -24,3 +24,13 @@ spec:
       containers:
       - name: backend
         image: suppregistry.azurecr.io/helpdesk/supp-backend-kubernetes:IMAGE_TAG
+        env:
+          - name: JWT_SECRET_KEY
+            value: "%kernel.project_dir%/config/jwt/private.pem"
+          - name: JWT_PUBLIC_KEY
+            value: "%kernel.project_dir%/config/jwt/public.pem"
+          - name: JWT_PASSPHRASE
+            valueFrom:
+              secretKeyRef:
+                name: jwt-secret
+                key: passphrase
