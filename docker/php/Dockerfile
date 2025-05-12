@@ -1,6 +1,6 @@
 FROM php:8.2-fpm
 
-# Instalar dependências do sistema#@#
+# Instalar dependências do sistema#@##
 RUN apt-get update && apt-get install -y \
     git \
     unzip \

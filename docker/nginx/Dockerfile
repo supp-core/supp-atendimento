@@ -14,7 +14,7 @@
 
 FROM node:18-alpine AS builder
 
-# Defina o diretório de trabalho dentro do container de build
+# Defina o diretório de trabalho dentro do container de build#
 WORKDIR /app/frontend
 
 # Copie os arquivos de definição de dependência PRIMEIRO para aproveitar o cache do Docker

@@ -2,7 +2,7 @@ FROM node:18-alpine
 
 WORKDIR /app
 
-# Copiar package.json e package-lock.json primeiro para aproveitar o cache do Docker
+# Copiar package.json e package-lock.json primeiro para aproveitar o cache do Docker#
 COPY supp-atendimento-front-end/package*.json /app/
 
 # Instalar dependências do frontend
