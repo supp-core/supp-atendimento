@@ -1,50 +1,44 @@
+# ./docker/php/Dockerfile
+
 FROM php:8.2-fpm
 
-# Instalar dependências do sistema#@##
+ENV COMPOSER_ALLOW_SUPERUSER=1 \
+    COMPOSER_NO_INTERACTION=1
+
+# Garante que 'postgresql-client' seja instalado junto com outras dependências
 RUN apt-get update && apt-get install -y \
     git \
     unzip \
     libzip-dev \
     libicu-dev \
-    libpq-dev
+    libpq-dev \
+    postgresql-client # <-- ESTE PACOTE RESOLVE O ERRO "pg_isready: not found"
 
-# Instalar extensões PHP necessárias
-RUN docker-php-ext-install \
-    pdo \
-    pdo_pgsql \
-    zip \
-    intl
+# Instala as extensões PHP
+RUN docker-php-ext-install pdo pdo_pgsql zip intl
 
-# Instalar Composer
+# Instala o Composer
 COPY --from=composer:latest /usr/bin/composer /usr/bin/composer
 
-# Definir diretório de trabalho
+# Define o diretório de trabalho
 WORKDIR /var/www/html
 
-# Copiar código da aplicação BACKEND para dentro da imagem
-COPY supp-atendimento-back-end /var/www/html/
+# Copia os arquivos do composer para a imagem
+COPY supp-atendimento-back-end/composer.json supp-atendimento-back-end/composer.lock* ./
 
-# Instalar dependências Composer para PRODUÇÃO
-RUN composer install --no-dev --optimize-autoloader
+# Roda o composer install para criar a pasta /vendor dentro da imagem
+RUN composer install --prefer-dist --no-scripts --no-autoloader
 
-# Criar diretório JWT e gerar as chaves
-RUN mkdir -p config/jwt && \
-    openssl genrsa -out config/jwt/private.pem 4096 && \
-    openssl rsa -pubout -in config/jwt/private.pem -out config/jwt/public.pem && \
-    chown -R www-data:www-data config/jwt && \
-    chmod 644 config/jwt/private.pem config/jwt/public.pem
+# Copia o restante do código-fonte
+COPY supp-atendimento-back-end/ /var/www/html/
 
-# Configurar permissões para o usuário www-data
-RUN chown -R www-data:www-data /var/www/html \
-    && chmod -R 775 /var/www/html
+# Otimiza o autoloader com o código-fonte completo
+RUN composer dump-autoload --optimize
 
-# Copiar configuração PHP personalizada
-COPY supp-atendimento-back-end/php.ini /usr/local/etc/php/conf.d/app.ini
+# Copia e dá permissão ao script de entrypoint
+COPY ./docker/php/docker-entrypoint.sh /usr/local/bin/docker-entrypoint.sh
+RUN chmod +x /usr/local/bin/docker-entrypoint.sh
 
-# KUBERNETES: Corrigir PHP-FPM para escutar em todas as interfaces
-RUN sed -i 's|listen = .*|listen = 0.0.0.0:9000|' /usr/local/etc/php-fpm.d/www.conf
-
-# Expor a porta PHP-FPM
-EXPOSE 9000
+ENTRYPOINT ["docker-entrypoint.sh"]
 
 CMD ["php-fpm"]

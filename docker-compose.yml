@@ -1,97 +1,54 @@
-# version: '3.8'
-
-# services:
-#   # Serviço PHP/Symfony (Backend)
-#   backend:
-#     build:
-#       context: .
-#       dockerfile: ./docker/php/Dockerfile
-#     container_name: prod-backend
-#     # volumes: # Removido volumes
-#     #   - ./supp-atendimento-back-end:/var/www/html # Removido volumes
-#     networks:
-#       - prod-network
-#     environment:
-#       - APP_ENV=prod
-#       - DATABASE_URL=postgresql://postgres:P0stgre4Pgm25@supp-hml-bd.postgres.database.azure.com:5432/supp-atendimento-db
-
-#   # Serviço Nginx (Webserver)
-#   webserver:
-#     build:
-#       context: .
-#       dockerfile: ./docker/nginx/Dockerfile
-#     container_name: prod-webserver
-#     ports:
-#       - "8080:80"
-#     depends_on:
-#       - backend
-#     # volumes: # Removido volumes
-#     #   - ./supp-atendimento-back-end:/var/www/html # Removido volumes
-#     networks:
-#       - prod-network
-
-#   # Serviço Node.js para o Frontend Vue.js
-#   frontend:
-#     build:
-#       context: .
-#       dockerfile: ./docker/node/Dockerfile
-#     container_name: prod-frontend # Alterado nome para identificar como produção
-#     ports:
-#       - "5173:5173" # Alterado para porta 80 para frontend em produção (ou ajuste conforme necessário)
-#     # volumes: # Removido volumes
-#     #   - ./supp-atendimento-front-end:/app # Removido volumes
-#     # command: sh -c "npm install && npm run dev" # Removido comando de desenvolvimento
-#     networks:
-#       - prod-network
-  
-#   # Serviço Mailhog para testes de e-mail
-#   mailhog:
-#     image: mailhog/mailhog
-#     container_name: supp-mailhog
-#     ports:
-#       - "1025:1025"
-#       - "8025:8025"
-#     networks:
-#       - prod-network
-
-# networks:
-#   prod-network:
-#     driver: bridge
-
-
-#ALTERADO PARA AZURE
-
-# Versão do Docker Compose suportada pelo Azure App Service (ex: 3.7)
-version: '3.7'
-
+version: '3.8'
 services:
-  backend:
-    # image: suppregistry.azurecr.io/helpdesk/supp-backend-kube:1.0.0
-    image: suppregistry.azurecr.io/helpdesk/supp-backend-kube:1.0.1
-    container_name: prod-backend-appservice 
-    networks:
-      - prod-network
-    restart: always
-
-  webserver:
-    # image: suppregistry.azurecr.io/atendimento/supp-webserver-kube:1.0.0
-    image: suppregistry.azurecr.io/helpdesk/supp-backend-kube:1.0.1
-    container_name: prod-webserver-appservice
+  frontend:
+    build:
+      context: .
+      dockerfile: ./docker/node/Dockerfile
+    container_name: dev_frontend_app
+    restart: unless-stopped
     ports:
-      - "80:80"
+      - "6173:5173"
+    volumes:
+      - ./supp-atendimento-front-end:/app
+      - /app/node_modules
+    networks:
+      - app-network
     depends_on:
       - backend
-    networks:
-      - prod-network
-    restart: always
 
-  mailhog:
-    # Usa a imagem pública padrão do Mailhog
-    image: mailhog/mailhog
-    container_name: prod-mailhog-appservice
+  backend:
+    build:
+      context: .
+      dockerfile: ./docker/php/Dockerfile
+    container_name: dev_php_app
+    restart: unless-stopped
+    volumes:
+      - ./supp-atendimento-back-end:/var/www/html
+      - vendor_volume:/var/www/html/vendor
+    env_file:
+      - ./supp-atendimento-back-end/.env
+    depends_on:
+      - postgres
     networks:
-      - prod-network
-    restart: always
+      - app-network
+
+  postgres:
+    image: postgres:16-alpine
+    container_name: dev_postgres_db
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: root
+      POSTGRES_PASSWORD: root
+      POSTGRES_DB: supp_atendimento_db_dev
+    ports:
+      - "6432:5432"
+    volumes:
+      - postgres_data_dev:/var/lib/postgresql/data
+    networks:
+      - app-network
+volumes:
+  postgres_data_dev:
+  vendor_volume:
 networks:
-  prod-network:
+  app-network:
     driver: bridge

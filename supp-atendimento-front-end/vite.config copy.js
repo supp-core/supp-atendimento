@@ -1,11 +1,15 @@
 // supp-atendimento-front-end/vite.config.js
+
 import { defineConfig } from 'vite'
 import vue from '@vitejs/plugin-vue'
+
+// 1. IMPORTAR O PLUGIN DO VUETIFY
 import vuetify from 'vite-plugin-vuetify'
 
 export default defineConfig({
   plugins: [
     vue(),
+    // 2. USAR O PLUGIN AQUI
     vuetify({ autoImport: true }), 
   ],
   server: {
@@ -19,14 +23,6 @@ export default defineConfig({
       protocol: 'ws',
       host: 'localhost',
     },
-    // --- ESTA SEÇÃO É ESSENCIAL PARA A API FUNCIONAR ---
-    proxy: {
-      '/api': {
-        target: 'http://backend:9000',
-        changeOrigin: true,
-        rewrite: (path) => path.replace(/^\/api/, ''),
-      },
-    }
   },
   resolve: {
     alias: {

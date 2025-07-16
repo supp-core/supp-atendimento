@@ -2,10 +2,15 @@ import { createRouter, createWebHistory } from 'vue-router';
 import DashboardView from '../views/DashboardView.vue';
 import LoginView from '../views/LoginView.vue';
 import TicketsView from '../views/TicketsView.vue';
-import AttendantLoginView from '../views/AttendantLoginView.vue'; // Adicione esta linha
+import AttendantLoginView from '../views/AttendantLoginView.vue';
 import { attendantAuthService } from '@/services/attendant-auth.service';
 
 const routes = [
+  // --- ROTA DE REDIRECIONAMENTO ADICIONADA ---
+  {
+    path: '/',
+    redirect: '/login'
+  },
   {
     path: '/dashboard',
     name: 'dashboard',
@@ -60,7 +65,7 @@ const routes = [
         requiresAttendantAuth: true, 
         requiresAdmin: true 
     }
-}
+  }
 ];
 
 const router = createRouter({
@@ -68,20 +73,14 @@ const router = createRouter({
   routes
 });
 
-// router/index.js
-
-// No arquivo de rotas (router/index.js)
 router.beforeEach((to, from, next) => {
   if (to.matched.some(record => record.meta.requiresAttendantAuth)) {
-      // Verifica autenticação de atendente
       const attendantToken = localStorage.getItem('attendant_token');
       if (!attendantToken) {
           next('/attendant/login');
       } else {
-          // Verifica se a rota precisa de permissão de admin
           if (to.matched.some(record => record.meta.requiresAdmin)) {
               const attendantData = attendantAuthService.getAttendantData();
-              // Se não for admin, redireciona para o dashboard
               if (!attendantData || attendantData.function !== 'Admin') {
                   next('/attendant/dashboard');
               } else {
@@ -92,7 +91,6 @@ router.beforeEach((to, from, next) => {
           }
       }
   } else if (to.matched.some(record => record.meta.requiresAuth)) {
-      // Verifica autenticação de usuário comum
       const userToken = localStorage.getItem('token');
       if (!userToken) {
           next('/login');
@@ -104,6 +102,4 @@ router.beforeEach((to, from, next) => {
   }
 });
 
-// Aqui está a exportação que estava faltando
 export default router;
-
