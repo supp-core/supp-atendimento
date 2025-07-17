@@ -19,6 +19,8 @@ Para iniciar e parar o ambiente, use os comandos:
 ```bash
 # Para iniciar os serviços
 docker-compose up -d --build
+docker-compose --profile dev up -d --build
+
 
 # Para parar os serviços
 docker-compose down

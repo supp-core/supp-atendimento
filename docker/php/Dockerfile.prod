@@ -1,0 +1,36 @@
+# ./docker/php/Dockerfile.prod
+
+FROM php:8.2-fpm
+
+ENV COMPOSER_ALLOW_SUPERUSER=1 \
+    COMPOSER_NO_INTERACTION=1
+
+# Instala apenas as dependências de sistema necessárias para produção
+RUN apt-get update && apt-get install -y \
+    libzip-dev \
+    libicu-dev \
+    libpq-dev
+
+RUN docker-php-ext-install pdo pdo_pgsql zip intl
+
+COPY --from=composer:latest /usr/bin/composer /usr/bin/composer
+
+WORKDIR /var/www/html
+
+# Copia os arquivos do composer
+COPY supp-atendimento-back-end/composer.json supp-atendimento-back-end/composer.lock ./
+
+# Instala apenas dependências de produção e otimiza o autoloader
+RUN composer install --no-dev --no-scripts --optimize-autoloader
+
+# Copia o código-fonte
+COPY supp-atendimento-back-end/ /var/www/html/
+
+# Gera o autoloader otimizado final
+RUN composer dump-autoload --optimize
+
+# Expõe a porta do PHP-FPM
+EXPOSE 9000
+
+# Comando padrão
+CMD ["php-fpm"]

@@ -1,6 +1,9 @@
+# docker-compose.yml
+
 version: '3.8'
 services:
   frontend:
+    profiles: ["dev"]
     build:
       context: .
       dockerfile: ./docker/node/Dockerfile
@@ -14,9 +17,25 @@ services:
     networks:
       - app-network
     depends_on:
-      - backend
+      - backend # Agora depende do Nginx
 
-  backend:
+  # O NOVO SERVIÇO NGINX, QUE SERÁ NOSSO VERDADEIRO BACKEND
+  backend: # <--- Este é o Nginx, o "garçom"
+    profiles: ["dev"]
+    image: nginx:alpine
+    container_name: dev_nginx_app # Nome mais claro
+    restart: unless-stopped
+    volumes:
+      - ./supp-atendimento-back-end:/var/www/html # Monta o mesmo código
+      - ./docker/nginx/backend-dev.conf:/etc/nginx/conf.d/default.conf # Monta a config
+    networks:
+      - app-network
+    depends_on:
+      - php # Depende do PHP-FPM estar pronto
+
+  # O ANTIGO 'backend' AGORA É 'php', O "COZINHEIRO"
+  php: # <--- Este é o PHP-FPM
+    profiles: ["dev"]
     build:
       context: .
       dockerfile: ./docker/php/Dockerfile
@@ -33,6 +52,8 @@ services:
       - app-network
 
   postgres:
+    profiles: ["dev"]
+    # ... sem alterações aqui
     image: postgres:16-alpine
     container_name: dev_postgres_db
     restart: unless-stopped
@@ -46,9 +67,34 @@ services:
       - postgres_data_dev:/var/lib/postgresql/data
     networks:
       - app-network
+
+# =======================================================
+# SERVIÇOS PARA BUILD DE PRODUÇÃO
+# =======================================================
+  frontend-prod:
+    profiles: ["prod"]
+    build:
+      context: .
+      dockerfile: ./docker/node/Dockerfile.prod
+    image: suppregistry.azurecr.io/supp-atendimento-front-end:latest
+    container_name: prod_frontend_app
+
+  backend-prod:
+    profiles: ["prod"]
+    build:
+      context: .
+      dockerfile: ./docker/php/Dockerfile.prod
+    image: suppregistry.azurecr.io/supp-atendimento-back-end:latest
+    container_name: prod_backend_app
+    env_file:
+      - ./supp-atendimento-back-end/.env.prod
+    networks:
+      - app-network
+
 volumes:
   postgres_data_dev:
   vendor_volume:
+
 networks:
   app-network:
     driver: bridge

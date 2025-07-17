@@ -15,16 +15,16 @@ export default defineConfig({
     watch: {
       usePolling: true,
     },
-    hmr: {
-      protocol: 'ws',
-      host: 'localhost',
-    },
+    // hmr: {
+    //   protocol: 'ws',
+    //   host: 'localhost',
+    // },
     // --- ESTA SEÇÃO É ESSENCIAL PARA A API FUNCIONAR ---
     proxy: {
       '/api': {
-        target: 'http://backend:9000',
+        target: 'http://backend:80',
         changeOrigin: true,
-        rewrite: (path) => path.replace(/^\/api/, ''),
+        // rewrite: (path) => path.replace(/^\/api/, ''),
       },
     }
   },

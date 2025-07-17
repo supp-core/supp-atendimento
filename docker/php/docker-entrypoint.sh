@@ -3,7 +3,7 @@ set -e
 
 # O 'composer install' foi removido daqui!
 # Ele agora é feito na construção da imagem.
-
+chown -R www-data:www-data /var/www/html/var
 # --- Aguarda o PostgreSQL ficar pronto ---
 DB_HOST=$(echo $DATABASE_URL | sed -E 's/.*@([^:]+):.*/\1/')
 DB_USER=$(echo $DATABASE_URL | sed -E 's/.*:\/\/([^:]+):.*/\1/')
