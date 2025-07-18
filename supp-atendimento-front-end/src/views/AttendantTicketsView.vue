@@ -7,7 +7,7 @@
         <div class="tickets-page">
           <div class="d-flex justify-space-between align-center mb-4">
             <h2 class="text-h5 font-weight-medium">Meus Atendimentos</h2>
-            <v-btn v-if="isAdmin" color="primary" prepend-icon="mdi-plus" @click="openCreateDialog">
+            <v-btn v-if="isAdmin" color="primary" @click="openCreateDialog" class="btn-centered">
               Criar Chamado para Usuário
             </v-btn>
 
@@ -51,13 +51,11 @@
                 </v-col>
                 <!-- Nova linha para botões -->
                 <v-col cols="12" class="d-flex align-center mt-2">
-                  <v-btn color="primary" @click="handleSearch" :loading="loading" class="me-2">
-                    <v-icon start>mdi-magnify</v-icon>
+                  <v-btn color="primary" @click="handleSearch" :loading="loading" class="me-2 btn-centered">
                     Pesquisar
                   </v-btn>
 
-                  <v-btn variant="outlined" @click="resetFilters" :disabled="loading">
-                    <v-icon start>mdi-refresh</v-icon>
+                  <v-btn variant="outlined" @click="resetFilters" :disabled="loading" class="btn-centered">
                     Limpar
                   </v-btn>
                 </v-col>
@@ -1224,5 +1222,17 @@ onMounted(() => {
 
 :deep(.v-list-item:last-child) {
   border-bottom: none;
+}
+
+/* Centralização do texto dos botões */
+.btn-centered {
+  text-align: center !important;
+}
+
+.btn-centered :deep(.v-btn__content) {
+  justify-content: center !important;
+  text-align: center !important;
+  width: 100% !important;
+  display: flex !important;
 }
 </style>

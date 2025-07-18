@@ -23,6 +23,17 @@
                   placeholder="Digite o título do chamado">
               </div>
 
+              <!-- Campo de categoria -->
+              <div class="form-group">
+                <label for="category">Categoria*</label>
+                <select id="category" v-model="formData.category_id" class="form-input" required>
+                  <option value="">Selecione uma categoria</option>
+                  <option v-for="category in categories" :key="category.id" :value="category.id">
+                    {{ category.name }}
+                  </option>
+                </select>
+              </div>
+
               <!-- Novo campo de prioridade -->
               <div class="form-group">
                 <label for="priority">Prioridade*</label>
@@ -38,7 +49,7 @@
               <div class="form-group">
                 <label for="description">Descrição*</label>
                 <textarea id="description" v-model="formData.description" class="form-input" rows="5" required
-                  placeholder="Descreva detalhadamente o problema"></textarea>
+                  placeholder="Descreva detalhadamente o problema. No caso de planilhas, informe por favor qual planilha ou cole o link da mesma."></textarea>
               </div>
 
               <div class="anexos">
@@ -89,6 +100,7 @@ const { sidebarCollapsed } = useSidebar();
 const form = ref(null);
 const loading = ref(false);
 const sectors = ref([]);
+const categories = ref([]);
 const priority = ref('NORMAL');
 const selectedFiles = ref([]);
 
@@ -97,6 +109,7 @@ const formData = ref({
   title: '',
   description: '',
   sector_id: '',
+  category_id: '',
   priority: 'NORMAL', // Valor padrão
   // requester_id: 1 // Temporário - deve vir do usuário logado
 });
@@ -116,6 +129,15 @@ const loadSectors = async () => {
     sectors.value = response.data.data;
   } catch (error) {
     showFeedback('Erro ao carregar setores', 'error');
+  }
+};
+
+const loadCategories = async () => {
+  try {
+    const response = await api.get('/categories');
+    categories.value = response.data.data;
+  } catch (error) {
+    showFeedback('Erro ao carregar categorias', 'error');
   }
 };
 
@@ -143,7 +165,7 @@ const showFeedback = (message, type = 'success') => {
 };
 
 const handleSubmit = async () => {
-  if (!formData.value.title || !formData.value.description) {
+  if (!formData.value.title || !formData.value.description || !formData.value.category_id) {
     showFeedback('Por favor, preencha todos os campos obrigatórios', 'error');
     return;
   }
@@ -176,6 +198,7 @@ const handleSubmit = async () => {
 
 onMounted(() => {
   loadSectors();
+  loadCategories();
 });
 
 
@@ -198,6 +221,7 @@ const submitForm = async () => {
     submitData.append('title', formData.value.title);
     submitData.append('description', formData.value.description);
     submitData.append('priority', formData.value.priority);
+    submitData.append('category_id', formData.value.category_id);
     submitData.append('sector_id', '15');
 
     // Adicionando arquivos
@@ -246,6 +270,7 @@ const submitForm = async () => {
     // Limpar o formulário
     formData.value.title = '';
     formData.value.description = '';
+    formData.value.category_id = '';
     formData.value.priority = 'NORMAL';
     selectedFiles.value = [];
     

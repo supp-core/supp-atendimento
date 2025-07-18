@@ -89,11 +89,18 @@ class ServiceManager
             }
         }
 
-        // Buscar tipo de serviço se fornecido
-        if (!empty($data['service_type_id'])) {
+        // Sempre definir como "Triagem" para novos chamados criados por usuários
+        // Se foi criado por admin, usar o service_type_id fornecido
+        if ($createdByAdmin && !empty($data['service_type_id'])) {
             $serviceType = $this->entityManager->getRepository(ServiceType::class)->find($data['service_type_id']);
             if ($serviceType) {
                 $service->setServiceType($serviceType);
+            }
+        } else {
+            // Para chamados criados por usuários, sempre usar "Triagem"
+            $triagemServiceType = $this->entityManager->getRepository(ServiceType::class)->findOneBy(['name' => 'Triagem']);
+            if ($triagemServiceType) {
+                $service->setServiceType($triagemServiceType);
             }
         }
 

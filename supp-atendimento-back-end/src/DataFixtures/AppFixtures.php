@@ -3,9 +3,11 @@
 namespace App\DataFixtures;
 
 use App\Entity\Attendant;
+use App\Entity\Category;
 use App\Entity\Sector;
 use App\Entity\Service;
 use App\Entity\ServiceHistory;
+use App\Entity\ServiceType;
 use App\Entity\User;
 use DateTime;
 use Doctrine\Bundle\FixturesBundle\Fixture;
@@ -35,28 +37,44 @@ class AppFixtures extends Fixture
     {
         // Carrega os dados básicos do sistema
         $sectors = $this->loadSectors($manager);
+        $this->loadCategories($manager);
+        $this->loadServiceTypes($manager);
         
         // Criar e persistir o usuário para Rafael
-        $user = new User();
-        $user->setName('Rafael Assumpcao de Oliveira')
+        $userRafael = new User();
+        $userRafael->setName('Rafael Assumpcao de Oliveira')
             ->setEmail('rafael.assumpcao@pbh.gov.br')
             ->setRoles(['ROLE_USER', 'ROLE_ATTENDANT', 'ROLE_ADMIN'])
             ->setIsAttendant(true);
         
-        $hashedPassword = $this->passwordHasher->hashPassword(
-            $user,
+        $hashedPasswordRafael = $this->passwordHasher->hashPassword(
+            $userRafael,
             'teste123'
         );
-        $user->setPassword($hashedPassword);
-        $manager->persist($user);
+        $userRafael->setPassword($hashedPasswordRafael);
+        $manager->persist($userRafael);
+        
+        // Criar e persistir o usuário comum João
+        $userJoao = new User();
+        $userJoao->setName('João')
+            ->setEmail('joao@gmail.com')
+            ->setRoles(['ROLE_USER'])
+            ->setIsAttendant(false);
+        
+        $hashedPasswordJoao = $this->passwordHasher->hashPassword(
+            $userJoao,
+            'teste123'
+        );
+        $userJoao->setPassword($hashedPasswordJoao);
+        $manager->persist($userJoao);
         
         // Criar e persistir o atendente Rafael
         $attendant = new Attendant();
         $attendant->setName('Rafael Assumpcao de Oliveira')
             ->setFunction('Admin')
             ->setStatus('AVAILABLE')
-            ->setSector($sectors[2]) // Setor Admin
-            ->setUser($user);
+            ->setSector($sectors[2]) // Setor Diretoria
+            ->setUser($userRafael);
             
         $manager->persist($attendant);
         
@@ -67,12 +85,34 @@ class AppFixtures extends Fixture
     private function loadSectors(ObjectManager $manager): array
     {
         $sectors = [];
-        foreach (['Infra', 'Dev', 'Admin', 'DevOps'] as $name) {
+        foreach (['Infra', 'Dev', 'Diretoria', 'DevOps', 'Suporte'] as $name) {
             $sector = new Sector();
             $sector->setName($name);
             $manager->persist($sector);
             $sectors[] = $sector;
         }
         return $sectors;
+    }
+
+    private function loadCategories(ObjectManager $manager): void
+    {
+        $categories = ['SUPP', 'Suporte', 'Planilha', 'Solicitação de E-mail'];
+        
+        foreach ($categories as $categoryName) {
+            $category = new Category();
+            $category->setName($categoryName);
+            $manager->persist($category);
+        }
+    }
+
+    private function loadServiceTypes(ObjectManager $manager): void
+    {
+        $serviceTypes = ['Triagem', 'Bug', 'Implantação', 'Solicitação', 'Manutenção', 'Instalação'];
+        
+        foreach ($serviceTypes as $typeName) {
+            $serviceType = new ServiceType();
+            $serviceType->setName($typeName);
+            $manager->persist($serviceType);
+        }
     }
 }

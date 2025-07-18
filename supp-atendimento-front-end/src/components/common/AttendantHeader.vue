@@ -5,10 +5,11 @@
         <span class="portal-text">Portal do Atendente</span>
       </div>
       <div class="user-actions">
-        <span class="sector">{{ sector }}</span>
-        <span class="username">{{ nomeAtendente }}</span>
-        <span class="function">{{ funcaoAtendente }}</span>
-      
+        <div class="user-info">
+          <div class="username">{{ nomeAtendente }}</div>
+          <div class="sector-info"><strong>Setor:</strong> {{ sector }}</div>
+          <div class="function-info"><strong>Função:</strong> {{ funcaoAtendente }}</div>
+        </div>
         <button @click="fazerLogout" class="logout-button">
           Sair
         </button>
@@ -88,14 +89,25 @@
       gap: 15px;
   }
   
+  .user-info {
+      text-align: right;
+  }
+  
   .username {
       font-weight: 500;
       color: #333;
+      margin-bottom: 2px;
   }
   
-  .function, .sector {
+  .sector-info, .function-info {
+      font-size: 0.8rem;
+      line-height: 1.2;
       color: #666;
-      font-size: 0.875rem;
+  }
+  
+  .sector-info strong, .function-info strong {
+      color: #333;
+      font-weight: 500;
   }
   
   .logout-button {

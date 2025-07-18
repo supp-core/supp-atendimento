@@ -62,13 +62,11 @@
 
                 <!-- Nova linha para botões (mantida como estava) -->
                 <v-col cols="12" class="d-flex align-center mt-2">
-                  <v-btn color="primary" @click="handleFilter" :loading="loading" class="me-2">
-                    <v-icon start>mdi-magnify</v-icon>
+                  <v-btn color="primary" @click="handleFilter" :loading="loading" class="me-2 btn-centered">
                     Pesquisar
                   </v-btn>
 
-                  <v-btn variant="outlined" @click="resetFilters" :disabled="loading">
-                    <v-icon start>mdi-refresh</v-icon>
+                  <v-btn variant="outlined" @click="resetFilters" :disabled="loading" class="btn-centered">
                     Limpar
                   </v-btn>
                 </v-col>
@@ -773,5 +771,17 @@ onMounted(() => {
 }
 
 /* Corrige o alinhamento do container do período */
+
+/* Centralização do texto dos botões */
+.btn-centered {
+  text-align: center !important;
+}
+
+.btn-centered :deep(.v-btn__content) {
+  justify-content: center !important;
+  text-align: center !important;
+  width: 100% !important;
+  display: flex !important;
+}
 
 </style>
