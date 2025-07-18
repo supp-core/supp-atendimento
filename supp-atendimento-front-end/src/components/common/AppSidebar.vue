@@ -6,15 +6,15 @@
     <nav>
       <ul>
         <li>
-          <router-link to="/dashboard" active-class="active">
-            <span class="icon">📊</span>
-            <span class="text" v-show="!sidebarCollapsed">Dashboard</span>
-          </router-link>
-        </li>
-        <li>
           <router-link to="/tickets" active-class="active">
             <span class="icon">🎫</span>
             <span class="text" v-show="!sidebarCollapsed">Chamados</span>
+          </router-link>
+        </li>
+        <li>
+          <router-link to="/dashboard" active-class="active">
+            <span class="icon">📊</span>
+            <span class="text" v-show="!sidebarCollapsed">Dashboard</span>
           </router-link>
         </li>
       </ul>

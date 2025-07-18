@@ -6,12 +6,6 @@
         <nav>
             <ul>
                 <li>
-                    <router-link to="/attendant/dashboard" active-class="active">
-                        <span class="icon">📊</span>
-                        <span class="text" v-show="!isCollapsed">Dashboard</span>
-                    </router-link>
-                </li>
-                <li>
                     <router-link to="/attendant/tickets" active-class="active">
                         <span class="icon">🔧</span>
                         <span class="text" v-show="!isCollapsed">Evoluir Atendimentos</span>
@@ -23,6 +17,13 @@
                     <router-link to="/attendant/admin/users" active-class="active">
                         <span class="icon">👥</span>
                         <span class="text" v-show="!isCollapsed">Gerenciar Usuários</span>
+                    </router-link>
+                </li>
+                
+                <li>
+                    <router-link to="/attendant/dashboard" active-class="active">
+                        <span class="icon">📊</span>
+                        <span class="text" v-show="!isCollapsed">Dashboard</span>
                     </router-link>
                 </li>
             </ul>

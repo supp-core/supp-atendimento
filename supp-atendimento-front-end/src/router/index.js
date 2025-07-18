@@ -1,6 +1,7 @@
 import { createRouter, createWebHistory } from 'vue-router';
 import DashboardView from '../views/DashboardView.vue';
 import LoginView from '../views/LoginView.vue';
+import UnifiedLoginView from '../views/UnifiedLoginView.vue';
 import TicketsView from '../views/TicketsView.vue';
 import AttendantLoginView from '../views/AttendantLoginView.vue';
 import { attendantAuthService } from '@/services/attendant-auth.service';
@@ -20,7 +21,7 @@ const routes = [
   {
     path: '/login',
     name: 'login',
-    component: LoginView
+    component: UnifiedLoginView
   },
   {
     path: '/tickets',
@@ -77,7 +78,7 @@ router.beforeEach((to, from, next) => {
   if (to.matched.some(record => record.meta.requiresAttendantAuth)) {
       const attendantToken = localStorage.getItem('attendant_token');
       if (!attendantToken) {
-          next('/attendant/login');
+          next('/login');
       } else {
           if (to.matched.some(record => record.meta.requiresAdmin)) {
               const attendantData = attendantAuthService.getAttendantData();

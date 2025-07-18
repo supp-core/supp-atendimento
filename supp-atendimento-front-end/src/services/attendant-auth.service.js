@@ -90,7 +90,7 @@ export const setupAttendantAuthInterceptors = () => {
         async error => {
             if (error.response?.status === 401) {
                 attendantAuthService.clearSession()
-                window.location.href = '/attendant/login'
+                window.location.href = '/login'
             }
             return Promise.reject(error)
         }
