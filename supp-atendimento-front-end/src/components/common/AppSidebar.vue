@@ -12,6 +12,12 @@
           </router-link>
         </li>
         <li>
+          <router-link to="/change-password" active-class="active">
+            <span class="icon">🔒</span>
+            <span class="text" v-show="!sidebarCollapsed">Alterar Senha</span>
+          </router-link>
+        </li>
+        <li>
           <router-link to="/dashboard" active-class="active">
             <span class="icon">📊</span>
             <span class="text" v-show="!sidebarCollapsed">Dashboard</span>

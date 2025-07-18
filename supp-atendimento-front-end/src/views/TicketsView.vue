@@ -438,7 +438,9 @@ const loadTickets = async (page = 1) => {
 
     // Construir os parâmetros de filtro
     const params = new URLSearchParams({
-      page: page.toString()
+      page: page.toString(),
+      sort: 'created_at',
+      order: 'desc'
     });
     // Adicionar filtros apenas se tiverem valor
     if (searchName.value) {

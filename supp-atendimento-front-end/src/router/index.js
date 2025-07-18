@@ -36,6 +36,12 @@ const routes = [
     meta: { requiresAuth: true }
   },
   {
+    path: '/change-password',
+    name: 'change-password',
+    component: () => import('@/views/ChangePasswordView.vue'),
+    meta: { requiresAuth: true }
+  },
+  {
     path: '/attendant/login',
     name: 'attendant-login',
     component: () => import('@/views/AttendantLoginView.vue')
@@ -66,6 +72,12 @@ const routes = [
         requiresAttendantAuth: true, 
         requiresAdmin: true 
     }
+  },
+  {
+    path: '/attendant/change-password',
+    name: 'attendant-change-password',
+    component: () => import('@/views/AttendantChangePasswordView.vue'),
+    meta: { requiresAttendantAuth: true }
   }
 ];
 

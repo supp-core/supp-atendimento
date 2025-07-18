@@ -21,6 +21,13 @@
                 </li>
                 
                 <li>
+                    <router-link to="/attendant/change-password" active-class="active">
+                        <span class="icon">🔒</span>
+                        <span class="text" v-show="!isCollapsed">Alterar Senha</span>
+                    </router-link>
+                </li>
+                
+                <li>
                     <router-link to="/attendant/dashboard" active-class="active">
                         <span class="icon">📊</span>
                         <span class="text" v-show="!isCollapsed">Dashboard</span>

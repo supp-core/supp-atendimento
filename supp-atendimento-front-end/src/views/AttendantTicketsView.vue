@@ -832,6 +832,8 @@ const loadTickets = async (page = 1) => {
     const params = new URLSearchParams();
     params.append('page', page.toString());
     params.append('per_page', '10');
+    params.append('sort', 'created_at');
+    params.append('order', 'desc');
 
     // Adicionar filtros somente se existirem valores
     if (searchTitle.value) {

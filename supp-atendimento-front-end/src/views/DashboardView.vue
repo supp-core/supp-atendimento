@@ -7,36 +7,34 @@
           <div class="stats-grid">
             <div class="stats-card">
               <div class="card-header">
-                <h3>Avisos</h3>
-                <p>Informações relevantes</p>
+                <h3>Total de Tickets</h3>
+                <p>Todos os seus tickets</p>
               </div>
-              <div class="card-content">
-                <p class="no-data">Nenhum aviso disponível</p>
-              </div>
-            </div>
-  
-            <div class="stats-card chart-card">
-              <div class="card-header">
-                <h3>Distribuição</h3>
-                <p>Últimas 4 semanas</p>
-              </div>
-              <div class="card-content chart-wrapper">
-                <Line 
-                  :data="chartData"
-                  :options="chartOptions"
-                  class="chart-container"
-                />
+              <div class="card-content tasks-content">
+                <div class="number">{{ totalTicketsCount }}</div>
+                <p class="subtitle">Total</p>
               </div>
             </div>
   
             <div class="stats-card">
               <div class="card-header">
-                <h3>Minhas Tarefas</h3>
-                <p>Pendentes de conclusão</p>
+                <h3>Tickets Pendentes</h3>
+                <p>Em andamento</p>
               </div>
               <div class="card-content tasks-content">
-                <div class="number">2</div>
-                <p class="subtitle">Todas as espécies</p>
+                <div class="number pending">{{ pendingTasksCount }}</div>
+                <p class="subtitle">Pendentes</p>
+              </div>
+            </div>
+  
+            <div class="stats-card">
+              <div class="card-header">
+                <h3>Tickets Concluídos</h3>
+                <p>Finalizados</p>
+              </div>
+              <div class="card-content tasks-content">
+                <div class="number completed">{{ completedTasksCount }}</div>
+                <p class="subtitle">Concluídos</p>
               </div>
             </div>
           </div>
@@ -50,92 +48,50 @@
   import { useSidebar } from '@/composables/useSidebar';
   import AppHeader from '@/components/common/AppHeader.vue';
   import AppSidebar from '@/components/common/AppSidebar.vue';
-  import { Line } from 'vue-chartjs';
-  import {
-    Chart as ChartJS,
-    CategoryScale,
-    LinearScale,
-    PointElement,
-    LineElement,
-    Title,
-    Tooltip,
-    Legend
-  } from 'chart.js';
-  
-  ChartJS.register(
-    CategoryScale,
-    LinearScale,
-    PointElement,
-    LineElement,
-    Title,
-    Tooltip,
-    Legend
-  );
+  import api from '@/services/api';
+  import { authService } from '@/services/auth.service';
   
   const { sidebarCollapsed } = useSidebar();
-  
-  // Define static chart data to prevent unnecessary re-renders
-  const chartData = {
-    labels: ['28/12', '04/01', '11/01', '18/01'],
-    datasets: [{
-      label: 'Distribuição',
-      data: [0, 0, 0, 2],
-      borderColor: '#4F46E5',
-      backgroundColor: '#4F46E5',
-      tension: 0.4,
-      pointRadius: 4,
-      pointHoverRadius: 6,
-      borderWidth: 2
-    }]
-  };
-  
-  // Enhanced chart options with fixed scales and animations
-  const chartOptions = {
-    responsive: true,
-    maintainAspectRatio: false,
-    animation: {
-      duration: 0 // Disable animations to prevent movement
-    },
-    plugins: {
-      legend: {
-        position: 'top',
-        align: 'start',
-        labels: {
-          boxWidth: 12,
-          usePointStyle: true,
-          pointStyle: 'circle',
-          font: {
-            size: 12
-          }
-        }
+  const totalTicketsCount = ref(0);
+  const pendingTasksCount = ref(0);
+  const completedTasksCount = ref(0);
+
+  // Função para carregar estatísticas dos tickets
+  const loadTicketStats = async () => {
+    try {
+      if (!authService.isAuthenticated()) {
+        return;
       }
-    },
-    scales: {
-      y: {
-        beginAtZero: true,
-        max: 2.5, // Fixed maximum value
-        ticks: {
-          stepSize: 0.5,
-          font: {
-            size: 11
-          }
-        },
-        grid: {
-          color: '#e2e8f0'
-        }
-      },
-      x: {
-        grid: {
-          display: false
-        },
-        ticks: {
-          font: {
-            size: 11
-          }
-        }
+
+      // Buscar total de tickets
+      const totalResponse = await api.get('/service/my-tickets?per_page=1');
+      if (totalResponse.data.success) {
+        totalTicketsCount.value = totalResponse.data.meta.total || 0;
       }
+
+      // Buscar tickets pendentes (todos exceto CONCLUDED)
+      const pendingResponse = await api.get('/service/my-tickets?status=new,OPEN,IN_PROGRESS,RESOLVED&per_page=1');
+      if (pendingResponse.data.success) {
+        pendingTasksCount.value = pendingResponse.data.meta.total || 0;
+      }
+
+      // Buscar tickets concluídos
+      const completedResponse = await api.get('/service/my-tickets?status=CONCLUDED&per_page=1');
+      if (completedResponse.data.success) {
+        completedTasksCount.value = completedResponse.data.meta.total || 0;
+      }
+    } catch (error) {
+      console.error('Erro ao carregar estatísticas dos tickets:', error);
+      totalTicketsCount.value = 0;
+      pendingTasksCount.value = 0;
+      completedTasksCount.value = 0;
     }
   };
+
+  onMounted(() => {
+    loadTicketStats();
+  });
+  
   </script>
   
   <style scoped>
@@ -157,41 +113,21 @@
   
   .stats-grid {
     display: grid;
-    grid-template-columns: minmax(300px, 1fr) minmax(400px, 1.5fr) minmax(300px, 1fr);
+    grid-template-columns: repeat(3, 1fr);
     gap: 40px;
-    max-width: 1800px;
+    max-width: 1200px;
     margin: 0 auto;
   }
   
-  /* Enhanced card styles with specific chart handling */
   .stats-card {
     background: white;
     border-radius: 12px;
     padding: 32px;
     box-shadow: 0 2px 4px rgba(0,0,0,0.1);
     height: 100%;
-    min-height: 350px;
+    min-height: 250px;
     display: flex;
     flex-direction: column;
-  }
-  
-  .chart-card {
-    overflow: hidden; /* Prevent any potential overflow */
-  }
-  
-  .chart-wrapper {
-    flex-grow: 1;
-    position: relative;
-    min-height: 250px; /* Ensure minimum height for the chart */
-    margin-top: 16px;
-  }
-  
-  .chart-container {
-    position: absolute;
-    top: 0;
-    left: 0;
-    right: 0;
-    bottom: 0;
   }
   
   .card-header {
@@ -210,12 +146,13 @@
     font-size: 1rem;
   }
   
-  /* Rest of the styles remain the same */
   .tasks-content {
     display: flex;
     flex-direction: column;
     align-items: flex-start;
     padding: 24px 0;
+    flex-grow: 1;
+    justify-content: center;
   }
   
   .number {
@@ -226,15 +163,16 @@
     margin-bottom: 16px;
   }
   
+  .number.pending {
+    color: #f59e0b;
+  }
+  
+  .number.completed {
+    color: #10b981;
+  }
+  
   .subtitle {
     color: #666;
     font-size: 1rem;
-  }
-  
-  .no-data {
-    color: #666;
-    font-size: 1rem;
-    font-style: italic;
-    margin-top: 24px;
   }
   </style>
