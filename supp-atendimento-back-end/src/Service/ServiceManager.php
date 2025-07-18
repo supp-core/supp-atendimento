@@ -107,6 +107,18 @@ class ServiceManager
         $priority = $data['priority'] ?? Service::PRIORITY_NORMAL;
         $service->setPriority($priority);
 
+        // Definir prazo (deadline)
+        if ($createdByAdmin && !empty($data['deadline'])) {
+            // Se foi criado por admin e tem deadline personalizado
+            $deadline = new DateTime($data['deadline']);
+            $service->setDeadline($deadline);
+        } else {
+            // Prazo padrão de 5 dias úteis para todos os tickets
+            $deadline = new DateTime();
+            $deadline->add(new \DateInterval('P5D')); // Adiciona 5 dias
+            $service->setDeadline($deadline);
+        }
+
         // Configurações para tickets criados por admin
         if ($createdByAdmin && !empty($data['created_by_admin_id'])) {
             $adminAttendant = $this->entityManager->getRepository(Attendant::class)->find($data['created_by_admin_id']);

@@ -84,6 +84,8 @@
                   <th class="px-4 py-3">Setor</th>
                   <th class="px-4 py-3">Responsável</th>
                   <th class="px-4 py-3">Data de Criação</th>
+                  <th class="px-4 py-3">Prazo</th>
+                  <th class="px-4 py-3">Data de Conclusão</th>
                   <th class="px-4 py-3">Acompanhar</th>
                 </tr>
               </thead>
@@ -110,6 +112,8 @@
                   <!-- <td class="px-4 py-3">{{ ticket.requester?.name }}</td> -->
                   <td class="px-4 py-3">{{ ticket.responsible?.name || 'Não atribuído' }}</td>
                   <td class="px-4 py-3">{{ formatDate(ticket.dates.created) }}</td>
+                  <td class="px-4 py-3" :class="getDeadlineClass(ticket.dates.deadline)">{{ formatDate(ticket.dates.deadline) }}</td>
+                  <td class="px-4 py-3">{{ ticket.dates.concluded ? formatDate(ticket.dates.concluded) : '-' }}</td>
                   <td class="px-4 py-3">
                     <div class="d-flex gap-2">
                       <v-btn variant="text" density="comfortable" size="small" @click="openTicketDetails(ticket)"
@@ -399,6 +403,28 @@ const formatDate = (dateString) => {
   return format(new Date(dateString), "dd/MM/yyyy 'às' HH:mm", {
     locale: ptBR
   });
+};
+
+const getDeadlineClass = (deadline) => {
+  if (!deadline) return '';
+  
+  try {
+    const deadlineDate = new Date(deadline);
+    const today = new Date();
+    
+    // Remove o tempo para comparar apenas as datas
+    deadlineDate.setHours(23, 59, 59, 999);
+    today.setHours(0, 0, 0, 0);
+    
+    if (deadlineDate < today) {
+      return 'deadline-overdue';
+    }
+    
+    return '';
+  } catch (error) {
+    console.error('Erro ao verificar prazo:', error);
+    return '';
+  }
 };
 
 const loadTickets = async (page = 1) => {
@@ -782,6 +808,12 @@ onMounted(() => {
   text-align: center !important;
   width: 100% !important;
   display: flex !important;
+}
+
+/* Estilo para prazos vencidos */
+.deadline-overdue {
+  color: #d32f2f !important;
+  font-weight: 600 !important;
 }
 
 </style>

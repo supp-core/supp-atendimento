@@ -76,6 +76,7 @@
                   <th class="text-left">Prioridade</th>
                   <th class="text-left">Status</th>
                   <th class="text-left">Data Criação</th>
+                  <th class="text-left">Prazo</th>
                   <th class="text-left">Data Conclusão</th>
                   <th class="text-center">Ações</th>
                 </tr>
@@ -96,6 +97,7 @@
                     </v-chip>
                   </td>
                   <td>{{ formatDate(ticket.dates.created) }}</td>
+                  <td :class="getDeadlineClass(ticket.dates.deadline)">{{ formatDate(ticket.dates.deadline) }}</td>
                   <td>{{ ticket.dates.concluded ? formatDate(ticket.dates.concluded) : '-' }}</td>
                   <td class="text-center">
                     <v-btn :prepend-icon="mdiPencilBoxOutline" size="small" color="primary" class="mr-2"
@@ -239,6 +241,16 @@
 
                 <v-textarea v-model="evolveDialog.comment" label="Comentário" required rows="3"
                   class="mb-4"></v-textarea>
+
+                <!-- Campo de Prazo -->
+                <v-menu v-model="evolveDialog.deadlineMenu" :close-on-content-click="false" min-width="auto">
+                  <template v-slot:activator="{ props }">
+                    <v-text-field v-model="evolveDialog.formattedDeadline" label="Prazo" prepend-inner-icon="mdi-calendar"
+                      readonly v-bind="props" variant="outlined" density="comfortable"
+                      hint="Clique para alterar o prazo do atendimento"></v-text-field>
+                  </template>
+                  <v-date-picker v-model="evolveDialog.deadline" @update:model-value="evolveDialog.deadlineMenu = false" locale="pt-BR"></v-date-picker>
+                </v-menu>
               </div>
 
 
@@ -340,7 +352,7 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed, onMounted, watch } from 'vue'
 import { format } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
 import { useSidebar } from '@/composables/useSidebar'
@@ -457,10 +469,14 @@ const evolveDialog = ref({
   show: false,
   ticket: {
     attachments: [] // Inicialização explícita
-  }, newStatus: '',
+  }, 
+  newStatus: '',
   comment: '',
   category_id: null,
   service_type_id: null,
+  deadline: null,
+  deadlineMenu: false,
+  formattedDeadline: '',
   loading: false
 })
 
@@ -584,6 +600,44 @@ const formatDate = (dateString) => {
   })
 }
 
+const formatDeadlineForDisplay = (deadline) => {
+  if (!deadline) return '';
+  try {
+    if (deadline instanceof Date) {
+      return format(deadline, 'dd/MM/yyyy', { locale: ptBR });
+    }
+    if (typeof deadline === 'string') {
+      return format(new Date(deadline), 'dd/MM/yyyy', { locale: ptBR });
+    }
+    return '';
+  } catch (error) {
+    console.error('Erro ao formatar data do prazo:', error);
+    return '';
+  }
+}
+
+const getDeadlineClass = (deadline) => {
+  if (!deadline) return '';
+  
+  try {
+    const deadlineDate = new Date(deadline);
+    const today = new Date();
+    
+    // Remove o tempo para comparar apenas as datas
+    deadlineDate.setHours(23, 59, 59, 999);
+    today.setHours(0, 0, 0, 0);
+    
+    if (deadlineDate < today) {
+      return 'deadline-overdue';
+    }
+    
+    return '';
+  } catch (error) {
+    console.error('Erro ao verificar prazo:', error);
+    return '';
+  }
+}
+
 
 const loadServiceHistory = async (serviceId) => {
   try {
@@ -660,6 +714,15 @@ const openEvolveDialog = async (ticket) => {
       // Atualizar os valores nos campos do formulário
       evolveDialog.value.category_id = categoryId;
       evolveDialog.value.service_type_id = serviceTypeId;
+      
+      // Configurar deadline
+      if (response.data.data.dates?.deadline) {
+        evolveDialog.value.deadline = new Date(response.data.data.dates.deadline);
+        evolveDialog.value.formattedDeadline = formatDeadlineForDisplay(evolveDialog.value.deadline);
+      } else {
+        evolveDialog.value.deadline = null;
+        evolveDialog.value.formattedDeadline = '';
+      }
     }
   } catch (error) {
     console.error('Erro ao carregar detalhes do ticket:', error);
@@ -700,9 +763,23 @@ const evolveTicket = async () => {
       }
     }
 
+    // Atualizar status e campos do ticket
     await api.put(`/service/${evolveDialog.value.ticket.id}/status`, {
       updateData
     })
+
+    // Se o deadline foi alterado, atualizar separadamente
+    if (evolveDialog.value.deadline) {
+      let formattedDeadline = evolveDialog.value.deadline;
+      if (evolveDialog.value.deadline instanceof Date) {
+        formattedDeadline = evolveDialog.value.deadline.toISOString().split('T')[0];
+      }
+      
+      await api.put(`/service/${evolveDialog.value.ticket.id}/deadline`, {
+        deadline: formattedDeadline
+      });
+    }
+
     await loadTickets()
     evolveDialog.value.show = false
   } catch (error) {
@@ -910,6 +987,11 @@ const loadCategoriesAndServiceTypes = async () => {
     console.error('Erro ao carregar dados de filtro:', error);
   }
 };
+
+// Watcher para atualizar formatação do deadline
+watch(() => evolveDialog.value.deadline, (newDeadline) => {
+  evolveDialog.value.formattedDeadline = formatDeadlineForDisplay(newDeadline);
+});
 
 // Carrega dados iniciais
 onMounted(() => {
@@ -1234,5 +1316,11 @@ onMounted(() => {
   text-align: center !important;
   width: 100% !important;
   display: flex !important;
+}
+
+/* Estilo para prazos vencidos */
+.deadline-overdue {
+  color: #d32f2f !important;
+  font-weight: 600 !important;
 }
 </style>

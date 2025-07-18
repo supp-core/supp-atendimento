@@ -46,6 +46,18 @@
                 label="Tipo de Atendimento*" required variant="outlined" density="comfortable"></v-select>
             </v-col>
 
+            <!-- Campo de Prazo -->
+            <v-col cols="12" md="6">
+              <v-menu v-model="deadlineMenu" :close-on-content-click="false" min-width="auto">
+                <template v-slot:activator="{ props }">
+                  <v-text-field v-model="formattedDeadline" label="Prazo (opcional)" prepend-inner-icon="mdi-calendar"
+                    readonly v-bind="props" variant="outlined" density="comfortable"
+                    hint="Se não informado, será definido automaticamente 5 dias a partir da criação"></v-text-field>
+                </template>
+                <v-date-picker v-model="formData.deadline" @update:model-value="deadlineMenu = false" locale="pt-BR"></v-date-picker>
+              </v-menu>
+            </v-col>
+
             <!-- Descrição -->
             <v-col cols="12">
               <v-textarea v-model="formData.description" label="Descrição do Atendimento*"
@@ -80,7 +92,9 @@
 </template>
 
 <script setup>
-import { ref, onMounted, watch } from 'vue';
+import { ref, onMounted, watch, computed } from 'vue';
+import { format } from 'date-fns';
+import { ptBR } from 'date-fns/locale';
 import api from '@/services/api';
 import { attendantAuthService } from '@/services/attendant-auth.service'
 
@@ -95,6 +109,7 @@ const form = ref(null);
 const loading = ref(false);
 const loadingUsers = ref(false);
 const loadingSectors = ref(false);
+const deadlineMenu = ref(false);
 const users = ref([]);
 const sectors = ref([]);
 const categories = ref([]);
@@ -117,8 +132,28 @@ const formData = ref({
   requester_id: null,
   category_id: null,
   service_type_id: null,
+  deadline: null,
   files: []
- 
+});
+
+// Formatação da data para exibição
+const formattedDeadline = computed(() => {
+  if (!formData.value.deadline) return '';
+  
+  try {
+    if (formData.value.deadline instanceof Date) {
+      return format(formData.value.deadline, 'dd/MM/yyyy', { locale: ptBR });
+    }
+    
+    if (typeof formData.value.deadline === 'string') {
+      return format(new Date(formData.value.deadline), 'dd/MM/yyyy', { locale: ptBR });
+    }
+    
+    return '';
+  } catch (error) {
+    console.error('Erro ao formatar data do prazo:', error);
+    return '';
+  }
 });
 
 // Observa cambios en la propiedad modelValue para actualizar el diálogo
@@ -224,6 +259,15 @@ const submitForm = async () => {
     submitData.append('created_by_admin_id', attendant.id);
  
     submitData.append('created_by_admin', 'true');
+
+    // Adicionar deadline se foi definido
+    if (formData.value.deadline) {
+      let formattedDeadlineValue = formData.value.deadline;
+      if (formData.value.deadline instanceof Date) {
+        formattedDeadlineValue = formData.value.deadline.toISOString().split('T')[0];
+      }
+      submitData.append('deadline', formattedDeadlineValue);
+    }
 
     // Adicionar arquivos apenas se existirem
     if (formData.value.files && formData.value.files.length > 0) {

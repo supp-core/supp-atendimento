@@ -137,6 +137,7 @@ class ServiceController extends AbstractController
                         'created' => $service->getDateCreate()?->format('Y-m-d H:i:s'),
                         'updated' => $service->getDateUpdate()?->format('Y-m-d H:i:s'),
                         'concluded' => $service->getDateConclusion()?->format('Y-m-d H:i:s'),
+                        'deadline' => $service->getDeadline()?->format('Y-m-d H:i:s'),
                     ],
                 ];
             }, $services);
@@ -211,6 +212,7 @@ class ServiceController extends AbstractController
                         'created' => $service->getDateCreate()?->format('Y-m-d H:i:s'),
                         'updated' => $service->getDateUpdate()?->format('Y-m-d H:i:s'),
                         'concluded' => $service->getDateConclusion()?->format('Y-m-d H:i:s'),
+                        'deadline' => $service->getDeadline()?->format('Y-m-d H:i:s'),
                     ],
                     'attachments' => array_map(function ($attachment) {
                         return [
@@ -352,6 +354,7 @@ class ServiceController extends AbstractController
                         'created' => $service->getDateCreate()?->format('Y-m-d H:i:s'),
                         'updated' => $service->getDateUpdate()?->format('Y-m-d H:i:s'),
                         'concluded' => $service->getDateConclusion()?->format('Y-m-d H:i:s'),
+                        'deadline' => $service->getDeadline()?->format('Y-m-d H:i:s'),
                     ],
                 ];
             }, $services);
@@ -497,6 +500,7 @@ class ServiceController extends AbstractController
                         'created' => $service->getDateCreate()?->format('Y-m-d H:i:s'),
                         'updated' => $service->getDateUpdate()?->format('Y-m-d H:i:s'),
                         'concluded' => $service->getDateConclusion()?->format('Y-m-d H:i:s'),
+                        'deadline' => $service->getDeadline()?->format('Y-m-d H:i:s'),
                     ],
                 ];
             }, $paginatedServices);
@@ -926,6 +930,58 @@ class ServiceController extends AbstractController
             return new JsonResponse([
                 'success' => false,
                 'message' => 'Erro ao baixar anexo: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+
+    #[Route('/{id}/deadline', methods: ['PUT'])]
+    public function updateDeadline(int $id, Request $request): JsonResponse
+    {
+        try {
+            $data = json_decode($request->getContent(), true);
+
+            if (!isset($data['deadline'])) {
+                throw new BadRequestException('Deadline is required');
+            }
+
+            $service = $this->serviceManager->findById($id);
+
+            if (!$service) {
+                return new JsonResponse([
+                    'success' => false,
+                    'message' => 'Service not found'
+                ], 404);
+            }
+
+            // Atualizar o prazo
+            $deadline = new \DateTime($data['deadline']);
+            $service->setDeadline($deadline);
+            $service->setDateUpdate(new \DateTime());
+
+            $this->entityManager->flush();
+
+            return new JsonResponse([
+                'success' => true,
+                'data' => [
+                    'id' => $service->getId(),
+                    'title' => $service->getTitle(),
+                    'deadline' => $service->getDeadline()->format('Y-m-d H:i:s'),
+                    'dates' => [
+                        'created' => $service->getDateCreate()->format('Y-m-d H:i:s'),
+                        'updated' => $service->getDateUpdate()->format('Y-m-d H:i:s'),
+                        'deadline' => $service->getDeadline()->format('Y-m-d H:i:s'),
+                    ]
+                ]
+            ]);
+        } catch (BadRequestException $e) {
+            return new JsonResponse([
+                'success' => false,
+                'message' => $e->getMessage()
+            ], 400);
+        } catch (\Exception $e) {
+            return new JsonResponse([
+                'success' => false,
+                'message' => 'Internal server error: ' . $e->getMessage()
             ], 500);
         }
     }
