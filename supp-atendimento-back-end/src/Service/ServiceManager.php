@@ -20,7 +20,7 @@ use Twig\Environment;
 
 class ServiceManager
 {
-    private const VALID_STATUS = ['NEW', 'OPEN', 'IN_PROGRESS', 'RESOLVED', 'CONCLUDED', 'NOVO'];
+    private const VALID_STATUS = ['NEW', 'OPEN', 'IN_PROGRESS', 'RESOLVED', 'SUSPENSO', 'RETORNO', 'CONCLUDED', 'NOVO'];
     private string $uploadDir;
 
     public function __construct(

@@ -24,7 +24,7 @@ class AppFixtures extends Fixture
     }
     
     // Definição dos status possíveis do sistema
-    private const SERVICE_STATUSES = ['NEW', 'OPEN', 'IN_PROGRESS', 'RESOLVED', 'CLOSED'];
+    private const SERVICE_STATUSES = ['NEW', 'OPEN', 'IN_PROGRESS', 'RESOLVED', 'SUSPENSO', 'RETORNO', 'CONCLUDED'];
     private const ATTENDANT_STATUSES = ['AVAILABLE', 'BUSY', 'OFFLINE'];
 
     // Categorias de problemas vazias, mantendo apenas a estrutura

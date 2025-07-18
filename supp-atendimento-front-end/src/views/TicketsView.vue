@@ -283,6 +283,8 @@ const getStatusColor = (status) => {
     'OPEN': 'blue',
     'IN_PROGRESS': 'orange',
     'RESOLVED': 'green',
+    'SUSPENSO': 'yellow',
+    'RETORNO': 'cyan',
     'CONCLUDED': 'purple'
   }
   return colors[status] || 'grey'
@@ -332,10 +334,12 @@ const searchPriority = ref('');
 const dateMenu = ref(false);
 
 const statusOptions = [
-  { title: 'Novo', value: 'new' },
+  { title: 'Novo', value: 'NEW' },
   { title: 'Aberto', value: 'OPEN' },
   { title: 'Em Andamento', value: 'IN_PROGRESS' },
   { title: 'Resolvido', value: 'RESOLVED' },
+  { title: 'Suspenso', value: 'SUSPENSO' },
+  { title: 'Retorno', value: 'RETORNO' },
   { title: 'Concluído', value: 'CONCLUDED' }
 ];
 const priorityOptions = [
@@ -387,10 +391,12 @@ const handleDateRangeChange = () => {
 const translateStatus = (status) => {
   const translations = {
     'new': 'Novo',
+    'NEW': 'Novo',
     'OPEN': 'Aberto',
     'IN_PROGRESS': 'Em Andamento',
     'RESOLVED': 'Resolvido',
-    'CLOSED': 'Fechado',
+    'SUSPENSO': 'Suspenso',
+    'RETORNO': 'Retorno',
     'CONCLUDED': 'Concluído'
   };
   return translations[status] || status;

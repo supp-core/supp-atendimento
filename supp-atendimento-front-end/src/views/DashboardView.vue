@@ -69,8 +69,8 @@
         totalTicketsCount.value = totalResponse.data.meta.total || 0;
       }
 
-      // Buscar tickets pendentes (todos exceto CONCLUDED)
-      const pendingResponse = await api.get('/service/my-tickets?status=new,OPEN,IN_PROGRESS,RESOLVED&per_page=1');
+      // Buscar tickets pendentes (todos exceto CONCLUDED e CLOSED)
+      const pendingResponse = await api.get('/service/my-tickets?status=NEW,OPEN,IN_PROGRESS,RESOLVED,SUSPENSO,RETORNO&per_page=1');
       if (pendingResponse.data.success) {
         pendingTasksCount.value = pendingResponse.data.meta.total || 0;
       }
