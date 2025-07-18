@@ -77,6 +77,78 @@ class AppFixtures extends Fixture
             ->setUser($userRafael);
             
         $manager->persist($attendant);
+
+        // Criar novos usuários atendentes
+        $newUsers = [
+            [
+                'name' => 'Marco Ribeiro',
+                'email' => 'marco.a.ribeiro@pbh.gov.br',
+                'sector' => $sectors[0], // Infra
+                'function' => 'Atendente'
+            ],
+            [
+                'name' => 'Danilo Rodrigues César',
+                'email' => 'danilo.cesar@pbh.gov.br',
+                'sector' => $sectors[0], // Infra
+                'function' => 'Atendente'
+            ],
+            [
+                'name' => 'Danilo de Souza Lima',
+                'email' => 'danilo.dlima@pbh.gov.br',
+                'sector' => $sectors[1], // Dev
+                'function' => 'Atendente'
+            ],
+            [
+                'name' => 'Isaac Emanuel Santos Martins',
+                'email' => 'isaac.martins@pbh.gov.br',
+                'sector' => $sectors[1], // Dev
+                'function' => 'Atendente'
+            ],
+            [
+                'name' => 'Cristhian Ramos',
+                'email' => 'cristhian.r@pbh.gov.br',
+                'sector' => $sectors[3], // Suporte
+                'function' => 'Atendente'
+            ],
+            [
+                'name' => 'Paulo Henrique Meireles Araujo',
+                'email' => 'paulohenr.araujo@edu.pbh.gov.br',
+                'sector' => $sectors[3], // Suporte
+                'function' => 'Atendente'
+            ],
+            [
+                'name' => 'Larissa Evelyn',
+                'email' => 'larissa.evelyn@pbh.gov.br',
+                'sector' => $sectors[3], // Suporte
+                'function' => 'Atendente'
+            ]
+        ];
+
+        foreach ($newUsers as $userData) {
+            // Criar usuário
+            $user = new User();
+            $user->setName($userData['name'])
+                ->setEmail($userData['email'])
+                ->setRoles(['ROLE_USER', 'ROLE_ATTENDANT'])
+                ->setIsAttendant(true);
+            
+            $hashedPassword = $this->passwordHasher->hashPassword(
+                $user,
+                'teste123'
+            );
+            $user->setPassword($hashedPassword);
+            $manager->persist($user);
+
+            // Criar atendente
+            $attendant = new Attendant();
+            $attendant->setName($userData['name'])
+                ->setFunction($userData['function'])
+                ->setStatus('AVAILABLE')
+                ->setSector($userData['sector'])
+                ->setUser($user);
+                
+            $manager->persist($attendant);
+        }
         
         // Persiste todas as alterações no banco
         $manager->flush();
@@ -85,7 +157,7 @@ class AppFixtures extends Fixture
     private function loadSectors(ObjectManager $manager): array
     {
         $sectors = [];
-        foreach (['Infra', 'Dev', 'Diretoria', 'DevOps', 'Suporte'] as $name) {
+        foreach (['Infra', 'Dev', 'Diretoria', 'Suporte'] as $name) {
             $sector = new Sector();
             $sector->setName($name);
             $manager->persist($sector);

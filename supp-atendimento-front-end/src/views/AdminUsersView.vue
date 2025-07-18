@@ -7,8 +7,7 @@
         <div class="users-page">
           <div class="d-flex justify-space-between align-center mb-4">
             <h2 class="text-h5 font-weight-medium">Gerenciamento de Usuários</h2>
-            <v-btn color="primary" @click="openNewUserDialog">
-              <v-icon start>mdi-account-plus</v-icon>
+            <v-btn color="primary" @click="openNewUserDialog" class="btn-centered">
               Novo Usuário
             </v-btn>
           </div>
@@ -35,30 +34,52 @@
 
           <!-- Tabela de Usuários -->
           <v-card>
-            <v-data-table :headers="headers" :items="filteredUsers" :loading="loading" :items-per-page="10"
-              class="elevation-1">
+            <v-data-table 
+              :headers="headers" 
+              :items="filteredUsers" 
+              :loading="loading" 
+              :items-per-page="10"
+              item-key="id"
+              class="elevation-1"
+              :sort-by="[{ key: 'name', order: 'asc' }]"
+            >
               <template v-slot:item.type="{ item }">
                 <v-chip :color="item.type === 'Atendente' ? 'primary' : 'success'" small>
                   {{ item.type }}
                 </v-chip>
               </template>
               <template v-slot:item.actions="{ item }">
-                <v-tooltip bottom>
-                  <template v-slot:activator="{ on, attrs }">
-                    <v-btn icon small color="primary" v-bind="attrs" v-on="on" @click="editUser(item)">
-                      <v-icon>mdi-pencil</v-icon>
-                    </v-btn>
-                  </template>
-                  <span>Editar</span>
-                </v-tooltip>
-                <v-tooltip bottom>
-                  <template v-slot:activator="{ on, attrs }">
-                    <v-btn icon small color="error" v-bind="attrs" v-on="on" @click="confirmDelete(item)">
-                      <v-icon>mdi-delete</v-icon>
-                    </v-btn>
-                  </template>
-                  <span>Excluir</span>
-                </v-tooltip>
+                <div class="action-buttons">
+                  <v-tooltip text="Editar usuário">
+                    <template v-slot:activator="{ props }">
+                      <v-btn 
+                        icon
+                        size="small" 
+                        color="primary" 
+                        v-bind="props" 
+                        @click="editUser(item)"
+                        class="action-btn edit-btn"
+                      >
+                        ✏️
+                      </v-btn>
+                    </template>
+                  </v-tooltip>
+                  
+                  <v-tooltip text="Excluir usuário">
+                    <template v-slot:activator="{ props }">
+                      <v-btn 
+                        icon
+                        size="small" 
+                        color="error" 
+                        v-bind="props" 
+                        @click="confirmDelete(item)"
+                        class="action-btn delete-btn"
+                      >
+                        🗑️
+                      </v-btn>
+                    </template>
+                  </v-tooltip>
+                </div>
               </template>
             </v-data-table>
           </v-card>
@@ -204,6 +225,7 @@ const search = ref({
 
 // Opções para os selects
 const userTypes = [
+  { text: 'Todos', value: null },
   { text: 'Usuário Comum', value: 'Usuário' },
   { text: 'Atendente', value: 'Atendente' }
 ];
@@ -223,12 +245,12 @@ const functionOptions = [
 
 // Cabeçalhos da tabela
 const headers = [
-  { text: 'Nome', value: 'name' },
-  { text: 'Email', value: 'email' },
-  { text: 'Tipo', value: 'type' },
-  { text: 'Setor', value: 'sector.name' },
-  { text: 'Função', value: 'function' },
-  { text: 'Ações', value: 'actions', sortable: false }
+  { title: 'Nome', key: 'name' },
+  { title: 'Email', key: 'email' },
+  { title: 'Tipo de Usuário', key: 'type' },
+  { title: 'Setor', key: 'sector.name' },
+  { title: 'Função', key: 'function' },
+  { title: 'Ações', key: 'actions', sortable: false }
 ];
 
 // Estados do modal
@@ -286,18 +308,10 @@ const filteredUsers = computed(() => {
     const matchName = !search.value.name || user.name.toLowerCase().includes(search.value.name.toLowerCase());
     const matchEmail = !search.value.email || user.email.toLowerCase().includes(search.value.email.toLowerCase());
 
-    // Mapeamento de tipos
-    const typeMap = {
-      'user': 'Usuário',
-      'attendant': 'Atendente'
-    };
-
-
-
-
-    const matchType = !search.value.type ||
-      user.type === typeMap[search.value.type] ||
-      user.type === search.value.type;
+    // Para o tipo, se for null (Todos), não filtra
+    const matchType = search.value.type === null || 
+                     search.value.type === undefined || 
+                     user.type === search.value.type;
 
     return matchName && matchEmail && matchType;
   });
@@ -314,9 +328,11 @@ const loadUsers = async () => {
     if (usersResponse.data.success) {
       usersList = usersResponse.data.data.map(user => ({
         ...user,
+        id: `user_${user.id}`, // Prefixo para evitar conflito de IDs
+        originalId: user.id, // Manter o ID original para operações
         type: 'Usuário',
-        sector: { name: 'N/A' },
-        function: 'N/A'
+        sector: { name: '' },
+        function: ''
       }));
     }
 
@@ -326,7 +342,8 @@ const loadUsers = async () => {
 
     if (attendantsResponse.data.success) {
       attendantsList = attendantsResponse.data.data.map(attendant => ({
-        id: attendant.id,
+        id: `attendant_${attendant.id}`, // Prefixo para evitar conflito de IDs
+        originalId: attendant.id, // Manter o ID original para operações
         name: attendant.name,
         email: attendant.email,
         type: 'Atendente',
@@ -396,13 +413,13 @@ const editUser = (user) => {
 
   // Preencher formulário com dados do usuário
   formData.value = {
-    id: user.id,
+    id: user.originalId || user.id, // Usar originalId se disponível
     name: user.name,
     email: user.email,
     password: '', // Não preencher senha na edição
     userType: user.type === 'Atendente' ? 'attendant' : 'user',
     sector_id: user.sector?.id || null,
-    function: user.function !== 'N/A' ? user.function : 'Suporte N1'
+    function: user.function || 'Suporte N1'
   };
 
   dialog.value.show = true;
@@ -510,9 +527,10 @@ const deleteUser = async () => {
 
   try {
     const user = confirmDialog.value.user;
+    const userId = user.originalId || user.id; // Usar originalId se disponível
     const endpoint = user.type === 'Atendente'
-      ? `/attendants/${user.id}`
-      : `/users/${user.id}`;
+      ? `/attendants/${userId}`
+      : `/users/${userId}`;
 
     const response = await api.delete(endpoint);
 
@@ -581,5 +599,66 @@ watch(() => formData.value.userType, (newType) => {
 
 .v-data-table :deep(.v-data-table__wrapper) {
   overflow-x: auto;
+}
+
+/* Estilos dos botões de ação */
+.action-buttons {
+  display: flex;
+  gap: 8px;
+  justify-content: center;
+  align-items: center;
+}
+
+.action-btn {
+  width: 36px !important;
+  height: 36px !important;
+  min-width: 36px !important;
+  transition: all 0.2s ease-in-out !important;
+  border-radius: 50% !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  font-size: 16px !important;
+}
+
+.action-btn:hover {
+  transform: translateY(-2px) scale(1.1);
+  box-shadow: 0 6px 12px rgba(0, 0, 0, 0.2) !important;
+}
+
+.edit-btn {
+  background-color: #1976d2 !important;
+  color: white !important;
+}
+
+.edit-btn:hover {
+  background-color: #1565c0 !important;
+}
+
+.delete-btn {
+  background-color: #d32f2f !important;
+  color: white !important;
+}
+
+.delete-btn:hover {
+  background-color: #c62828 !important;
+}
+
+/* Estilo para os emojis */
+.action-btn {
+  font-family: 'Segoe UI Emoji', 'Apple Color Emoji', 'Noto Color Emoji', sans-serif !important;
+  line-height: 1 !important;
+}
+
+/* Centralização do texto dos botões */
+.btn-centered {
+  text-align: center !important;
+}
+
+.btn-centered :deep(.v-btn__content) {
+  justify-content: center !important;
+  text-align: center !important;
+  width: 100% !important;
+  display: flex !important;
 }
 </style>
