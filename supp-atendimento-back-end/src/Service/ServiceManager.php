@@ -261,9 +261,10 @@ class ServiceManager
     {
         return $this->entityManager->getRepository(Attendant::class)
             ->createQueryBuilder('a')
-            ->where('a.function = :function')
+            ->join('a.sector', 's')
+            ->where('s.name = :sectorName')
             ->andWhere('a.status = :status')
-            ->setParameter('function', 'Admin')
+            ->setParameter('sectorName', 'Diretoria')
             ->setParameter('status', 'ACTIVE')
             ->setMaxResults(1)
             ->getQuery()
@@ -396,24 +397,20 @@ class ServiceManager
 
         $queryBuilder = $this->entityManager->createQueryBuilder();
         $queryBuilder
-            ->select('s', 'sect', 'u', 'a')
+            ->select('s', 'sect', 'u')
             ->from(Service::class, 's')
             ->leftJoin('s.sector', 'sect')
             ->leftJoin('s.requester', 'u')
-            ->leftJoin('s.reponsible', 'a')
             ->leftJoin('s.category', 'c')         // Join com categoria
             ->leftJoin('s.serviceType', 'st');  
 
-        // Se for admin, retorna todos os tickets
-        if ($attendant->getFunction() === 'Admin') {
-
-            $queryBuilder->where('s.reponsible IS NULL OR s.reponsible = :attendantId')
-                ->setParameter('attendantId', $attendantId);
+        // Se for admin (setor Diretoria), retorna todos os tickets
+        if ($attendant->getSector() && $attendant->getSector()->getName() === 'Diretoria') {
+            // Admin vê TODOS os tickets - sem filtro de setor
         } else {
-
-            // Se não for admin, retorna apenas os tickets atribuídos ao atendente
-            $queryBuilder->where('s.reponsible = :attendantId')
-                ->setParameter('attendantId', $attendantId);
+            // Se não for admin, retorna apenas os tickets do mesmo setor
+            $queryBuilder->where('s.sector = :sectorId')
+                ->setParameter('sectorId', $attendant->getSector()->getId());
         }
 
         $queryBuilder->orderBy('CASE s.priority 
@@ -430,20 +427,20 @@ class ServiceManager
 
     // Em ServiceManager.php
 
-    public function transferTicket(Service $service, int $newAttendantId, string $comment): void
+    public function transferTicketToSector(Service $service, int $newSectorId, string $comment): void
     {
-        // Buscar novo atendente
-        $newAttendant = $this->entityManager->getRepository(Attendant::class)->find($newAttendantId);
+        // Buscar novo setor
+        $newSector = $this->entityManager->getRepository(Sector::class)->find($newSectorId);
 
-        if (!$newAttendant) {
-            throw new BadRequestException('New attendant not found');
+        if (!$newSector) {
+            throw new BadRequestException('New sector not found');
         }
 
-        // Registrar atendente anterior
-        $previousAttendant = $service->getReponsible();
+        // Registrar setor anterior
+        $previousSector = $service->getSector();
 
-        // Atualizar o atendente responsável
-        $service->setReponsible($newAttendant);
+        // Atualizar apenas o setor do ticket
+        $service->setSector($newSector);
         $service->setDateUpdate(new DateTime('now', $this->timezone));
 
         // Criar histórico da transferência
@@ -451,9 +448,8 @@ class ServiceManager
         $history->setService($service);
         $history->setStatusPrev($service->getStatus());
         $history->setStatusPost($service->getStatus());
-        $history->setComment($comment);
+        $history->setComment($comment . " (Transferido de '" . $previousSector->getName() . "' para '" . $newSector->getName() . "')");
         $history->setDateHistory(new DateTime('now', $this->timezone));
-        $history->setResponsible($previousAttendant);
 
         $this->entityManager->persist($history);
         $this->entityManager->flush();

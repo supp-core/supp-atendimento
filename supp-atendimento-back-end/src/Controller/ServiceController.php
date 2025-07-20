@@ -629,14 +629,14 @@ class ServiceController extends AbstractController
     // Em ServiceController.php
 
     #[Route('/{id}/transfer', methods: ['PUT'])]
-    public function transferToAttendant(int $id, Request $request): JsonResponse
+    public function transferToSector(int $id, Request $request): JsonResponse
     {
         try {
             $data = json_decode($request->getContent(), true);
 
             // Validação dos dados
-            if (!isset($data['attendant_id']) || !isset($data['comment'])) {
-                throw new BadRequestException('Attendant ID and comment are required');
+            if (!isset($data['sector_id']) || !isset($data['comment'])) {
+                throw new BadRequestException('Sector ID and comment are required');
             }
 
             // Buscar o serviço
@@ -649,10 +649,10 @@ class ServiceController extends AbstractController
                 ], 404);
             }
 
-            // Transferir o ticket
-            $this->serviceManager->transferTicket(
+            // Transferir o ticket para o novo setor
+            $this->serviceManager->transferTicketToSector(
                 service: $service,
-                newAttendantId: $data['attendant_id'],
+                newSectorId: $data['sector_id'],
                 comment: $data['comment']
             );
 
@@ -663,10 +663,9 @@ class ServiceController extends AbstractController
                     'id' => $service->getId(),
                     'title' => $service->getTitle(),
                     'status' => $service->getStatus(),
-                    'responsible' => [
-                        'id' => $service->getReponsible()?->getId(),
-                        'name' => $service->getReponsible()?->getName(),
-                        'function' => $service->getReponsible()?->getFunction()
+                    'sector' => [
+                        'id' => $service->getSector()->getId(),
+                        'name' => $service->getSector()->getName()
                     ],
                     'dates' => [
                         'created' => $service->getDateCreate()->format('Y-m-d H:i:s'),
@@ -677,11 +676,7 @@ class ServiceController extends AbstractController
                             'date' => $history->getDateHistory()->format('Y-m-d H:i:s'),
                             'status_prev' => $history->getStatusPrev(),
                             'status_post' => $history->getStatusPost(),
-                            'comment' => $history->getComment(),
-                            'responsible' => [
-                                'id' => $history->getResponsible()?->getId(),
-                                'name' => $history->getResponsible()?->getName()
-                            ]
+                            'comment' => $history->getComment()
                         ];
                     }, $service->getHistories()->toArray())
                 ]

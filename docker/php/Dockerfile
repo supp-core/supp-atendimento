@@ -47,6 +47,9 @@ RUN composer dump-autoload --optimize
 COPY ./docker/php/docker-entrypoint.sh /usr/local/bin/docker-entrypoint.sh
 RUN chmod +x /usr/local/bin/docker-entrypoint.sh
 
+# Garante permissões corretas para o diretório var (cache, logs, doctrine proxies)
+RUN chmod -R 777 /var/www/html/var/
+
 ENTRYPOINT ["docker-entrypoint.sh"]
 
 CMD ["php-fpm"]

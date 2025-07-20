@@ -347,6 +347,7 @@ const dateMenu = ref(false);
 const showCompleted = ref(false);
 
 const statusOptions = [
+  { title: 'Todos os status', value: '' },
   { title: 'Novo', value: 'NEW' },
   { title: 'Aberto', value: 'OPEN' },
   { title: 'Em Andamento', value: 'IN_PROGRESS' },
@@ -356,6 +357,7 @@ const statusOptions = [
   { title: 'Concluído', value: 'CONCLUDED' }
 ];
 const priorityOptions = [
+  { title: 'Todas as prioridades', value: '' },
   { title: 'Baixa', value: 'BAIXA' },
   { title: 'Normal', value: 'NORMAL' },
   { title: 'Alta', value: 'ALTA' },
@@ -410,14 +412,14 @@ const handleDateRangeChange = () => {
 
 const translateStatus = (status) => {
   const translations = {
-    'new': 'Novo',
-    'NEW': 'Novo',
-    'OPEN': 'Aberto',
-    'IN_PROGRESS': 'Em Andamento',
-    'RESOLVED': 'Resolvido',
-    'SUSPENSO': 'Suspenso',
-    'RETORNO': 'Retorno',
-    'CONCLUDED': 'Concluído'
+    'new': 'NOVO',
+    'NEW': 'NOVO',
+    'OPEN': 'ABERTO',
+    'IN_PROGRESS': 'EM ANDAMENTO',
+    'RESOLVED': 'RESOLVIDO',
+    'SUSPENSO': 'SUSPENSO',
+    'RETORNO': 'RETORNO',
+    'CONCLUDED': 'CONCLUÍDO'
   };
   return translations[status] || status;
 };

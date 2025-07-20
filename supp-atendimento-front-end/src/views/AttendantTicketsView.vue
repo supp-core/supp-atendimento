@@ -7,7 +7,7 @@
         <div class="tickets-page">
           <div class="d-flex justify-space-between align-center mb-4">
             <h2 class="text-h5 font-weight-medium">Meus Atendimentos</h2>
-            <v-btn v-if="isAdmin" color="primary" @click="openCreateDialog" class="btn-centered">
+            <v-btn v-if="isAdmin" color="primary" @click="openCreateDialog" class="btn-centered btn-centered-text">
               Criar Chamado para Usuário
             </v-btn>
 
@@ -19,29 +19,29 @@
               <v-row>
                 <!-- Campo de pesquisa por solicitante -->
                 <v-col cols="12" sm="3">
-                  <v-text-field v-model="searchRequester" label="Pesquisar por Solicitante" outlined dense
+                  <v-text-field v-model="searchRequester" label="Pesquisar por solicitante" outlined dense
                     @input="handleSearchInput"></v-text-field>
                 </v-col>
 
                 <!-- Filtro de Status -->
                 <v-col cols="12" sm="3">
                   <v-select v-model="searchStatus" :items="statusOptions" label="Status" outlined dense
-                    @change="handleFilter"></v-select>
+                    @change="handleSearch"></v-select>
                 </v-col>
 
                 <!-- Filtro de Prioridade -->
                 <v-col cols="12" sm="3">
                   <v-select v-model="searchPriority" :items="priorityOptions" label="Prioridade" outlined dense
-                    @change="handleFilter"></v-select>
+                    @change="handleSearch"></v-select>
                 </v-col>
                 <v-col cols="12" sm="3">
                   <v-select v-model="searchCategory" :items="categoryOptions" item-title="title" item-value="value"
-                    label="Categoria" outlined dense @change="handleFilter"></v-select>
+                    label="Categoria" outlined dense @change="handleSearch"></v-select>
                 </v-col>
 
                 <v-col cols="12" sm="3">
                   <v-select v-model="searchServiceType" :items="serviceTypeOptions" item-title="title"
-                    item-value="value" label="Tipo de Serviço" outlined dense @change="handleFilter"></v-select>
+                    item-value="value" label="Tipo de Serviço" outlined dense @change="handleSearch"></v-select>
                 </v-col>
                 <!-- Nova linha para botões -->
                 <v-col cols="12" class="d-flex align-center mt-2">
@@ -90,7 +90,6 @@
                   <th class="text-left">Prioridade</th>
                   <th class="text-left">Status</th>
                   <th class="text-left">Setor</th>
-                  <th class="text-left">Responsável</th>
                   <th class="text-left">Data Criação</th>
                   <th class="text-left">Prazo</th>
                   <th class="text-left">Data Conclusão</th>
@@ -113,20 +112,19 @@
                     </v-chip>
                   </td>
                   <td>{{ ticket.sector?.name }}</td>
-                  <td>{{ ticket.responsible?.name || 'Não atribuído' }}</td>
                   <td>{{ formatDate(ticket.dates.created) }}</td>
                   <td :class="getDeadlineClass(ticket.dates.deadline)">{{ formatDate(ticket.dates.deadline) }}</td>
                   <td>{{ ticket.dates.concluded ? formatDate(ticket.dates.concluded) : '-' }}</td>
                   <td class="text-center">
-                    <v-btn :prepend-icon="mdiPencilBoxOutline" size="small" color="primary" class="mr-2"
+                    <v-btn size="small" color="primary" class="mr-2 btn-centered-text action-btn"
                       @click="openEvolveDialog(ticket)" :disabled="ticket.status === 'CONCLUDED'">
-                      Evoluir
+                      ✏️ Evoluir
                     </v-btn>
 
 
-                    <v-btn :prepend-icon="mdiPencilBoxOutline" size="small" color="primary" class="mr-2"
+                    <v-btn size="small" color="primary" class="mr-2 btn-centered-text action-btn"
                       @click="openTransferDialog(ticket)" :disabled="ticket.status === 'CONCLUDED'">
-                      Transferir
+                      ↗️ Transferir
                     </v-btn>
 
                   </td>
@@ -232,6 +230,7 @@
         <v-select v-model="evolveDialog.service_type_id" :items="serviceTypes" item-title="name"
           item-value="id" label="Tipo de Atendimento" :disabled="evolveDialog.loading"></v-select>
       </v-col>
+
 
       <!-- CORREÇÃO: Mova o campo Prazo para DENTRO do v-if, em sua própria coluna -->
       <v-col cols="12" md="6">
@@ -346,10 +345,10 @@
         <!-- Modal para Transferência do Ticket -->
         <v-dialog v-model="transferDialog.show" max-width="500px">
           <v-card>
-            <v-card-title>Transferir Atendimento</v-card-title>
+            <v-card-title>Transferir Atendimento para Outro Setor</v-card-title>
             <v-card-text>
-              <v-select v-model="transferDialog.newAttendantId" :items="availableAttendants" item-title="name"
-                item-value="id" label="Novo Responsável" required></v-select>
+              <v-select v-model="transferDialog.selectedSectorId" :items="sectors" item-title="name"
+                item-value="id" label="Setor de Destino" required></v-select>
               <v-textarea v-model="transferDialog.comment" label="Motivo da Transferência" required
                 rows="3"></v-textarea>
             </v-card-text>
@@ -434,6 +433,15 @@ const getServiceTypeName = (serviceTypeId) => {
 
 
 // Função principal de pesquisa
+// Adicione um debounce para o campo de pesquisa por solicitante
+let searchTimeout;
+const handleSearchInput = () => {
+  clearTimeout(searchTimeout);
+  searchTimeout = setTimeout(() => {
+    handleSearch();
+  }, 500); // Aguarda 500ms após o usuário parar de digitar
+};
+
 const handleSearch = async () => {
   try {
     // Reseta para a primeira página antes de pesquisar
@@ -458,7 +466,7 @@ const categories = ref([]);
 const serviceTypes = ref([]);
 
 const isAdmin = computed(() => {
-  return attendantData.value && attendantData.value.function === 'Admin'
+  return attendantData.value && attendantData.value.sector && attendantData.value.sector.name === 'Diretoria'
 })
 
 const resetFilters = () => {
@@ -521,17 +529,17 @@ const openCreateDialog = () => {
 const transferDialog = ref({
   show: false,
   ticket: null,
-  newAttendantId: null,
+  selectedSectorId: null,
   comment: '',
   loading: false
 })
 
 // Depois (em português com mapeamento)
 const availableStatuses = [
-  { text: 'Aberto', value: 'OPEN' },
-  { text: 'Em Andamento', value: 'IN_PROGRESS' },
-  { text: 'Resolvido', value: 'RESOLVED' },
-  { text: 'Concluído', value: 'CONCLUDED' }
+  { text: 'ABERTO', value: 'OPEN' },
+  { text: 'EM ANDAMENTO', value: 'IN_PROGRESS' },
+  { text: 'RESOLVIDO', value: 'RESOLVED' },
+  { text: 'CONCLUÍDO', value: 'CONCLUDED' }
 ]
 
 // Adicione estes computed properties para formatar as opções dos selects
@@ -568,8 +576,7 @@ const meta = ref({
 });
 
 
-// Lista de atendentes disponíveis (deve ser carregada do backend)
-const availableAttendants = ref([])
+const sectors = ref([])
 
 // Ordena tickets por prioridade
 const priorityOrder = {
@@ -618,14 +625,14 @@ const getStatusColor = (status) => {
 const translateStatus = (status) => {
   if (!status) return '-'
   const translations = {
-    'new': 'Novo',
-    'NEW': 'Novo',
-    'OPEN': 'Aberto',
-    'IN_PROGRESS': 'Em Andamento',
-    'RESOLVED': 'Resolvido',
-    'SUSPENSO': 'Suspenso',
-    'RETORNO': 'Retorno',
-    'CONCLUDED': 'Concluído'
+    'new': 'NOVO',
+    'NEW': 'NOVO',
+    'OPEN': 'ABERTO',
+    'IN_PROGRESS': 'EM ANDAMENTO',
+    'RESOLVED': 'RESOLVIDO',
+    'SUSPENSO': 'SUSPENSO',
+    'RETORNO': 'RETORNO',
+    'CONCLUDED': 'CONCLUÍDO'
   }
   return translations[status] || status
 }
@@ -775,7 +782,7 @@ const openTransferDialog = (ticket) => {
   transferDialog.value = {
     show: true,
     ticket,
-    newAttendantId: null,
+    selectedSectorId: null,
     comment: '',
     loading: false
   }
@@ -805,6 +812,7 @@ const evolveTicket = async () => {
     console.log(`[PASSO 1] Atualizando status... PUT /api/service/${ticketId}/status`, mainUpdateData);
     await api.put(`/service/${ticketId}/status`, mainUpdateData);
     console.log('[PASSO 1] Status atualizado com sucesso!');
+
 
     // 3. Verifica se o prazo (deadline) foi alterado
     if (evolveDialog.value.deadline) {
@@ -842,7 +850,7 @@ const transferTicket = async () => {
   transferDialog.value.loading = true
   try {
     await api.put(`/service/${transferDialog.value.ticket.id}/transfer`, {
-      attendant_id: transferDialog.value.newAttendantId,
+      sector_id: transferDialog.value.selectedSectorId,
       comment: transferDialog.value.comment
     })
     await loadTickets()
@@ -950,18 +958,22 @@ const loadTickets = async (page = 1) => {
 
 
 
-const loadAttendants = async () => {
+
+const loadSectors = async () => {
   try {
-    const response = await api.get('/attendants')
-    availableAttendants.value = response.data.data
+    const response = await api.get('/sectors')
+    if (response.data.success) {
+      sectors.value = response.data.data
+    }
   } catch (error) {
-    console.error('Erro ao carregar atendentes:', error)
+    console.error('Erro ao carregar setores:', error)
   }
 }
 
 
 // Replace the current statusOptions with:
 const statusOptions = [
+  { title: 'Todos os status', value: '' },
   { title: 'Novo', value: 'NEW' },
   { title: 'Aberto', value: 'OPEN' },
   { title: 'Em Andamento', value: 'IN_PROGRESS' },
@@ -973,6 +985,7 @@ const statusOptions = [
 
 // Replace the current priorityOptions with:
 const priorityOptions = [
+  { title: 'Todas as prioridades', value: '' },
   { title: 'Baixa', value: 'BAIXA' },
   { title: 'Normal', value: 'NORMAL' },
   { title: 'Alta', value: 'ALTA' },
@@ -1055,7 +1068,7 @@ watch(() => evolveDialog.value.deadline, (newDeadline) => {
 onMounted(() => {
   attendantData.value = attendantAuthService.getAttendantData()
   loadTickets();
-  loadAttendants();
+  loadSectors();
   loadCategoriesview();
   loadServiceTypes();
   loadCategoriesAndServiceTypes(); // Nova função combinada
@@ -1374,6 +1387,75 @@ onMounted(() => {
   text-align: center !important;
   width: 100% !important;
   display: flex !important;
+}
+
+/* Centralização específica para botões com texto - SOLUÇÃO DE ESPAÇAMENTO */
+.btn-centered-text {
+  text-align: center !important;
+  padding-left: 0 !important;
+  padding-right: 0 !important;
+}
+
+.btn-centered-text :deep(.v-btn__content) {
+  justify-content: center !important;
+  align-items: center !important;
+  text-align: center !important;
+  width: 100% !important;
+  display: flex !important;
+  padding: 0 !important;
+  margin: 0 !important;
+}
+
+/* Remove margens e paddings que desalinham o texto */
+.btn-centered-text :deep(.v-btn__prepend) {
+  margin-inline-start: 0 !important;
+  margin-inline-end: 6px !important;
+  margin-left: 0 !important;
+  margin-right: 6px !important;
+}
+
+/* Força o espaçamento igual dos dois lados */
+.btn-centered-text :deep(.v-btn__content) {
+  padding-left: 8px !important;
+  padding-right: 8px !important;
+}
+
+/* Ajuste específico para botões pequenos */
+.btn-centered-text.v-btn--size-small {
+  min-width: auto !important;
+  padding: 0 8px !important;
+}
+
+.btn-centered-text.v-btn--size-small :deep(.v-btn__content) {
+  padding: 0 4px !important;
+}
+
+/* Centralização forçada para qualquer botão com essa classe */
+.btn-centered-text :deep(*) {
+  text-align: center !important;
+}
+
+/* Estilo específico para botões de ação */
+.action-btn {
+  min-width: 85px !important;
+  text-align: center !important;
+  justify-content: center !important;
+}
+
+.action-btn :deep(.v-btn__content) {
+  justify-content: center !important;
+  text-align: center !important;
+  width: 100% !important;
+  padding: 0 !important;
+  margin: 0 !important;
+}
+
+/* Força centralização absoluta */
+.action-btn :deep(.v-btn__content) {
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  gap: 4px !important;
 }
 
 /* Estilo para prazos vencidos */

@@ -195,6 +195,11 @@ const loadSectors = async () => {
     const response = await api.get('/sectors');
     if (response.data.success) {
       sectors.value = response.data.data;
+      // Definir Diretoria como setor padrão
+      const diretoriaSetor = sectors.value.find(sector => sector.name === 'Diretoria');
+      if (diretoriaSetor) {
+        formData.value.sector_id = diretoriaSetor.id;
+      }
     }
   } catch (error) {
     console.error('Error al cargar sectores:', error);
@@ -252,11 +257,16 @@ const submitForm = async () => {
     const submitData = new FormData();
     const attendant = attendantAuthService.getAttendantData();
 
+    // Encontrar ID do setor Diretoria
+    const diretoriaSetor = sectors.value.find(sector => sector.name === 'Diretoria');
+    const defaultSectorId = diretoriaSetor ? diretoriaSetor.id : formData.value.sector_id;
+
     // Adicionar campos básicos
     submitData.append('title', nextTicketTitle.value);
     submitData.append('description', formData.value.description);
     submitData.append('priority', formData.value.priority);
-    submitData.append('sector_id', formData.value.sector_id);
+    // Todos os chamados vão para Diretoria por padrão
+    submitData.append('sector_id', defaultSectorId);
     submitData.append('category_id', formData.value.category_id);
     submitData.append('service_type_id', formData.value.service_type_id);
     submitData.append('requester_id', formData.value.requester_id);
