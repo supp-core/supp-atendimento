@@ -213,6 +213,8 @@ const getStatusColor = (status) => {
     'OPEN': 'blue',
     'IN_PROGRESS': 'orange',
     'RESOLVED': 'green',
+    'CANCELADO': 'red',
+    'RETORNO': 'cyan',
     'CONCLUDED': 'purple'
   }
   return colors[status] || 'grey'
@@ -224,6 +226,8 @@ const translateStatus = (status) => {
     'OPEN': 'Aberto',
     'IN_PROGRESS': 'Em Andamento',
     'RESOLVED': 'Resolvido',
+    'CANCELADO': 'Cancelado',
+    'RETORNO': 'Retorno',
     'CONCLUDED': 'Concluído'
   }
   return translations[status] || status

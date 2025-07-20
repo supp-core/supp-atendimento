@@ -21,7 +21,7 @@ use Twig\Environment;
 
 class ServiceManager
 {
-    private const VALID_STATUS = ['NEW', 'OPEN', 'IN_PROGRESS', 'RESOLVED', 'SUSPENSO', 'RETORNO', 'CONCLUDED', 'NOVO'];
+    private const VALID_STATUS = ['NEW', 'OPEN', 'IN_PROGRESS', 'RESOLVED', 'CANCELADO', 'RETORNO', 'CONCLUDED', 'NOVO'];
     private string $uploadDir;
     private DateTimeZone $timezone; // <-- ALTERAÇÃO AQUI: Propriedade para o fuso horário
 

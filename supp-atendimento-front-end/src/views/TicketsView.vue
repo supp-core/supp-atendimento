@@ -292,7 +292,7 @@ const getStatusColor = (status) => {
     'OPEN': 'blue',
     'IN_PROGRESS': 'orange',
     'RESOLVED': 'green',
-    'SUSPENSO': 'yellow',
+    'CANCELADO': 'red',
     'RETORNO': 'cyan',
     'CONCLUDED': 'purple'
   }
@@ -349,7 +349,7 @@ const statusOptions = [
   { title: 'Aberto', value: 'OPEN' },
   { title: 'Em Andamento', value: 'IN_PROGRESS' },
   { title: 'Resolvido', value: 'RESOLVED' },
-  { title: 'Suspenso', value: 'SUSPENSO' },
+  { title: 'Cancelado', value: 'CANCELADO' },
   { title: 'Retorno', value: 'RETORNO' },
   { title: 'Concluído', value: 'CONCLUDED' }
 ];
@@ -414,7 +414,7 @@ const translateStatus = (status) => {
     'OPEN': 'ABERTO',
     'IN_PROGRESS': 'EM ANDAMENTO',
     'RESOLVED': 'RESOLVIDO',
-    'SUSPENSO': 'SUSPENSO',
+    'CANCELADO': 'CANCELADO',
     'RETORNO': 'RETORNO',
     'CONCLUDED': 'CONCLUÍDO'
   };
