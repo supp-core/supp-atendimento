@@ -16,12 +16,6 @@
           <v-card class="mb-4">
             <v-card-text>
               <v-row>
-                <!-- Campo de pesquisa por título -->
-                <v-col cols="12" sm="3">
-                  <v-text-field v-model="searchName" label="Pesquisar por Nome" outlined dense
-                    @input="handleSearchInput"></v-text-field>
-                </v-col>
-
                 <!-- Campo de filtro por status -->
                 <v-col cols="12" sm="3">
                   <v-select v-model="searchStatus" :items="statusOptions" item-title="title" item-value="value"
@@ -97,7 +91,7 @@
             <v-table hover>
               <thead>
                 <tr>
-                  <th class="px-4 py-3">ID</th>
+                  
                   <th class="px-4 py-3">Título</th>
                   <th class="text-left">Prioridade</th> <!-- Nova coluna -->
                   <th class="px-4 py-3">Status</th>
@@ -111,9 +105,7 @@
               </thead>
               <tbody>
                 <tr v-for="ticket in tickets" :key="ticket.id">
-                  <td class="px-4 py-3">
-                    <span class="id-prefix">#</span>{{ ticket.id }}
-                  </td>
+                  
                   <td class="px-4 py-3">{{ ticket.title }}</td>
                   <td>
                     <v-chip :color="getPriorityColor(ticket.priority)"
@@ -679,7 +671,7 @@ onMounted(() => {
   font-size: 0.875rem;
   color: #666;
   font-weight: 500;
-  text-transform: none;
+  text-transform: uppercase;
   background-color: #f5f5f5;
 }
 

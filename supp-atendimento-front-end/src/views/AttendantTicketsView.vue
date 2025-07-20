@@ -17,12 +17,6 @@
           <v-card class="mb-4">
             <v-card-text>
               <v-row>
-                <!-- Campo de pesquisa por título -->
-                <v-col cols="12" sm="3">
-                  <v-text-field v-model="searchTitle" label="Pesquisar por Título" outlined dense
-                    @input="handleSearchInput"></v-text-field>
-                </v-col>
-
                 <!-- Campo de pesquisa por solicitante -->
                 <v-col cols="12" sm="3">
                   <v-text-field v-model="searchRequester" label="Pesquisar por Solicitante" outlined dense
@@ -95,6 +89,8 @@
                   <th class="text-left">Solicitante</th>
                   <th class="text-left">Prioridade</th>
                   <th class="text-left">Status</th>
+                  <th class="text-left">Setor</th>
+                  <th class="text-left">Responsável</th>
                   <th class="text-left">Data Criação</th>
                   <th class="text-left">Prazo</th>
                   <th class="text-left">Data Conclusão</th>
@@ -116,6 +112,8 @@
                       {{ translateStatus(ticket.status) }}
                     </v-chip>
                   </td>
+                  <td>{{ ticket.sector?.name }}</td>
+                  <td>{{ ticket.responsible?.name || 'Não atribuído' }}</td>
                   <td>{{ formatDate(ticket.dates.created) }}</td>
                   <td :class="getDeadlineClass(ticket.dates.deadline)">{{ formatDate(ticket.dates.deadline) }}</td>
                   <td>{{ ticket.dates.concluded ? formatDate(ticket.dates.concluded) : '-' }}</td>
