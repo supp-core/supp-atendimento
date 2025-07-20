@@ -11,6 +11,7 @@ use App\Entity\ServiceAttachment;
 use App\Entity\Sector;
 use App\Entity\User;
 use DateTime;
+use DateTimeZone; // <-- ALTERAÇÃO AQUI: Importa a classe DateTimeZone
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Component\Mailer\MailerInterface;
 use Symfony\Component\Mime\Email;  // Adicione este import
@@ -22,6 +23,7 @@ class ServiceManager
 {
     private const VALID_STATUS = ['NEW', 'OPEN', 'IN_PROGRESS', 'RESOLVED', 'SUSPENSO', 'RETORNO', 'CONCLUDED', 'NOVO'];
     private string $uploadDir;
+    private DateTimeZone $timezone; // <-- ALTERAÇÃO AQUI: Propriedade para o fuso horário
 
     public function __construct(
         private EntityManagerInterface $entityManager,
@@ -34,6 +36,9 @@ class ServiceManager
         if (!file_exists($this->uploadDir)) {
             mkdir($this->uploadDir, 0777, true);
         }
+
+        // <-- ALTERAÇÃO AQUI: Instancia o objeto de fuso horário no construtor
+        $this->timezone = new DateTimeZone('America/Sao_Paulo');
     }
 
     public function findById(int $id): ?Service
@@ -79,7 +84,7 @@ class ServiceManager
         $service->setSector($sector);
         $service->setRequester($requester);
         $service->setStatus('NOVO');
-        $service->setDateCreate(new DateTime());
+        $service->setDateCreate(new DateTime('now', $this->timezone));
 
         // Buscar categoria se fornecida
         if (!empty($data['category_id'])) {
@@ -114,7 +119,7 @@ class ServiceManager
             $service->setDeadline($deadline);
         } else {
             // Prazo padrão de 5 dias úteis para todos os tickets
-            $deadline = new DateTime();
+            $deadline = new DateTime('now', $this->timezone);
             $deadline->add(new \DateInterval('P5D')); // Adiciona 5 dias
             $service->setDeadline($deadline);
         }
@@ -166,7 +171,7 @@ class ServiceManager
         $history->setService($service);
         $history->setStatusPrev('Nenhum');
         $history->setStatusPost('NEW');
-        $history->setDateHistory(new DateTime());
+        $history->setDateHistory(new DateTime('now', $this->timezone));
 
         if ($createdByAdmin && $service->getCreatedByAdminAttendant()) {
             $history->setComment('Ticket criado pelo atendente: ' . $service->getCreatedByAdminAttendant()->getName());
@@ -241,11 +246,11 @@ class ServiceManager
         }
         // Atualizar o serviço
         $service->setStatus($newStatus);
-        $service->setDateUpdate(new DateTime());
+        $service->setDateUpdate(new DateTime('now', $this->timezone));
 
         // Se status for CONCLUDED, atualizar data de conclusão e enviar email
         if (strtoupper($newStatus) === 'CONCLUDED') {
-            $service->setDateConclusion(new DateTime());
+            $service->setDateConclusion(new DateTime('now', $this->timezone));
             $this->sendStatusUpdateEmail($service);
         }
 
@@ -274,7 +279,7 @@ class ServiceManager
         $history->setStatusPrev($prevStatus);
         $history->setStatusPost($newStatus);
         $history->setComment($comment);
-        $history->setDateHistory(new DateTime());
+        $history->setDateHistory(new DateTime('now', $this->timezone));
 
 
         if ($attendant) {
@@ -439,7 +444,7 @@ class ServiceManager
 
         // Atualizar o atendente responsável
         $service->setReponsible($newAttendant);
-        $service->setDateUpdate(new DateTime());
+        $service->setDateUpdate(new DateTime('now', $this->timezone));
 
         // Criar histórico da transferência
         $history = new ServiceHistory();
@@ -447,7 +452,7 @@ class ServiceManager
         $history->setStatusPrev($service->getStatus());
         $history->setStatusPost($service->getStatus());
         $history->setComment($comment);
-        $history->setDateHistory(new DateTime());
+        $history->setDateHistory(new DateTime('now', $this->timezone));
         $history->setResponsible($previousAttendant);
 
         $this->entityManager->persist($history);

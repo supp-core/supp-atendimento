@@ -12,7 +12,15 @@ RUN apt-get update && apt-get install -y \
     libzip-dev \
     libicu-dev \
     libpq-dev \
-    postgresql-client # <-- ESTE PACOTE RESOLVE O ERRO "pg_isready: not found"
+    postgresql-client \
+    tzdata
+
+# --- CONFIGURAÇÃO DE FUSO HORÁRIO ---
+# Define a variável de ambiente para o fuso horário
+ENV TZ=America/Sao_Paulo
+# Cria o link simbólico para configurar o fuso horário do sistema
+RUN ln -snf /usr/share/zoneinfo/$TZ /etc/localtime && echo $TZ > /etc/timezone
+# --- FIM DA CONFIGURAÇÃO DE FUSO HORÁRIO ---
 
 # Instala as extensões PHP
 RUN docker-php-ext-install pdo pdo_pgsql zip intl

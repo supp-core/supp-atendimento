@@ -214,46 +214,61 @@
               </div>
 
 
-              <!-- Dentro do v-card-text do evolveDialog -->
-              <div class="admin-fields mt-4 mb-4">
-                <div class="section-title d-flex align-center mb-2">
-                  <v-icon icon="mdi-tune" class="mr-2"></v-icon>
-                  <span>Campos administrativos</span>
-                </div>
+      
+<!-- Dentro do v-card-text do evolveDialog -->
+<div class="admin-fields mt-4 mb-4">
+  <div class="section-title d-flex align-center mb-2">
+    <v-icon icon="mdi-tune" class="mr-2"></v-icon>
+    <span>Campos administrativos</span>
+  </div>
 
-                <v-row>
-                  <!-- Para administradores: comboboxes -->
-                  <template v-if="isAdmin">
-                    <v-col cols="12" md="6">
-                      <v-select v-model="evolveDialog.category_id" :items="categories" item-title="name" item-value="id"
-                        label="Categoria" :disabled="evolveDialog.loading"></v-select>
-                    </v-col>
+  <v-row>
+    <!-- BLOCO PARA ADMINISTRADORES -->
+    <template v-if="isAdmin">
+      <v-col cols="12" md="6">
+        <v-select v-model="evolveDialog.category_id" :items="categories" item-title="name" item-value="id"
+          label="Categoria" :disabled="evolveDialog.loading"></v-select>
+      </v-col>
 
-                    <v-col cols="12" md="6">
-                      <v-select v-model="evolveDialog.service_type_id" :items="serviceTypes" item-title="name"
-                        item-value="id" label="Tipo de Atendimento" :disabled="evolveDialog.loading"></v-select>
-                    </v-col>
-                  </template>
+      <v-col cols="12" md="6">
+        <v-select v-model="evolveDialog.service_type_id" :items="serviceTypes" item-title="name"
+          item-value="id" label="Tipo de Atendimento" :disabled="evolveDialog.loading"></v-select>
+      </v-col>
 
-                  <!-- Para atendentes comuns: apenas labels -->
-                  <template v-else>
-                    <v-col cols="12" md="6">
-                      <div class="field-label">Categoria:</div>
-                      <div class="field-value">
-                        {{ getCategoryName(evolveDialog.ticket?.category?.id) || 'Não definida' }}
-                      </div>
-                    </v-col>
+      <!-- CORREÇÃO: Mova o campo Prazo para DENTRO do v-if, em sua própria coluna -->
+      <v-col cols="12" md="6">
+        <v-menu v-model="evolveDialog.deadlineMenu" :close-on-content-click="false" min-width="auto">
+          <template v-slot:activator="{ props }">
+            <v-text-field v-model="evolveDialog.formattedDeadline" label="Prazo" prepend-inner-icon="mdi-calendar"
+              readonly v-bind="props" variant="outlined" density="comfortable"
+              hint="Se não informado, será definido automaticamente 5 dias a partir da criação"
+              class="prazo-field-left-align"></v-text-field>
+          </template>
+          <v-date-picker v-model="evolveDialog.deadline" @update:model-value="evolveDialog.deadlineMenu = false" locale="pt-BR"></v-date-picker>
+        </v-menu>
+      </v-col>
+    </template>
 
-                    <v-col cols="12" md="6">
-                      <div class="field-label">Tipo de Atendimento:</div>
-                      <div class="field-value">
-                        {{ getServiceTypeName(evolveDialog.ticket?.serviceType?.id) || 'Não definido' }}
-                      </div>
-                    </v-col>
-                  </template>
-                </v-row>
-              </div>
+    <!-- BLOCO PARA ATENDENTES COMUNS (AGORA ESTÁ CORRETAMENTE LIGADO AO V-IF) -->
+    <template v-else>
+      <v-col cols="12" md="6">
+        <div class="field-label">Categoria:</div>
+        <div class="field-value">
+          {{ getCategoryName(evolveDialog.ticket?.category?.id) || 'Não definida' }}
+        </div>
+      </v-col>
 
+      <v-col cols="12" md="6">
+        <div class="field-label">Tipo de Atendimento:</div>
+        <div class="field-value">
+          {{ getServiceTypeName(evolveDialog.ticket?.serviceType?.id) || 'Não definido' }}
+        </div>
+      </v-col>
+    </template>
+  </v-row>
+</div>
+
+    
               <!-- Formulário de nova evolução -->
               <div class="new-update-form mb-6">
                 <v-select v-model="evolveDialog.newStatus" :items="availableStatuses" item-title="text"
@@ -262,15 +277,7 @@
                 <v-textarea v-model="evolveDialog.comment" label="Comentário" required rows="3"
                   class="mb-4"></v-textarea>
 
-                <!-- Campo de Prazo -->
-                <v-menu v-model="evolveDialog.deadlineMenu" :close-on-content-click="false" min-width="auto">
-                  <template v-slot:activator="{ props }">
-                    <v-text-field v-model="evolveDialog.formattedDeadline" label="Prazo" prepend-inner-icon="mdi-calendar"
-                      readonly v-bind="props" variant="outlined" density="comfortable"
-                      hint="Clique para alterar o prazo do atendimento"></v-text-field>
-                  </template>
-                  <v-date-picker v-model="evolveDialog.deadline" @update:model-value="evolveDialog.deadlineMenu = false" locale="pt-BR"></v-date-picker>
-                </v-menu>
+
               </div>
 
 
