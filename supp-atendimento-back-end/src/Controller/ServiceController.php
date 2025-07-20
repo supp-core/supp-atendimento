@@ -19,7 +19,7 @@ use App\Entity\Attendant;
 use App\Entity\ServiceAttachment; // Adicione esta linha para importar a classe
 use Symfony\Component\HttpFoundation\BinaryFileResponse; // Também adicione esta para o download
 use Symfony\Component\HttpFoundation\File\UploadedFile;
-use function Symfony\Component\DependencyInjection\Loader\Configurator\service;
+
 
 #[Route('/api/service')]
 class ServiceController extends AbstractController

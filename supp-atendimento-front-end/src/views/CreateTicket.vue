@@ -78,6 +78,7 @@
 import { ref, onMounted } from 'vue';
 import { useRouter } from 'vue-router';
 import { useSidebar } from '@/composables/useSidebar';
+import { authService } from '@/services/auth.service';
 import AppHeader from '@/components/common/AppHeader.vue';
 import AppSidebar from '@/components/common/AppSidebar.vue';
 import api from '@/services/api';
@@ -89,15 +90,14 @@ const form = ref(null);
 const loading = ref(false);
 const sectors = ref([]);
 const categories = ref([]);
+const serviceTypes = ref([]);
 const selectedFiles = ref([]);
 const nextTicketTitle = ref('Carregando...');
 
 const formData = ref({
   description: '',
-  sector_id: '',
   category_id: '',
   priority: 'NORMAL', // Valor padrão
-  // requester_id: 1 // Temporário - deve vir do usuário logado
 });
 
 const feedback = ref({
@@ -127,6 +127,16 @@ const loadCategories = async () => {
   }
 };
 
+const loadServiceTypes = async () => {
+  try {
+    const response = await api.get('/service-types');
+    serviceTypes.value = response.data.data;
+  } catch (error) {
+    console.error('Erro ao carregar tipos de serviço:', error);
+    showFeedback('Erro ao carregar tipos de serviço', 'error');
+  }
+};
+
 const handleFileSelect = (event) => {
   const files = event.target.files;
   for (let i = 0; i < files.length; i++) {
@@ -140,34 +150,50 @@ const removeFile = (index) => {
 
 const loadNextTicketNumber = async () => {
   try {
-    // Busca todos os tickets para pegar o último ID
-    const response = await api.get('/tickets');
-    let nextNumber = 1;
+    // Busca os tickets do usuário para obter IDs reais do banco
+    const response = await api.get('/service/my-tickets?per_page=1000');
     
-    if (response.data && response.data.data && response.data.data.length > 0) {
-      // Encontra o maior ID nos tickets existentes
-      const maxId = Math.max(...response.data.data.map(ticket => ticket.id));
-      nextNumber = maxId + 1;
+    // Se retornou dados, calcula próximo ID baseado no maior ID existente
+    if (response.data && response.data.data && Array.isArray(response.data.data) && response.data.data.length > 0) {
+      const allIds = response.data.data.map(ticket => parseInt(ticket.id)).filter(id => !isNaN(id));
+      if (allIds.length > 0) {
+        const maxId = Math.max(...allIds);
+        const nextNumber = maxId + 1;
+        nextTicketTitle.value = `Ticket ${nextNumber}`;
+        console.log(`Próximo ticket baseado no banco: ${nextNumber} (maior ID atual: ${maxId})`);
+        return;
+      }
     }
     
-    nextTicketTitle.value = `Ticket ${nextNumber}`;
+    // Se chegou aqui, não há tickets ainda (banco vazio)
+    nextTicketTitle.value = `Ticket 1`;
+    console.log('Banco vazio, iniciando com Ticket 1');
+    
   } catch (error) {
-    console.error('Erro ao carregar próximo número:', error);
-    // Se falhar, tenta uma abordagem alternativa
-    try {
-      // Tenta buscar o último ticket especificamente
-      const lastTicketResponse = await api.get('/tickets?limit=1&sort=id&order=desc');
-      let nextNumber = 1;
-      
-      if (lastTicketResponse.data && lastTicketResponse.data.data && lastTicketResponse.data.data.length > 0) {
-        nextNumber = lastTicketResponse.data.data[0].id + 1;
-      }
-      
-      nextTicketTitle.value = `Ticket ${nextNumber}`;
-    } catch (fallbackError) {
-      console.error('Erro no fallback:', fallbackError);
-      // Último recurso: assumir que é o primeiro ticket
+    // 404 significa que não há tickets ainda - é o estado inicial normal
+    if (error.response?.status === 404) {
       nextTicketTitle.value = `Ticket 1`;
+      console.log('404 = banco vazio, iniciando com Ticket 1');
+    } else {
+      console.error('Erro ao buscar tickets:', error);
+      // Para outros erros, tentar uma segunda abordagem
+      try {
+        // Tenta uma busca mais simples sem filtros
+        const fallbackResponse = await api.get('/service/my-tickets');
+        if (fallbackResponse.data?.data?.length > 0) {
+          const allIds = fallbackResponse.data.data.map(ticket => parseInt(ticket.id)).filter(id => !isNaN(id));
+          if (allIds.length > 0) {
+            const maxId = Math.max(...allIds);
+            nextTicketTitle.value = `Ticket ${maxId + 1}`;
+            return;
+          }
+        }
+        // Se não retornou dados, assume primeiro ticket
+        nextTicketTitle.value = `Ticket 1`;
+      } catch (fallbackError) {
+        console.error('Erro no fallback, assumindo Ticket 1:', fallbackError);
+        nextTicketTitle.value = `Ticket 1`;
+      }
     }
   }
 };
@@ -192,16 +218,69 @@ const handleSubmit = async () => {
   loading.value = true;
 
   try {
-    // Adiciona o setor Admin automaticamente e gera título
-    const dataToSubmit = {
-      title: nextTicketTitle.value,
-      ...formData.value,
-      sector_id: 15 // ID do setor Admin
-    };
+    // Pega o usuário logado
+    const userData = authService.getUser();
+    if (!userData || !userData.id) {
+      showFeedback('Erro: usuário não autenticado', 'error');
+      return;
+    }
 
-    console.log('DaTA SUBMIt ', dataToSubmit);
+    // Busca o setor "Suporte" pelo nome
+    let suporteSectorId = 15; // Fallback
+    if (sectors.value && sectors.value.length > 0) {
+      const suporteSector = sectors.value.find(sector => 
+        sector.name && sector.name.toLowerCase().includes('suporte')
+      );
+      if (suporteSector) {
+        suporteSectorId = suporteSector.id;
+        console.log(`Setor "Suporte" encontrado com ID: ${suporteSectorId}`);
+      } else {
+        // Se não encontrar "Suporte", usa o primeiro disponível
+        suporteSectorId = sectors.value[0].id;
+        console.log(`Setor "Suporte" não encontrado, usando o primeiro: ${suporteSectorId}`);
+      }
+    }
 
-    const response = await api.post('/service', dataToSubmit);
+    // Busca o service type "Triagem" pelo nome
+    let triagemServiceTypeId = 1; // Fallback
+    if (serviceTypes.value && serviceTypes.value.length > 0) {
+      const triagemType = serviceTypes.value.find(st => 
+        st.name && st.name.toLowerCase().includes('triagem')
+      );
+      if (triagemType) {
+        triagemServiceTypeId = triagemType.id;
+        console.log(`Service type "Triagem" encontrado com ID: ${triagemServiceTypeId}`);
+      } else {
+        // Se não encontrar "Triagem", usa o primeiro disponível
+        triagemServiceTypeId = serviceTypes.value[0].id;
+        console.log(`Service type "Triagem" não encontrado, usando o primeiro: ${triagemServiceTypeId}`);
+      }
+    }
+
+    // Cria FormData em vez de JSON object (igual ao AdminCreateTicket)
+    const submitData = new FormData();
+    
+    // Adiciona campos básicos
+    submitData.append('title', nextTicketTitle.value);
+    submitData.append('description', formData.value.description);
+    submitData.append('priority', formData.value.priority);
+    submitData.append('category_id', formData.value.category_id);
+    submitData.append('sector_id', suporteSectorId);
+    submitData.append('requester_id', userData.id);
+    submitData.append('service_type_id', triagemServiceTypeId);
+    submitData.append('created_by_admin', 'false');
+
+    // Log para debug
+    console.log('FormData sendo enviado:');
+    for (let pair of submitData.entries()) {
+      console.log(pair[0] + ': ' + pair[1]);
+    }
+
+    const response = await api.post('/service', submitData, {
+      headers: {
+        'Content-Type': 'multipart/form-data'
+      }
+    });
 
     if (response.data.success) {
       showFeedback('Atendimento criado com sucesso!');
@@ -219,6 +298,7 @@ const handleSubmit = async () => {
 onMounted(() => {
   loadSectors();
   loadCategories();
+  loadServiceTypes();
   loadNextTicketNumber();
 });
 
@@ -227,90 +307,6 @@ onMounted(() => {
 
 const handleFileUpload = (event) => {
   files.value = event.target.files;
-};
-
-// Substitua a função submitForm no CreateTicket.vue com esta versão corrigida:
-
-const submitForm = async () => {
-  try {
-    loading.value = true;
-
-    // Criação do FormData para envio
-    const submitData = new FormData();
-
-    // Adicionando campos básicos
-    submitData.append('title', nextTicketTitle.value);
-    submitData.append('description', formData.value.description);
-    submitData.append('priority', formData.value.priority);
-    submitData.append('category_id', formData.value.category_id);
-    submitData.append('sector_id', '15');
-
-    // Adicionando arquivos
-    if (selectedFiles.value.length > 0) {
-      selectedFiles.value.forEach((file, index) => {
-        submitData.append(`files[]`, file);
-      });
-    }
-
-    // Envio para a API
-    const response = await api.post('/service', submitData, {
-      headers: {
-        'Content-Type': 'multipart/form-data'
-      }
-    });
-
-    // Verifica se há uma resposta concatenada (que causa o erro)
-    let processedData;
-    try {
-      // Tenta analisar a resposta diretamente
-      processedData = response.data;
-      
-      // Verifica se a resposta é uma string que contém dois JSONs concatenados
-      if (typeof response.data === 'string' && response.data.includes('}{')) {
-        const jsonParts = response.data.split('}{');
-        processedData = JSON.parse('{' + jsonParts[1]);
-      }
-      
-      // Se a resposta já é um objeto com success
-      if (response.data && response.data.success) {
-        processedData = response.data;
-      }
-    } catch (jsonError) {
-      console.error('Erro ao analisar resposta JSON:', jsonError);
-      // Fallback para exibir mensagem de sucesso mesmo com erro de parsing
-      processedData = { success: true };
-    }
-
-    // Sempre mostra a mensagem de sucesso e redireciona
-    feedback.value = {
-      show: true,
-      message: 'Atendimento criado com sucesso!',
-      type: 'success'
-    };
-    
-    // Limpar o formulário
-    await loadNextTicketNumber(); // Recarrega o próximo número
-    formData.value.description = '';
-    formData.value.category_id = '';
-    formData.value.priority = 'NORMAL';
-    selectedFiles.value = [];
-    
-    // Use setTimeout com tempo suficiente para visualização
-    setTimeout(() => {
-      router.push('/tickets');
-    }, 2000);
-    
-  } catch (error) {
-    console.error('Erro ao criar ticket:', error);
-    // Mostrar mensagem de erro
-    feedback.value = {
-      show: true,
-      message: 'Erro ao criar o atendimento. Por favor, tente novamente.',
-      type: 'error'
-    };
-  } finally {
-    loading.value = false;
-  }
 };
 
 

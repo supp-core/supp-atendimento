@@ -126,7 +126,7 @@
                     </v-btn>
 
 
-                    <v-btn :prepend-icon="mdi - pencil - box - outline" size="small" color="primary" class="mr-2"
+                    <v-btn :prepend-icon="mdiPencilBoxOutline" size="small" color="primary" class="mr-2"
                       @click="openTransferDialog(ticket)" :disabled="ticket.status === 'CONCLUDED'">
                       Transferir
                     </v-btn>
@@ -701,7 +701,7 @@ const loadServiceHistory = async (serviceId) => {
       console.warn('Resposta de detalhes sem sucesso:', detailsResponse.data);
     }
   } catch (error) {
-    console.error('Erro ao carregar dados do ticket aqqqqqqqqq:', error);
+    console.error('Erro ao carregar dados do ticket:', error);
     // Não deixe o erro parar a execução - mantenha o que já temos
   }
 };
@@ -777,49 +777,61 @@ const openTransferDialog = (ticket) => {
 }
 
 const evolveTicket = async () => {
-  evolveDialog.value.loading = true
+  evolveDialog.value.loading = true;
   try {
-    const updateData = {
+    const ticketId = evolveDialog.value.ticket.id;
+
+    // 1. Prepara os dados para a atualização principal (status, comentário, etc.)
+    const mainUpdateData = {
       status: evolveDialog.value.newStatus,
-      comment: evolveDialog.value.comment
+      comment: evolveDialog.value.comment,
     };
 
-    // Adiciona campos administrativos apenas se o usuário for admin
     if (isAdmin.value) {
       if (evolveDialog.value.category_id) {
-        updateData.category_id = evolveDialog.value.category_id;
+        mainUpdateData.category_id = evolveDialog.value.category_id;
       }
-
       if (evolveDialog.value.service_type_id) {
-        updateData.service_type_id = evolveDialog.value.service_type_id;
+        mainUpdateData.service_type_id = evolveDialog.value.service_type_id;
       }
     }
 
-    // Atualizar status e campos do ticket
-    await api.put(`/service/${evolveDialog.value.ticket.id}/status`, {
-      updateData
-    })
+    // 2. Faz a chamada para atualizar o status e outros campos
+    console.log(`[PASSO 1] Atualizando status... PUT /api/service/${ticketId}/status`, mainUpdateData);
+    await api.put(`/service/${ticketId}/status`, mainUpdateData);
+    console.log('[PASSO 1] Status atualizado com sucesso!');
 
-    // Se o deadline foi alterado, atualizar separadamente
+    // 3. Verifica se o prazo (deadline) foi alterado
     if (evolveDialog.value.deadline) {
       let formattedDeadline = evolveDialog.value.deadline;
       if (evolveDialog.value.deadline instanceof Date) {
         formattedDeadline = evolveDialog.value.deadline.toISOString().split('T')[0];
       }
       
-      await api.put(`/service/${evolveDialog.value.ticket.id}/deadline`, {
-        deadline: formattedDeadline
-      });
+      const deadlineData = { deadline: formattedDeadline };
+
+      // 4. Faz a chamada SEPARADA para o endpoint específico de deadline
+      console.log(`[PASSO 2] Atualizando o prazo... PUT /api/service/${ticketId}/deadline`, deadlineData);
+      await api.put(`/service/${ticketId}/deadline`, deadlineData);
+      console.log('[PASSO 2] Prazo atualizado com sucesso!');
     }
 
-    await loadTickets()
-    evolveDialog.value.show = false
+    await loadTickets();
+    evolveDialog.value.show = false;
+
   } catch (error) {
-    console.error('Erro ao evoluir ticket:', error)
+    console.error('Erro ao evoluir ticket:', error);
+    let errorMessage = 'Falha ao atualizar o atendimento.';
+    if (error.response) {
+      // Tenta pegar a mensagem de erro específica da API
+      errorMessage = `Erro ${error.response.status}: ${error.response.data?.message || 'Ocorreu um erro no servidor.'}`;
+      console.error('Detalhes do erro da API:', error.response.data);
+    }
+    alert(errorMessage);
   } finally {
-    evolveDialog.value.loading = false
+    evolveDialog.value.loading = false;
   }
-}
+};
 
 const transferTicket = async () => {
   transferDialog.value.loading = true

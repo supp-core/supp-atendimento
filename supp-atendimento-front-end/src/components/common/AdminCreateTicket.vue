@@ -322,34 +322,57 @@ const submitForm = async () => {
 
 const loadNextTicketNumber = async () => {
   try {
-    // Busca todos os tickets para pegar o último ID
-    const response = await api.get('/tickets');
-    let nextNumber = 1;
+    // Atendentes têm acesso a todos os tickets via endpoint específico
+    const attendant = attendantAuthService.getAttendantData();
     
-    if (response.data && response.data.data && response.data.data.length > 0) {
-      // Encontra o maior ID nos tickets existentes
-      const maxId = Math.max(...response.data.data.map(ticket => ticket.id));
-      nextNumber = maxId + 1;
+    if (attendant && attendant.id) {
+      // Busca tickets do atendente para obter IDs reais do banco
+      const response = await api.get(`/service/attendant/${attendant.id}?per_page=1000`);
+      
+      // Se retornou dados, calcula próximo ID baseado no maior ID existente
+      if (response.data && response.data.data && Array.isArray(response.data.data) && response.data.data.length > 0) {
+        const allIds = response.data.data.map(ticket => parseInt(ticket.id)).filter(id => !isNaN(id));
+        if (allIds.length > 0) {
+          const maxId = Math.max(...allIds);
+          const nextNumber = maxId + 1;
+          nextTicketTitle.value = `Ticket ${nextNumber}`;
+          console.log(`Próximo ticket baseado no banco: ${nextNumber} (maior ID atual: ${maxId})`);
+          return;
+        }
+      }
     }
     
-    nextTicketTitle.value = `Ticket ${nextNumber}`;
-  } catch (error) {
-    console.error('Erro ao carregar próximo número:', error);
-    // Se falhar, tenta uma abordagem alternativa
+    // Se chegou aqui, tenta endpoint alternativo ou não há tickets ainda
     try {
-      // Tenta buscar o último ticket especificamente
-      const lastTicketResponse = await api.get('/tickets?limit=1&sort=id&order=desc');
-      let nextNumber = 1;
-      
-      if (lastTicketResponse.data && lastTicketResponse.data.data && lastTicketResponse.data.data.length > 0) {
-        nextNumber = lastTicketResponse.data.data[0].id + 1;
+      // Tenta buscar usando endpoint geral (pode ter diferentes permissões)
+      const fallbackResponse = await api.get('/service?per_page=1000');
+      if (fallbackResponse.data?.data?.length > 0) {
+        const allIds = fallbackResponse.data.data.map(ticket => parseInt(ticket.id)).filter(id => !isNaN(id));
+        if (allIds.length > 0) {
+          const maxId = Math.max(...allIds);
+          nextTicketTitle.value = `Ticket ${maxId + 1}`;
+          console.log(`Próximo ticket via endpoint geral: ${maxId + 1}`);
+          return;
+        }
       }
-      
-      nextTicketTitle.value = `Ticket ${nextNumber}`;
-    } catch (fallbackError) {
-      console.error('Erro no fallback:', fallbackError);
-      // Último recurso: assumir que é o primeiro ticket
+    } catch (serviceError) {
+      console.log('Endpoint /service não acessível, continuando...');
+    }
+    
+    // Se chegou aqui, não há tickets ainda (banco vazio)
+    nextTicketTitle.value = `Ticket 1`;
+    console.log('Banco vazio, iniciando com Ticket 1');
+    
+  } catch (error) {
+    // 404 significa que não há tickets ainda - é o estado inicial normal
+    if (error.response?.status === 404) {
       nextTicketTitle.value = `Ticket 1`;
+      console.log('404 = banco vazio, iniciando com Ticket 1');
+    } else {
+      console.error('Erro ao buscar tickets:', error);
+      // Último recurso
+      nextTicketTitle.value = `Ticket 1`;
+      console.log('Erro geral, assumindo Ticket 1');
     }
   }
 };
