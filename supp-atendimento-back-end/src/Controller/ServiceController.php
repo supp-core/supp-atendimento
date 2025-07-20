@@ -752,6 +752,61 @@ class ServiceController extends AbstractController
         }
     }
 
+    #[Route('/{id}/comment', methods: ['POST'])]
+    public function addUserComment(int $id, Request $request): JsonResponse
+    {
+        try {
+            $user = $this->getUser();
+            
+            if (!$user) {
+                return new JsonResponse([
+                    'success' => false,
+                    'message' => 'User not authenticated'
+                ], 401);
+            }
+
+            $service = $this->serviceManager->findById($id);
+            
+            if (!$service) {
+                return new JsonResponse([
+                    'success' => false,
+                    'message' => 'Service not found'
+                ], 404);
+            }
+            
+            // Verificar se o usuário é o solicitante do ticket
+            if ($service->getRequester()->getId() !== $user->getId()) {
+                return new JsonResponse([
+                    'success' => false,
+                    'message' => 'Access denied. You can only comment on your own tickets.'
+                ], 403);
+            }
+            
+            $data = json_decode($request->getContent(), true);
+            $comment = $data['comment'] ?? '';
+            
+            if (empty(trim($comment))) {
+                return new JsonResponse([
+                    'success' => false,
+                    'message' => 'Comment cannot be empty'
+                ], 400);
+            }
+            
+            // Usar o ServiceManager para adicionar o comentário como um histórico
+            $this->serviceManager->addUserComment($service, trim($comment), $user);
+            
+            return new JsonResponse([
+                'success' => true,
+                'message' => 'Comment added successfully'
+            ]);
+            
+        } catch (\Exception $e) {
+            return new JsonResponse([
+                'success' => false,
+                'message' => 'Error adding comment: ' . $e->getMessage()
+            ], 500);
+        }
+    }
 
     #[Route('/admin/create', methods: ['POST'])]
     public function createByAdmin(Request $request): JsonResponse

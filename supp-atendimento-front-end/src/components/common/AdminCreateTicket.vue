@@ -345,7 +345,7 @@ const loadNextTicketNumber = async () => {
         if (allIds.length > 0) {
           const maxId = Math.max(...allIds);
           const nextNumber = maxId + 1;
-          nextTicketTitle.value = `Ticket ${nextNumber}`;
+          nextTicketTitle.value = `${nextNumber}`;
           console.log(`Próximo ticket baseado no banco: ${nextNumber} (maior ID atual: ${maxId})`);
           return;
         }
@@ -360,7 +360,7 @@ const loadNextTicketNumber = async () => {
         const allIds = fallbackResponse.data.data.map(ticket => parseInt(ticket.id)).filter(id => !isNaN(id));
         if (allIds.length > 0) {
           const maxId = Math.max(...allIds);
-          nextTicketTitle.value = `Ticket ${maxId + 1}`;
+          nextTicketTitle.value = `${maxId + 1}`;
           console.log(`Próximo ticket via endpoint geral: ${maxId + 1}`);
           return;
         }
@@ -370,19 +370,19 @@ const loadNextTicketNumber = async () => {
     }
     
     // Se chegou aqui, não há tickets ainda (banco vazio)
-    nextTicketTitle.value = `Ticket 1`;
-    console.log('Banco vazio, iniciando com Ticket 1');
+    nextTicketTitle.value = `1`;
+    console.log('Banco vazio, iniciando com 1');
     
   } catch (error) {
     // 404 significa que não há tickets ainda - é o estado inicial normal
     if (error.response?.status === 404) {
-      nextTicketTitle.value = `Ticket 1`;
-      console.log('404 = banco vazio, iniciando com Ticket 1');
+      nextTicketTitle.value = `1`;
+      console.log('404 = banco vazio, iniciando com 1');
     } else {
       console.error('Erro ao buscar tickets:', error);
       // Último recurso
-      nextTicketTitle.value = `Ticket 1`;
-      console.log('Erro geral, assumindo Ticket 1');
+      nextTicketTitle.value = `1`;
+      console.log('Erro geral, assumindo 1');
     }
   }
 };

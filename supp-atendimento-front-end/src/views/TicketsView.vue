@@ -19,7 +19,7 @@
                 <!-- Campo de filtro por status -->
                 <v-col cols="12" sm="3">
                   <v-select v-model="searchStatus" :items="statusOptions" item-title="title" item-value="value"
-                    label="Status" outlined dense @change="handleFilter"></v-select>
+                    label="Status" outlined dense @update:model-value="handleFilter"></v-select>
                 </v-col>
 
                 <!-- Intervalo de datas compacto -->
@@ -51,7 +51,7 @@
                 <!-- Filtro de Prioridade -->
                 <v-col cols="12" sm="3">
                   <v-select v-model="searchPriority" :items="priorityOptions" item-title="title" item-value="value"
-                    label="Prioridade" outlined dense @change="handleFilter"></v-select>
+                    label="Prioridade" outlined dense @update:model-value="handleFilter"></v-select>
                 </v-col>
 
                 <!-- Nova linha para botões (mantida como estava) -->
@@ -92,7 +92,7 @@
               <thead>
                 <tr>
                   
-                  <th class="px-4 py-3">Título</th>
+                  <th class="px-4 py-3">Número</th>
                   <th class="text-left">Prioridade</th> <!-- Nova coluna -->
                   <th class="px-4 py-3">Status</th>
                   <th class="px-4 py-3">Setor</th>
@@ -125,12 +125,26 @@
                   <td class="px-4 py-3">{{ ticket.dates.concluded ? formatDate(ticket.dates.concluded) : '-' }}</td>
                   <td class="px-4 py-3">
                     <div class="d-flex gap-2">
-                      <v-btn variant="text" density="comfortable" size="small" @click="openTicketDetails(ticket)"
-                        class="action-button" title="Acompanhar Ticket">
-                        <span class="icon-text">📄</span>
-
+                      <!-- Visualizar histórico -->
+                      <v-btn 
+                        size="small" 
+                        color="info" 
+                        class="btn-centered-text action-btn"
+                        @click="openTicketDetails(ticket)"
+                      >
+                        📋 Ver Histórico
                       </v-btn>
-
+                      
+                      <!-- Registrar comentário - apenas para status não concluídos -->
+                      <v-btn 
+                        v-if="ticket.status !== 'CONCLUDED'"
+                        size="small" 
+                        color="success" 
+                        class="btn-centered-text action-btn"
+                        @click="openCommentDialog(ticket)"
+                      >
+                        💬 Registrar comentário
+                      </v-btn>
                     </div>
                   </td>
                 </tr>
@@ -170,8 +184,58 @@
     </div>
   </div>
 
-  <!-- Adicione o componente do modal ao final do template, antes do fechamento da última div -->
+  <!-- Modais -->
   <TicketDetailsModal v-model="showDetailsModal" :ticket="selectedTicket" @ticket-reopened="handleTicketReopened" />
+  
+  <!-- Modal de Comentário -->
+  <v-dialog v-model="commentDialog.show" max-width="600px">
+    <v-card>
+      <v-card-title class="text-h5">
+        Registrar Comentário
+        <v-chip v-if="commentDialog.ticket" color="primary" variant="outlined" size="small" class="ml-2">
+          #{{ commentDialog.ticket.id }}
+        </v-chip>
+      </v-card-title>
+      
+      <v-card-text>
+        <div v-if="commentDialog.ticket" class="mb-4 pa-3 bg-grey-lighten-4 rounded">
+          <strong>{{ commentDialog.ticket.title }}</strong>
+          <br>
+          <small class="text-grey-darken-1">Status: {{ translateStatus(commentDialog.ticket.status) }}</small>
+        </div>
+        
+        <v-textarea
+          v-model="commentDialog.comment"
+          label="Digite seu comentário"
+          placeholder="Descreva suas observações, dúvidas ou informações adicionais sobre este ticket..."
+          rows="4"
+          variant="outlined"
+          :rules="[v => !!v || 'Comentário é obrigatório']"
+        ></v-textarea>
+      </v-card-text>
+
+      <v-card-actions>
+        <v-spacer></v-spacer>
+        <v-btn 
+          color="grey-darken-1" 
+          variant="text" 
+          @click="closeCommentDialog"
+          :disabled="commentDialog.loading"
+        >
+          Cancelar
+        </v-btn>
+        <v-btn 
+          color="primary" 
+          variant="flat"
+          @click="submitComment"
+          :loading="commentDialog.loading"
+          :disabled="!commentDialog.comment?.trim()"
+        >
+          Enviar Comentário
+        </v-btn>
+      </v-card-actions>
+    </v-card>
+  </v-dialog>
 </template>
 
 <script setup>
@@ -241,7 +305,7 @@ const formattedEndDate = computed(() => {
   }
 });
 
-// Adicione também um tratamento mais robusto na função watch
+// Watch para mudanças nas datas
 watch([startDate, endDate], () => {
   if (startDate.value || endDate.value) {
     console.log('Datas selecionadas:', { startDate: startDate.value, endDate: endDate.value });
@@ -249,15 +313,17 @@ watch([startDate, endDate], () => {
   }
 });
 
-watch([startDate, endDate], () => {
-  if (startDate.value || endDate.value) {
-    handleFilter();
-  }
-});
-
 
 const selectedTicket = ref(null)
 const showDetailsModal = ref(false)
+
+// Estado para o modal de comentário
+const commentDialog = ref({
+  show: false,
+  ticket: null,
+  comment: '',
+  loading: false
+})
 
 // Função para carregar os dados do usuário
 const carregarDadosUsuario = () => {
@@ -361,18 +427,7 @@ const priorityOptions = [
   { title: 'Urgente', value: 'URGENTE' }
 ];
 
-const applyFilters = () => {
-  filteredTickets.value = tickets.value.filter(ticket => {
-    const matchesName = ticket.title.toLowerCase().includes(searchName.value.toLowerCase());
-    const matchesStatus = searchStatus.value ? ticket.status === searchStatus.value : true;
-    const matchesPriority = searchPriority.value ? ticket.priority === searchPriority.value : true;
-    const matchesDateRange = searchDateRange.value.length === 2 ?
-      new Date(ticket.dates.created) >= new Date(searchDateRange.value[0]) &&
-      new Date(ticket.dates.created) <= new Date(searchDateRange.value[1]) : true;
-
-    return matchesName && matchesStatus && matchesPriority && matchesDateRange;
-  });
-};
+// Função removida - filtros agora são aplicados no backend via loadTickets()
 
 
 
@@ -475,6 +530,7 @@ const loadTickets = async (page = 1) => {
       params.append('status', searchStatus.value);
     }
     if (searchPriority.value) {
+      console.log('Filtro de prioridade aplicado:', searchPriority.value);
       params.append('priority', searchPriority.value);
     }
 
@@ -502,12 +558,16 @@ const loadTickets = async (page = 1) => {
       params.append('exclude_status', 'CONCLUDED');
     }
 
-    const response = await api.get(`/service/my-tickets?${params.toString()}`);
-
+    const url = `/service/my-tickets?${params.toString()}`;
+    console.log('URL da requisição:', url);
+    console.log('Parâmetros enviados:', Object.fromEntries(params));
+    
+    const response = await api.get(url);
 
     if (response.data.success) {
       tickets.value = response.data.data;
       meta.value = response.data.meta;
+      console.log('Tickets carregados:', tickets.value.length);
     } else {
       tickets.value = [];
     }
@@ -524,21 +584,38 @@ const loadTickets = async (page = 1) => {
   }
 };
 
-// Função para acionar a pesquisa
+// Função para acionar a pesquisa com debounce
+let filterTimeout;
 const handleFilter = async () => {
   try {
-    // Reseta para a primeira página
-    currentPage.value = 1;
+    // Limpa timeout anterior
+    clearTimeout(filterTimeout);
+    
+    // Aguarda um pouco para o valor ser definido
+    filterTimeout = setTimeout(async () => {
+      console.log('Executando filtro com valores:', {
+        status: searchStatus.value,
+        priority: searchPriority.value,
+        startDate: startDate.value,
+        endDate: endDate.value
+      });
+      
+      // Reseta para a primeira página
+      currentPage.value = 1;
 
-    // Inicia o carregamento
-    loading.value = true;
+      // Inicia o carregamento
+      loading.value = true;
 
-    // Carrega os tickets com os filtros
-    await loadTickets(1);
+      try {
+        // Carrega os tickets com os filtros
+        await loadTickets(1);
+      } finally {
+        loading.value = false;
+      }
+    }, 300); // 300ms de delay
 
   } catch (error) {
     console.error('Erro ao filtrar tickets:', error);
-  } finally {
     loading.value = false;
   }
 };
@@ -559,6 +636,52 @@ const editTicket = (id) => router.push(`/tickets/${id}/edit`);
 const handleTicketReopened = () => {
   // Recarrega a lista de tickets para refletir a mudança
   loadTickets(currentPage.value);
+};
+
+// Funções para o modal de comentário
+const openCommentDialog = (ticket) => {
+  commentDialog.value = {
+    show: true,
+    ticket: ticket,
+    comment: '',
+    loading: false
+  };
+};
+
+const closeCommentDialog = () => {
+  commentDialog.value = {
+    show: false,
+    ticket: null,
+    comment: '',
+    loading: false
+  };
+};
+
+const submitComment = async () => {
+  try {
+    commentDialog.value.loading = true;
+    
+    // Chamada para a API para registrar o comentário
+    const response = await api.post(`/service/${commentDialog.value.ticket.id}/comment`, {
+      comment: commentDialog.value.comment.trim()
+    });
+    
+    if (response.data.success) {
+      // Feedback de sucesso
+      alert('Comentário registrado com sucesso!');
+      
+      // Fecha o modal
+      closeCommentDialog();
+      
+      // Recarrega a lista para refletir mudanças
+      loadTickets(currentPage.value);
+    }
+  } catch (error) {
+    console.error('Erro ao registrar comentário:', error);
+    alert('Erro ao registrar comentário. Tente novamente.');
+  } finally {
+    commentDialog.value.loading = false;
+  }
 };
 
 onMounted(() => {

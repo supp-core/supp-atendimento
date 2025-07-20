@@ -146,13 +146,23 @@
       <!-- Ações -->
       <v-card-actions class="pa-4">
         <v-btn 
-          v-if="ticket?.status === 'CONCLUDED'"
+          v-if="ticket?.status === 'RESOLVED'"
           color="primary" 
           variant="outlined" 
           @click="reopenTicket"
           :loading="reopening"
+          class="me-2"
         >
           🔄 Reabrir Ticket
+        </v-btn>
+        <v-btn 
+          v-if="ticket?.status === 'RESOLVED'"
+          color="success" 
+          variant="outlined" 
+          @click="concludeTicket"
+          :loading="concluding"
+        >
+          ✅ Marcar como Concluído
         </v-btn>
         <v-spacer></v-spacer>
         <v-btn color="grey-darken-1" variant="text" @click="closeDialog">
@@ -181,6 +191,7 @@ const emit = defineEmits(['update:modelValue', 'ticket-reopened'])
 const dialogVisible = ref(props.modelValue)
 const loading = ref(false) // Adicionado estado de loading
 const reopening = ref(false) // Estado para o botão de reabrir
+const concluding = ref(false) // Estado para o botão de marcar como concluído
 
 // Feedback para notificações
 const feedback = ref({
@@ -278,6 +289,43 @@ const reopenTicket = async () => {
     };
   } finally {
     reopening.value = false;
+  }
+}
+
+const concludeTicket = async () => {
+  try {
+    concluding.value = true;
+    
+    // Faz a chamada para marcar o ticket como concluído
+    const response = await api.put(`/service/${props.ticket.id}/status`, {
+      status: 'CONCLUDED',
+      comment: 'Ticket marcado como concluído manualmente'
+    });
+    
+    if (response.data.success) {
+      feedback.value = {
+        show: true,
+        message: 'Ticket marcado como concluído com sucesso!',
+        type: 'success'
+      };
+      
+      // Emite evento para atualizar a lista
+      emit('ticket-reopened');
+      
+      // Fecha o modal após 1 segundo
+      setTimeout(() => {
+        closeDialog();
+      }, 1000);
+    }
+  } catch (error) {
+    console.error('Erro ao concluir ticket:', error);
+    feedback.value = {
+      show: true,
+      message: 'Erro ao marcar o ticket como concluído',
+      type: 'error'
+    };
+  } finally {
+    concluding.value = false;
   }
 }
 

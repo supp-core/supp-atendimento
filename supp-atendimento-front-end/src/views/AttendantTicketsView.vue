@@ -111,7 +111,7 @@
             <v-table hover>
               <thead>
                 <tr>
-                  <th class="text-left">Título</th>
+                  <th class="text-left">Número</th>
                   <th class="text-left">Solicitante</th>
                   <th class="text-left">Prioridade</th>
                   <th class="text-left">Status</th>
@@ -143,17 +143,17 @@
                   <td>{{ ticket.dates.concluded ? formatDate(ticket.dates.concluded) : '-' }}</td>
                   <td class="text-center">
                     <v-btn size="small" color="primary" class="mr-2 btn-centered-text action-btn"
-                      @click="openEvolveDialog(ticket)" :disabled="ticket.status === 'CONCLUDED'">
+                      @click="openEvolveDialog(ticket)" :disabled="ticket.status === 'CONCLUDED' || ticket.status === 'RESOLVED'">
                       ✏️ Evoluir
                     </v-btn>
 
 
                     <v-btn size="small" color="primary" class="mr-2 btn-centered-text action-btn"
-                      @click="openTransferDialog(ticket)" :disabled="ticket.status === 'CONCLUDED'">
+                      @click="openTransferDialog(ticket)" :disabled="ticket.status === 'CONCLUDED' || ticket.status === 'RESOLVED'">
                       ↗️ Transferir
                     </v-btn>
 
-                    <v-btn v-if="ticket.status === 'CONCLUDED'" size="small" color="info" class="btn-centered-text action-btn"
+                    <v-btn size="small" color="info" class="btn-centered-text action-btn"
                       @click="openHistoryDialog(ticket)">
                       📋 Ver Histórico
                     </v-btn>
