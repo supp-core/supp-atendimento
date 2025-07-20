@@ -43,6 +43,32 @@
                   <v-select v-model="searchServiceType" :items="serviceTypeOptions" item-title="title"
                     item-value="value" label="Tipo de Serviço" outlined dense @change="handleSearch"></v-select>
                 </v-col>
+
+                <!-- Filtro de Período -->
+                <v-col cols="12" sm="3">
+                  <div class="date-compact">
+                    <div class="date-label mb-1">Período</div>
+                    <div class="date-inputs">
+                      <v-menu v-model="startDateMenu" :close-on-content-click="false" min-width="auto">
+                        <template v-slot:activator="{ props }">
+                          <v-text-field v-model="formattedStartDate" dense hide-details placeholder="De"
+                            prepend-inner-icon="mdi-calendar" readonly v-bind="props" variant="outlined"
+                            class="date-input"></v-text-field>
+                        </template>
+                        <v-date-picker v-model="startDate" @update:model-value="startDateMenu = false; handleSearch()" locale="pt-BR"></v-date-picker>
+                      </v-menu>
+
+                      <v-menu v-model="endDateMenu" :close-on-content-click="false" min-width="auto">
+                        <template v-slot:activator="{ props }">
+                          <v-text-field v-model="formattedEndDate" dense hide-details placeholder="Até"
+                            prepend-inner-icon="mdi-calendar" readonly v-bind="props" variant="outlined"
+                            class="date-input"></v-text-field>
+                        </template>
+                        <v-date-picker v-model="endDate" @update:model-value="endDateMenu = false; handleSearch()" locale="pt-BR"></v-date-picker>
+                      </v-menu>
+                    </div>
+                  </div>
+                </v-col>
                 <!-- Nova linha para botões -->
                 <v-col cols="12" class="d-flex align-center mt-2">
                   <v-btn color="primary" @click="handleSearch" :loading="loading" class="me-2 btn-centered">
@@ -491,6 +517,8 @@ const resetFilters = () => {
   searchPriority.value = '';
   searchCategory.value = '';
   searchServiceType.value = '';
+  startDate.value = null;
+  endDate.value = null;
 
   // Recarrega os dados sem filtros
   currentPage.value = 1;
@@ -511,6 +539,14 @@ const searchPriority = ref('');
 const searchCategory = ref('');
 const searchServiceType = ref('');
 const showCompleted = ref(true);
+
+// Estado para os menus de data
+const startDateMenu = ref(false);
+const endDateMenu = ref(false);
+
+// Valores das datas
+const startDate = ref(null);
+const endDate = ref(null);
 
 const handleTicketCreated = (newTicket) => {
   // Adicionar o novo ticket à lista ou recarregar os dados
@@ -583,6 +619,29 @@ const serviceTypeOptions = computed(() => {
       value: type.id
     }))
   ];
+});
+
+// Formatação para exibição das datas
+const formattedStartDate = computed(() => {
+  if (!startDate.value) return '';
+  if (startDate.value instanceof Date) {
+    return format(startDate.value, 'dd/MM/yyyy', { locale: ptBR });
+  }
+  if (typeof startDate.value === 'string') {
+    return format(new Date(startDate.value), 'dd/MM/yyyy', { locale: ptBR });
+  }
+  return '';
+});
+
+const formattedEndDate = computed(() => {
+  if (!endDate.value) return '';
+  if (endDate.value instanceof Date) {
+    return format(endDate.value, 'dd/MM/yyyy', { locale: ptBR });
+  }
+  if (typeof endDate.value === 'string') {
+    return format(new Date(endDate.value), 'dd/MM/yyyy', { locale: ptBR });
+  }
+  return '';
 });
 
 const currentPage = ref(1);
@@ -948,6 +1007,23 @@ const loadTickets = async (page = 1) => {
     }
     if (searchServiceType.value) {
       params.append('service_type_id', searchServiceType.value);
+    }
+    
+    // Adicionar filtros de data
+    if (startDate.value) {
+      let formattedStartDate = startDate.value;
+      if (startDate.value instanceof Date) {
+        formattedStartDate = startDate.value.toISOString().split('T')[0];
+      }
+      params.append('start_date', formattedStartDate);
+    }
+    
+    if (endDate.value) {
+      let formattedEndDate = endDate.value;
+      if (endDate.value instanceof Date) {
+        formattedEndDate = endDate.value.toISOString().split('T')[0];
+      }
+      params.append('end_date', formattedEndDate);
     }
 
     // Adicionar filtro de tickets concluídos
@@ -1505,5 +1581,52 @@ onMounted(() => {
 .deadline-overdue {
   color: #d32f2f !important;
   font-weight: 600 !important;
+}
+
+/* Estilos para filtros de data */
+.date-compact {
+  display: flex;
+  flex-direction: column;
+  height: 56px; /* Altura fixa para corresponder aos outros campos */
+  padding-top: 0; /* Remove o padding superior */
+}
+
+.date-label {
+  font-size: 12px; /* Tamanho de fonte reduzido para corresponder aos labels do Vuetify */
+  color: rgba(0, 0, 0, 0.6);
+  padding-top: 0;
+  margin-bottom: 3px; /* Espaçamento menor entre o label e os campos */
+  line-height: 12px; /* Altura da linha reduzida */
+  transform: translateY(-4px); /* Move o label 4px para cima */
+}
+
+.date-inputs {
+  display: flex;
+  gap: 8px;
+  height: 40px; /* Altura fixa para os inputs */
+}
+
+.date-input {
+  flex: 1;
+  margin-top: 0 !important; /* Remove margens automáticas */
+  margin-bottom: 0 !important;
+}
+
+/* Remover padding interno dos campos para alinhar corretamente */
+:deep(.date-input .v-field__field) {
+  padding-top: 0 !important;
+  padding-bottom: 0 !important;
+}
+
+/* Garantir que os campos de data tenham o mesmo estilo que os outros */
+:deep(.date-input .v-field__outline) {
+  --v-field-border-width: 1px !important;
+  border-width: var(--v-field-border-width) !important;
+}
+
+/* Aplicar estilo consistente aos inputs */
+:deep(.v-col) {
+  padding-top: 6px;
+  padding-bottom: 6px;
 }
 </style>
