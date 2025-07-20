@@ -66,8 +66,28 @@
                     Pesquisar
                   </v-btn>
 
-                  <v-btn variant="outlined" @click="resetFilters" :disabled="loading" class="btn-centered">
+                  <v-btn variant="outlined" @click="resetFilters" :disabled="loading" class="me-2 btn-centered">
                     Limpar
+                  </v-btn>
+
+                  <v-btn 
+                    color="black" 
+                    :variant="showCompleted ? 'flat' : 'outlined'"
+                    @click="toggleCompleted" 
+                    :disabled="loading" 
+                    class="btn-centered"
+                    :title="showCompleted ? 'Ocultar Concluídos' : 'Exibir Concluídos'"
+                  >
+                    <svg v-if="showCompleted" width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" class="me-2">
+                      <path d="M12 4.5C5.5 4.5 2 12 2 12s3.5 7.5 10 7.5S22 12 22 12s-3.5-7.5-10-7.5z" fill="currentColor"/>
+                      <circle cx="12" cy="12" r="3" fill="white"/>
+                      <line x1="2" y1="2" x2="22" y2="22" stroke="currentColor" stroke-width="2"/>
+                    </svg>
+                    <svg v-else width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" class="me-2">
+                      <path d="M12 4.5C5.5 4.5 2 12 2 12s3.5 7.5 10 7.5S22 12 22 12s-3.5-7.5-10-7.5z" fill="currentColor"/>
+                      <circle cx="12" cy="12" r="3" fill="white"/>
+                    </svg>
+                    {{ showCompleted ? 'Ocultar Concluídos' : 'Exibir Concluídos' }}
                   </v-btn>
                 </v-col>
               </v-row>
@@ -332,6 +352,7 @@ const dateRange = ref({ startDate: null, endDate: null });
 
 const searchPriority = ref('');
 const dateMenu = ref(false);
+const showCompleted = ref(false);
 
 const statusOptions = [
   { title: 'Novo', value: 'NEW' },
@@ -373,6 +394,13 @@ const resetFilters = () => {
   endDate.value = null;
 
   // Recarrega os dados
+  currentPage.value = 1;
+  loadTickets(1);
+};
+
+const toggleCompleted = () => {
+  showCompleted.value = !showCompleted.value;
+  // Recarrega os dados com o novo filtro
   currentPage.value = 1;
   loadTickets(1);
 };
@@ -478,6 +506,11 @@ const loadTickets = async (page = 1) => {
       params.append('end_date', formattedEndDate);
     }
 
+    // Adicionar filtro de tickets concluídos
+    if (!showCompleted.value) {
+      params.append('exclude_status', 'CONCLUDED');
+    }
+
     const response = await api.get(`/service/my-tickets?${params.toString()}`);
 
 
@@ -573,7 +606,7 @@ onMounted(() => {
 
 /* Adicione estes novos estilos */
 .v-btn {
-  text-transform: none !important;
+  text-transform: uppercase !important;
   font-weight: 500 !important;
 }
 
@@ -723,7 +756,7 @@ onMounted(() => {
   border-radius: 20px !important;
   font-weight: 500 !important;
   letter-spacing: 0.0892857143em !important;
-  text-transform: none !important;
+  text-transform: uppercase !important;
   transition: background-color 0.2s ease-in-out !important;
   cursor: pointer !important;
   /* Adiciona a maozinha em todos os botões */

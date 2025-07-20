@@ -208,6 +208,7 @@ const cancelChange = () => {
   text-transform: none !important;
   font-weight: 500 !important;
   letter-spacing: 0.5px !important;
+  text-transform: uppercase !important; 
 }
 
 .btn-centered {

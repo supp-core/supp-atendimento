@@ -2,8 +2,9 @@
     <header class="header">
       <div class="logo">
         <ProcuradoriaLogoCabecalho :width="140" :height="40" color="#1a237e" />
-        <span class="portal-text">Portal do Atendente</span>
-      </div>
+        </div>
+        <span class="portal-text">PORTAL DO ATENDENTE</span>
+      
       <div class="user-actions">
         <div class="user-info">
           <div class="username">{{ nomeAtendente }}</div>
