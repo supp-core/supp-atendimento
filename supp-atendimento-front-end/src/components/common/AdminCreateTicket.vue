@@ -9,19 +9,21 @@
         <v-form ref="form" @submit.prevent="submitForm">
           <!-- Campos do formulário -->
           <v-row>
+            <!-- Número do Ticket -->
+            <v-col cols="12">
+              <v-card variant="outlined" class="auto-title-card">
+                <v-card-text>
+                  <div class="text-h6 text-primary">{{ nextTicketTitle }}</div>
+                </v-card-text>
+              </v-card>
+            </v-col>
+
             <!-- Seleção de Usuário -->
             <v-col cols="12">
               <v-autocomplete v-model="formData.requester_id" :items="users" item-title="name" item-value="id"
                 item-subtitle="email" label="Selecione o Usuário*" :loading="loadingUsers"
                 :rules="[v => !!v || 'Usuário é obrigatório']" required variant="outlined"
                 density="comfortable"></v-autocomplete>
-            </v-col>
-
-            <!-- Título do Chamado -->
-            <v-col cols="12">
-              <v-text-field v-model="formData.title" label="Título do Chamado*"
-                :rules="[v => !!v || 'Título é obrigatório']" required variant="outlined"
-                density="comfortable"></v-text-field>
             </v-col>
 
             <!-- Prioridade e Setor na mesma linha -->
@@ -124,8 +126,8 @@ const priorityOptions = [
 ];
 
 // Datos del formulario
+const nextTicketTitle = ref('Carregando...');
 const formData = ref({
-  title: '',
   description: '',
   priority: 'NORMAL',
   sector_id: null,
@@ -231,6 +233,8 @@ const closeDialog = () => {
   if (form.value) {
     form.value.reset();
   }
+  // Recarregar próximo número do ticket
+  loadNextTicketNumber();
 };
 
 // Enviar el formulario
@@ -249,7 +253,7 @@ const submitForm = async () => {
     const attendant = attendantAuthService.getAttendantData();
 
     // Adicionar campos básicos
-    submitData.append('title', formData.value.title);
+    submitData.append('title', nextTicketTitle.value);
     submitData.append('description', formData.value.description);
     submitData.append('priority', formData.value.priority);
     submitData.append('sector_id', formData.value.sector_id);
@@ -316,12 +320,47 @@ const submitForm = async () => {
   }
 };
 
+const loadNextTicketNumber = async () => {
+  try {
+    // Busca todos os tickets para pegar o último ID
+    const response = await api.get('/tickets');
+    let nextNumber = 1;
+    
+    if (response.data && response.data.data && response.data.data.length > 0) {
+      // Encontra o maior ID nos tickets existentes
+      const maxId = Math.max(...response.data.data.map(ticket => ticket.id));
+      nextNumber = maxId + 1;
+    }
+    
+    nextTicketTitle.value = `Ticket ${nextNumber}`;
+  } catch (error) {
+    console.error('Erro ao carregar próximo número:', error);
+    // Se falhar, tenta uma abordagem alternativa
+    try {
+      // Tenta buscar o último ticket especificamente
+      const lastTicketResponse = await api.get('/tickets?limit=1&sort=id&order=desc');
+      let nextNumber = 1;
+      
+      if (lastTicketResponse.data && lastTicketResponse.data.data && lastTicketResponse.data.data.length > 0) {
+        nextNumber = lastTicketResponse.data.data[0].id + 1;
+      }
+      
+      nextTicketTitle.value = `Ticket ${nextNumber}`;
+    } catch (fallbackError) {
+      console.error('Erro no fallback:', fallbackError);
+      // Último recurso: assumir que é o primeiro ticket
+      nextTicketTitle.value = `Ticket 1`;
+    }
+  }
+};
+
 // Cargar datos al montar el componente
 onMounted(() => {
   loadUsers();
   loadSectors();
   loadCategories();
   loadServiceTypes();
+  loadNextTicketNumber();
 });
 </script>
 
@@ -333,5 +372,10 @@ onMounted(() => {
 
 .v-card-text {
   padding-top: 20px;
+}
+
+.auto-title-card {
+  background-color: #f8f9fa;
+  border: 1px solid #e3f2fd !important;
 }
 </style>

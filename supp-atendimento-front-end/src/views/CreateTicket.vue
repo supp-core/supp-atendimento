@@ -15,12 +15,10 @@
 
           <div class="form-card">
 
-            <form @submit.prevent="submitForm" ref="form" enctype="multipart/form-data">
-              <!-- Título do Chamado -->
+            <form @submit.prevent="handleSubmit" ref="form" enctype="multipart/form-data">
+              <!-- Número do Ticket -->
               <div class="form-group">
-                <label for="title">Título do Chamado*</label>
-                <input id="title" v-model="formData.title" type="text" class="form-input" required
-                  placeholder="Digite o título do chamado">
+                <div class="auto-title">{{ nextTicketTitle }}</div>
               </div>
 
               <!-- Campo de categoria -->
@@ -34,16 +32,6 @@
                 </select>
               </div>
 
-              <!-- Novo campo de prioridade -->
-              <div class="form-group">
-                <label for="priority">Prioridade*</label>
-                <select id="priority" v-model="formData.priority" class="form-input" required>
-                  <option value="BAIXA">Baixa</option>
-                  <option value="NORMAL">Normal</option>
-                  <option value="ALTA">Alta</option>
-                  <option value="URGENTE">Urgente</option>
-                </select>
-              </div>
 
               <!-- Descrição -->
               <div class="form-group">
@@ -101,12 +89,10 @@ const form = ref(null);
 const loading = ref(false);
 const sectors = ref([]);
 const categories = ref([]);
-const priority = ref('NORMAL');
 const selectedFiles = ref([]);
-
+const nextTicketTitle = ref('Carregando...');
 
 const formData = ref({
-  title: '',
   description: '',
   sector_id: '',
   category_id: '',
@@ -152,6 +138,39 @@ const removeFile = (index) => {
   selectedFiles.value.splice(index, 1);
 };
 
+const loadNextTicketNumber = async () => {
+  try {
+    // Busca todos os tickets para pegar o último ID
+    const response = await api.get('/tickets');
+    let nextNumber = 1;
+    
+    if (response.data && response.data.data && response.data.data.length > 0) {
+      // Encontra o maior ID nos tickets existentes
+      const maxId = Math.max(...response.data.data.map(ticket => ticket.id));
+      nextNumber = maxId + 1;
+    }
+    
+    nextTicketTitle.value = `Ticket ${nextNumber}`;
+  } catch (error) {
+    console.error('Erro ao carregar próximo número:', error);
+    // Se falhar, tenta uma abordagem alternativa
+    try {
+      // Tenta buscar o último ticket especificamente
+      const lastTicketResponse = await api.get('/tickets?limit=1&sort=id&order=desc');
+      let nextNumber = 1;
+      
+      if (lastTicketResponse.data && lastTicketResponse.data.data && lastTicketResponse.data.data.length > 0) {
+        nextNumber = lastTicketResponse.data.data[0].id + 1;
+      }
+      
+      nextTicketTitle.value = `Ticket ${nextNumber}`;
+    } catch (fallbackError) {
+      console.error('Erro no fallback:', fallbackError);
+      // Último recurso: assumir que é o primeiro ticket
+      nextTicketTitle.value = `Ticket 1`;
+    }
+  }
+};
 
 const showFeedback = (message, type = 'success') => {
   feedback.value = {
@@ -165,7 +184,7 @@ const showFeedback = (message, type = 'success') => {
 };
 
 const handleSubmit = async () => {
-  if (!formData.value.title || !formData.value.description || !formData.value.category_id) {
+  if (!formData.value.description || !formData.value.category_id) {
     showFeedback('Por favor, preencha todos os campos obrigatórios', 'error');
     return;
   }
@@ -173,8 +192,9 @@ const handleSubmit = async () => {
   loading.value = true;
 
   try {
-    // Adiciona o setor Admin automaticamente
+    // Adiciona o setor Admin automaticamente e gera título
     const dataToSubmit = {
+      title: nextTicketTitle.value,
       ...formData.value,
       sector_id: 15 // ID do setor Admin
     };
@@ -199,6 +219,7 @@ const handleSubmit = async () => {
 onMounted(() => {
   loadSectors();
   loadCategories();
+  loadNextTicketNumber();
 });
 
 
@@ -218,7 +239,7 @@ const submitForm = async () => {
     const submitData = new FormData();
 
     // Adicionando campos básicos
-    submitData.append('title', formData.value.title);
+    submitData.append('title', nextTicketTitle.value);
     submitData.append('description', formData.value.description);
     submitData.append('priority', formData.value.priority);
     submitData.append('category_id', formData.value.category_id);
@@ -268,7 +289,7 @@ const submitForm = async () => {
     };
     
     // Limpar o formulário
-    formData.value.title = '';
+    await loadNextTicketNumber(); // Recarrega o próximo número
     formData.value.description = '';
     formData.value.category_id = '';
     formData.value.priority = 'NORMAL';
@@ -392,6 +413,23 @@ const cancelar = () => {
   font-size: 1rem;
 }
 
+.auto-title {
+  background: #f8f9fa;
+  border: 1px solid #e9ecef;
+  border-radius: 4px;
+  padding: 12px;
+  font-size: 1rem;
+  font-weight: 500;
+  color: #1a237e;
+  margin-bottom: 4px;
+}
+
+.title-note {
+  color: #666;
+  font-style: italic;
+  font-size: 0.875rem;
+}
+
 .form-input:focus {
   outline: none;
   border-color: #1a237e;
@@ -495,7 +533,7 @@ export default {
       // Adicionar dados do ticket
       formData.append('title', this.title)
       formData.append('description', this.description)
-      formData.append('priority', this.priority)
+      formData.append('priority', 'NORMAL')
 
       // Adicionar arquivos
       this.selectedFiles.forEach((file, index) => {
