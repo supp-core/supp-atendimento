@@ -32,10 +32,10 @@
   const fazerLogout = async () => {
       try {
           await attendantAuthService.logout()
-          window.location.href = '/attendant/login'
+          window.location.href = '/login'
       } catch (error) {
           console.error('Erro no logout:', error)
-          window.location.href = '/attendant/login'
+          window.location.href = '/login'
       }
   }
   

@@ -849,7 +849,7 @@ const loadTickets = async (page = 1) => {
     // Verificação de autenticação
     if (!attendantAuthService.isAuthenticated()) {
       console.log('Usuário não autenticado');
-      router.push('/attendant/login');
+      router.push('/login');
       return;
     }
 
@@ -921,7 +921,7 @@ const loadTickets = async (page = 1) => {
     // Tratamento de erro de autenticação
     if (error.response?.status === 401) {
       attendantAuthService.logout();
-      router.push('/attendant/login');
+      router.push('/login');
     }
   } finally {
     loading.value = false;
