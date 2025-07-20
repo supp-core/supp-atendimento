@@ -528,11 +528,10 @@ class ServiceManager
     public function createQueryBuilderForUserTickets($user, array $filters = [])
     {
         $queryBuilder = $this->entityManager->createQueryBuilder()
-            ->select('s', 'sect', 'u', 'a')
+            ->select('s', 'sect', 'u')
             ->from(Service::class, 's')
             ->leftJoin('s.sector', 'sect')
             ->leftJoin('s.requester', 'u')
-            ->leftJoin('s.reponsible', 'a')
             ->where('s.requester = :user')
             ->setParameter('user', $user);
 

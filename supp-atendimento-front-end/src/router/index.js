@@ -94,7 +94,13 @@ router.beforeEach((to, from, next) => {
       } else {
           if (to.matched.some(record => record.meta.requiresAdmin)) {
               const attendantData = attendantAuthService.getAttendantData();
-              if (!attendantData || attendantData.function !== 'Admin') {
+              // Verificar se é admin pelo setor Diretoria ou pela função Admin (compatibilidade)
+              const isAdmin = attendantData && (
+                  attendantData.function === 'Admin' || 
+                  (attendantData.sector && attendantData.sector.name === 'Diretoria')
+              );
+              
+              if (!isAdmin) {
                   next('/attendant/dashboard');
               } else {
                   next();

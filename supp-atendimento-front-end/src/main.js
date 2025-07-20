@@ -2,6 +2,7 @@
 import { createApp } from 'vue'
 import App from './App.vue'
 import router from './router'
+import api from './services/api'
 
 // Importações do Vuetify
 import 'vuetify/styles'
@@ -11,6 +12,15 @@ import * as directives from 'vuetify/directives'
 
 // Importar CSS para forçar fonte Inter
 import './assets/inter-font.css'
+
+// Configurar token inicial se existir no localStorage
+const attendantToken = localStorage.getItem('attendant_token');
+const userToken = localStorage.getItem('token');
+const token = attendantToken || userToken;
+
+if (token) {
+    api.defaults.headers.common['Authorization'] = `Bearer ${token}`;
+}
 
 const vuetify = createVuetify({
   components,

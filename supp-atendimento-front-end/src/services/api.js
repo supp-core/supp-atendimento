@@ -18,10 +18,13 @@ const api = axios.create({
 // Anexa o token de autenticação a cada requisição
 api.interceptors.request.use(
     config => {
-        // Pega o token do localStorage
-        const token = localStorage.getItem('token');
+        // Verifica primeiro o token de atendente, depois o token de usuário
+        const attendantToken = localStorage.getItem('attendant_token');
+        const userToken = localStorage.getItem('token');
+        
+        const token = attendantToken || userToken;
 
-        // Se o token existir, adiciona ao header de autorização
+        // Se algum token existir, adiciona ao header de autorização
         if (token) {
             config.headers['Authorization'] = `Bearer ${token}`;
         }
@@ -50,18 +53,17 @@ api.interceptors.response.use(
             
             console.warn("Sessão expirada ou token inválido (401). Realizando logout...");
 
-            // Limpa o armazenamento local para remover o token inválido e os dados do usuário
+            // Limpa todos os dados de autenticação (usuário e atendente)
             localStorage.removeItem('token');
-            localStorage.removeItem('user'); // Se você também guarda o usuário
+            localStorage.removeItem('user');
+            localStorage.removeItem('attendant_token');
+            localStorage.removeItem('attendant_data');
+
+            // Remove o header de autorização
+            delete api.defaults.headers.common['Authorization'];
 
             // Redireciona para a página de login usando o roteador do Vue
-            // Usar router.push() é melhor do que window.location.href, pois preserva o estado do SPA.
             router.push('/login');
-
-            // Opcional: Recarregar a página para garantir que todo o estado seja limpo
-            // setTimeout(() => {
-            //   window.location.reload();
-            // }, 500);
         }
 
         // Para todos os outros erros (404, 500, etc.), rejeita a promise

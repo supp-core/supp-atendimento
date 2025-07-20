@@ -123,15 +123,6 @@ class ServiceController extends AbstractController
                         'name' => $service->getRequester()?->getName(),
                         'email' => $service->getRequester()?->getEmail(),
                     ],
-                    'responsible' => [
-                        'id' => $service->getReponsible()?->getId(),
-                        'name' => $service->getReponsible()?->getName(),
-                        'function' => $service->getReponsible()?->getFunction(),
-                        'sector' => [
-                            'id' => $service->getReponsible()?->getSector()?->getId(),
-                            'name' => $service->getReponsible()?->getSector()?->getName()
-                        ]
-                    ],
 
                     'dates' => [
                         'created' => $service->getDateCreate()?->format('Y-m-d H:i:s'),
@@ -202,11 +193,6 @@ class ServiceController extends AbstractController
                         'id' => $service->getRequester()?->getId(),
                         'name' => $service->getRequester()?->getName(),
                         'email' => $service->getRequester()?->getEmail(),
-                    ],
-                    'responsible' => [
-                        'id' => $service->getReponsible()?->getId(),
-                        'name' => $service->getReponsible()?->getName(),
-                        'function' => $service->getReponsible()?->getFunction(),
                     ],
                     'dates' => [
                         'created' => $service->getDateCreate()?->format('Y-m-d H:i:s'),
@@ -344,11 +330,6 @@ class ServiceController extends AbstractController
                         'id' => $service->getRequester()?->getId(),
                         'name' => $service->getRequester()?->getName(),
                         'email' => $service->getRequester()?->getEmail(),
-                    ],
-                    'responsible' => [
-                        'id' => $service->getReponsible()?->getId(),
-                        'name' => $service->getReponsible()?->getName(),
-                        'function' => $service->getReponsible()?->getFunction(),
                     ],
                     'dates' => [
                         'created' => $service->getDateCreate()?->format('Y-m-d H:i:s'),
@@ -594,20 +575,12 @@ class ServiceController extends AbstractController
                         'updated' => $service->getDateUpdate()->format('Y-m-d H:i:s'),
                         'concluded' => $service->getDateConclusion()?->format('Y-m-d H:i:s')
                     ],
-                    'responsible' => [
-                        'id' => $service->getReponsible()?->getId(),
-                        'name' => $service->getReponsible()?->getName()
-                    ],
                     'history' => array_map(function ($history) {
                         return [
                             'date' => $history->getDateHistory()->format('Y-m-d H:i:s'),
                             'status_prev' => $history->getStatusPrev(),
                             'status_post' => $history->getStatusPost(),
                             'comment' => $history->getComment(),
-                            'responsible' => [
-                                'id' => $history->getResponsible()?->getId(),
-                                'name' => $history->getResponsible()?->getName()
-                            ]
                         ];
                     }, $service->getHistories()->toArray())
                 ]
@@ -752,11 +725,6 @@ class ServiceController extends AbstractController
                     'status_prev' => $history->getStatusPrev(),
                     'status_post' => $history->getStatusPost(),
                     'comment' => $history->getComment(),
-                    'responsible' => [
-                        'id' => $history->getResponsible()?->getId(),
-                        'name' => $history->getResponsible()?->getName(),
-                        'function' => $history->getResponsible()?->getFunction()
-                    ],
                     'service' => [
                         'id' => $history->getService()->getId(),
                         'title' => $history->getService()->getTitle()

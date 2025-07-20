@@ -96,7 +96,6 @@
                   <th class="text-left">Prioridade</th> <!-- Nova coluna -->
                   <th class="px-4 py-3">Status</th>
                   <th class="px-4 py-3">Setor</th>
-                  <th class="px-4 py-3">Responsável</th>
                   <th class="px-4 py-3">Data de Criação</th>
                   <th class="px-4 py-3">Prazo</th>
                   <th class="px-4 py-3">Data de Conclusão</th>
@@ -119,10 +118,8 @@
                       {{ translateStatus(ticket.status) }}
                     </v-chip>
                   </td>
-                  <td class="px-4 py-3">{{ ticket.responsible.sector?.name ?? ticket.sector.name }}</td>
+                  <td class="px-4 py-3">{{ ticket.sector.name }}</td>
 
-                  <!-- <td class="px-4 py-3">{{ ticket.requester?.name }}</td> -->
-                  <td class="px-4 py-3">{{ ticket.responsible?.name || 'Não atribuído' }}</td>
                   <td class="px-4 py-3">{{ formatDate(ticket.dates.created) }}</td>
                   <td class="px-4 py-3" :class="getDeadlineClass(ticket.dates.deadline)">{{ formatDate(ticket.dates.deadline) }}</td>
                   <td class="px-4 py-3">{{ ticket.dates.concluded ? formatDate(ticket.dates.concluded) : '-' }}</td>
