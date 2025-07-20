@@ -71,13 +71,6 @@
               </v-chip>
             </div>
           </v-col>
-          <v-col cols="6">
-            <div class="metadata-item">
-              <v-icon size="small" class="mr-1">mdi-account</v-icon>
-              <span class="metadata-label">Responsável:</span>
-              {{ ticket?.responsible?.name || 'Não atribuído' }}
-            </div>
-          </v-col>
         </v-row>
       </v-card-text>
 
@@ -152,6 +145,15 @@
 
       <!-- Ações -->
       <v-card-actions class="pa-4">
+        <v-btn 
+          v-if="ticket?.status === 'CONCLUDED'"
+          color="primary" 
+          variant="outlined" 
+          @click="reopenTicket"
+          :loading="reopening"
+        >
+          🔄 Reabrir Ticket
+        </v-btn>
         <v-spacer></v-spacer>
         <v-btn color="grey-darken-1" variant="text" @click="closeDialog">
           Fechar
@@ -166,6 +168,7 @@ import { ref, watch } from 'vue'
 import { format } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
 import { ticketsService } from '@/services/tickets.service';
+import api from '@/services/api';
 
 const props = defineProps({
   modelValue: Boolean,
@@ -173,10 +176,11 @@ const props = defineProps({
 })
 
 
-const emit = defineEmits(['update:modelValue'])
+const emit = defineEmits(['update:modelValue', 'ticket-reopened'])
 
 const dialogVisible = ref(props.modelValue)
 const loading = ref(false) // Adicionado estado de loading
+const reopening = ref(false) // Estado para o botão de reabrir
 
 // Feedback para notificações
 const feedback = ref({
@@ -234,6 +238,43 @@ const formatDate = (dateString) => {
 
 const closeDialog = () => {
   dialogVisible.value = false
+}
+
+const reopenTicket = async () => {
+  try {
+    reopening.value = true;
+    
+    // Faz a chamada para reabrir o ticket (mudando status para IN_PROGRESS)
+    const response = await api.put(`/service/${props.ticket.id}/status`, {
+      status: 'IN_PROGRESS',
+      comment: 'Ticket reaberto'
+    });
+    
+    if (response.data.success) {
+      feedback.value = {
+        show: true,
+        message: 'Ticket reaberto com sucesso!',
+        type: 'success'
+      };
+      
+      // Emite evento para atualizar a lista
+      emit('ticket-reopened');
+      
+      // Fecha o modal após 1 segundo
+      setTimeout(() => {
+        closeDialog();
+      }, 1000);
+    }
+  } catch (error) {
+    console.error('Erro ao reabrir ticket:', error);
+    feedback.value = {
+      show: true,
+      message: 'Erro ao reabrir o ticket',
+      type: 'error'
+    };
+  } finally {
+    reopening.value = false;
+  }
 }
 
 const downloadAttachment = async (attachment) => {

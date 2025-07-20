@@ -127,6 +127,11 @@
                       ↗️ Transferir
                     </v-btn>
 
+                    <v-btn v-if="ticket.status === 'CONCLUDED'" size="small" color="info" class="btn-centered-text action-btn"
+                      @click="openHistoryDialog(ticket)">
+                      📋 Ver Histórico
+                    </v-btn>
+
                   </td>
                 </tr>
               </tbody>
@@ -134,7 +139,7 @@
 
             <div class="pagination-wrapper">
               <div class="pagination-info">
-                Mostrando {{ meta.per_page }} de {{ meta.total }} registros
+                Mostrando {{ tickets.length }} de {{ meta.total }} registros
               </div>
               <div class="pagination-controls">
                 <!-- Botão Anterior -->
@@ -370,6 +375,8 @@
           </v-card>
         </v-dialog>
 
+        <!-- Modal de Detalhes do Ticket (igual ao do usuário) -->
+        <TicketDetailsModal v-model="showHistoryModal" :ticket="selectedTicket" @ticket-reopened="handleTicketReopened" />
 
         <AdminCreateTicket v-model="createDialog" @created="handleTicketCreated" />
 
@@ -389,6 +396,7 @@ import { useSidebar } from '@/composables/useSidebar'
 import AttendantHeader from '@/components/common/AttendantHeader.vue'
 import AttendantSidebar from '@/components/common/AttendantSidebar.vue'
 import AdminCreateTicket from '@/components/common/AdminCreateTicket.vue' // Importe o novo componente
+import TicketDetailsModal from '@/components/tickets/TicketDetailsModal.vue'
 import api from '@/services/api'
 import { attendantAuthService } from '@/services/attendant-auth.service'
 import { mdiPencilBoxOutline } from "@mdi/js";
@@ -539,6 +547,9 @@ const transferDialog = ref({
   comment: '',
   loading: false
 })
+
+const showHistoryModal = ref(false)
+const selectedTicket = ref(null)
 
 // Depois (em português com mapeamento)
 const availableStatuses = [
@@ -794,6 +805,25 @@ const openTransferDialog = (ticket) => {
   }
 }
 
+const openHistoryDialog = async (ticket) => {
+  try {
+    selectedTicket.value = ticket
+    showHistoryModal.value = true
+    
+    // Carrega o histórico do ticket
+    const response = await api.get(`/service/${ticket.id}/history`);
+    
+    if (response.data.success) {
+      selectedTicket.value = {
+        ...ticket,
+        histories: response.data.data
+      };
+    }
+  } catch (error) {
+    console.error('Erro ao carregar histórico do ticket:', error);
+  }
+}
+
 const evolveTicket = async () => {
   evolveDialog.value.loading = true;
   try {
@@ -974,6 +1004,11 @@ const loadSectors = async () => {
   } catch (error) {
     console.error('Erro ao carregar setores:', error)
   }
+}
+
+const handleTicketReopened = () => {
+  // Recarrega a lista de tickets para refletir a mudança
+  loadTickets(currentPage.value);
 }
 
 

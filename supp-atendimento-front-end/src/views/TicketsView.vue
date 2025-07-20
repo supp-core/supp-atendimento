@@ -140,7 +140,7 @@
 
             <div class="pagination-wrapper">
               <div class="pagination-info">
-                Mostrando {{ meta.per_page }} de {{ meta.total }} registros
+                Mostrando {{ tickets.length }} de {{ meta.total }} registros
               </div>
               <div class="pagination-controls">
                 <!-- Botão Anterior -->
@@ -171,7 +171,7 @@
   </div>
 
   <!-- Adicione o componente do modal ao final do template, antes do fechamento da última div -->
-  <TicketDetailsModal v-model="showDetailsModal" :ticket="selectedTicket" />
+  <TicketDetailsModal v-model="showDetailsModal" :ticket="selectedTicket" @ticket-reopened="handleTicketReopened" />
 </template>
 
 <script setup>
@@ -555,6 +555,11 @@ const handleSearchInput = () => {
 const createTicket = () => router.push('/tickets/create');
 const viewTicket = (id) => router.push(`/tickets/${id}`);
 const editTicket = (id) => router.push(`/tickets/${id}/edit`);
+
+const handleTicketReopened = () => {
+  // Recarrega a lista de tickets para refletir a mudança
+  loadTickets(currentPage.value);
+};
 
 onMounted(() => {
   carregarDadosUsuario(); // Carrega os dados do usuário quando o componente é montado
