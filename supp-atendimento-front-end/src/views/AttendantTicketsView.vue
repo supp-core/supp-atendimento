@@ -321,9 +321,15 @@
                   </div>
 
                   <div class="timeline-content ml-11">
-                    <v-chip size="small" :color="getStatusColor(history.status_post)" class="mb-2">
-                      {{ translateStatus(history.status_post) }}
-                    </v-chip>
+                    <div class="d-flex align-center gap-2 mb-2">
+                      <v-chip size="small" :color="getStatusColor(history.status_prev)">
+                        {{ translateStatus(history.status_prev) }}
+                      </v-chip>
+                      <span class="mx-2">→</span>
+                      <v-chip size="small" :color="getStatusColor(history.status_post)">
+                        {{ translateStatus(history.status_post) }}
+                      </v-chip>
+                    </div>
                     <p class="text-body-2 mb-0">{{ history.comment }}</p>
                   </div>
                 </div>
@@ -496,7 +502,7 @@ const searchStatus = ref('');
 const searchPriority = ref('');
 const searchCategory = ref('');
 const searchServiceType = ref('');
-const showCompleted = ref(false);
+const showCompleted = ref(true);
 
 const handleTicketCreated = (newTicket) => {
   // Adicionar o novo ticket à lista ou recarregar os dados

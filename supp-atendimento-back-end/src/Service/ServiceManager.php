@@ -562,6 +562,11 @@ class ServiceManager
                 ->setParameter('end_date', new \DateTime($filters['end_date'] . ' 23:59:59'));
         }
 
+        // Adicionar filtro para excluir status específico
+        if (!empty($filters['exclude_status'])) {
+            $queryBuilder->andWhere('s.status != :exclude_status')
+                ->setParameter('exclude_status', $filters['exclude_status']);
+        }
 
         // Mantemos a ordenação padrão
         $queryBuilder->orderBy('s.date_create', 'DESC');

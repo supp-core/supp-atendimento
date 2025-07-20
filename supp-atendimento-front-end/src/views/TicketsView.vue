@@ -341,7 +341,7 @@ const dateRange = ref({ startDate: null, endDate: null });
 
 const searchPriority = ref('');
 const dateMenu = ref(false);
-const showCompleted = ref(false);
+const showCompleted = ref(true);
 
 const statusOptions = [
   { title: 'Todos os status', value: '' },

@@ -54,13 +54,15 @@ class ServiceController extends AbstractController
 
             $startDate = $request->query->get('start_date');
             $endDate = $request->query->get('end_date');
+            $excludeStatus = $request->query->get('exclude_status');
 
             $filters = [
                 'title' => $request->query->get('title'),
                 'status' => $request->query->get('status'),
                 'priority' => $request->query->get('priority'),
                 'start_date' => $startDate,
-                'end_date' => $endDate
+                'end_date' => $endDate,
+                'exclude_status' => $excludeStatus
             ];
 
             // Removemos filtros vazios
@@ -364,6 +366,7 @@ class ServiceController extends AbstractController
             $priority = $request->query->get('priority');
             $categoryId = $request->query->get('category_id');
             $serviceTypeId = $request->query->get('service_type_id');
+            $excludeStatus = $request->query->get('exclude_status');
 
             // Parâmetros de paginação
             $page = $request->query->get('page', 1);
@@ -417,6 +420,11 @@ class ServiceController extends AbstractController
 
                 // Filtro por tipo de serviço
                 if ($serviceTypeId && (!$service->getServiceType() || $service->getServiceType()->getId() != $serviceTypeId)) {
+                    $keepService = false;
+                }
+
+                // Filtro para excluir status específico
+                if ($excludeStatus && $service->getStatus() === $excludeStatus) {
                     $keepService = false;
                 }
 

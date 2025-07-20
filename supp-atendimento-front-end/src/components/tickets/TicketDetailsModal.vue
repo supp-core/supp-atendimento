@@ -105,7 +105,7 @@
                 <v-chip :color="getStatusColor(history.status_prev)" size="x-small" text-color="white">
                   {{ translateStatus(history.status_prev) }}
                 </v-chip>
-                <v-icon>mdi-arrow-right</v-icon>
+                <span class="mx-2">→</span>
                 <v-chip :color="getStatusColor(history.status_post)" size="x-small" text-color="white">
                   {{ translateStatus(history.status_post) }}
                 </v-chip>
