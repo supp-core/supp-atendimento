@@ -2,6 +2,7 @@
 
 namespace App\Controller;
 
+use App\Entity\Attendant;
 use App\Entity\User;
 use Doctrine\ORM\EntityManagerInterface;
 use Lexik\Bundle\JWTAuthenticationBundle\Services\JWTTokenManagerInterface;
@@ -11,7 +12,6 @@ use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\PasswordHasher\Hasher\UserPasswordHasherInterface;
 use Symfony\Component\Routing\Annotation\Route;
-use Symfony\Component\Security\Core\Authentication\Token\Storage\TokenStorageInterface;
 
 
 #[Route('/api')]
@@ -19,7 +19,6 @@ class AuthController extends AbstractController
 {
     public function __construct(
         private JWTTokenManagerInterface $jwtManager,
-        private TokenStorageInterface $tokenStorage,
         private UserPasswordHasherInterface $passwordHasher,
         private EntityManagerInterface $entityManager
     ) {}
@@ -30,33 +29,53 @@ class AuthController extends AbstractController
         try {
             $data = json_decode($request->getContent(), true);
 
-            // Buscar o usuário pelo email
+            if (!isset($data['email']) || !isset($data['password'])) {
+                return new JsonResponse([
+                    'success' => false,
+                    'message' => 'Usuário e senha são obrigatórios'
+                ], Response::HTTP_BAD_REQUEST);
+            }
+
             $user = $this->entityManager->getRepository(User::class)
                 ->findOneBy(['email' => $data['email']]);
 
-            // Verificar se o usuário existe e não é um atendente
-            if (!$user || in_array('ROLE_ATTENDANT', $user->getRoles())) {
-                return new JsonResponse([
-                    'success' => false,
-                    'message' => 'Credenciais inválidas ou tipo de usuário incorreto'
-                ], Response::HTTP_UNAUTHORIZED);
-            }
-
-            // Verificar a senha
-            if (!$this->passwordHasher->isPasswordValid($user, $data['password'])) {
+            if (!$user || !$this->passwordHasher->isPasswordValid($user, $data['password'])) {
                 return new JsonResponse([
                     'success' => false,
                     'message' => 'Credenciais inválidas'
                 ], Response::HTTP_UNAUTHORIZED);
             }
 
-            // Gerar o token JWT
             $token = $this->jwtManager->create($user);
+
+            $attendant = $user->getAttendant()
+                ?? $this->entityManager->getRepository(Attendant::class)
+                    ->findOneBy(['user' => $user]);
+
+            if ($attendant) {
+                return new JsonResponse([
+                    'success' => true,
+                    'data' => [
+                        'token' => $token,
+                        'type' => 'attendant',
+                        'attendant' => [
+                            'id' => $attendant->getId(),
+                            'name' => $attendant->getName(),
+                            'function' => $attendant->getFunction(),
+                            'sector' => [
+                                'id' => $attendant->getSector()?->getId(),
+                                'name' => $attendant->getSector()?->getName()
+                            ]
+                        ]
+                    ]
+                ]);
+            }
 
             return new JsonResponse([
                 'success' => true,
                 'data' => [
                     'token' => $token,
+                    'type' => 'user',
                     'user' => [
                         'id' => $user->getId(),
                         'email' => $user->getEmail(),

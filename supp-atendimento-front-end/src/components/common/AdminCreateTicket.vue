@@ -82,7 +82,7 @@
 <script setup>
 import { ref, onMounted, watch } from 'vue';
 import api from '@/services/api';
-import { attendantAuthService } from '@/services/attendant-auth.service'
+import { authService } from '@/services/auth.service'
 
 const props = defineProps({
   modelValue: Boolean
@@ -211,7 +211,7 @@ const submitForm = async () => {
   try {
     // Criar FormData para envio com arquivos
     const submitData = new FormData();
-    const attendant = attendantAuthService.getAttendantData();
+    const attendant = authService.getAttendantData();
 
     // Adicionar campos básicos
     submitData.append('title', formData.value.title);

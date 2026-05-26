@@ -176,7 +176,7 @@ import { useSidebar } from '@/composables/useSidebar';
 import AttendantHeader from '@/components/common/AttendantHeader.vue';
 import AttendantSidebar from '@/components/common/AttendantSidebar.vue';
 import api from '@/services/api';
-import { attendantAuthService } from '@/services/attendant-auth.service';
+import { authService } from '@/services/auth.service';
 
 const router = useRouter();
 const { sidebarCollapsed } = useSidebar();
@@ -188,7 +188,7 @@ const showPassword = ref(false);
 
 // Verifica se o usuário atual é um atendente admin
 const checkAdminPermission = () => {
-  const attendant = attendantAuthService.getAttendantData();
+  const attendant = authService.getAttendantData();
   if (!attendant || attendant.function !== 'Admin') {
     showFeedback('Acesso negado: apenas administradores podem acessar esta página', 'error');
     router.push('/attendant/dashboard');

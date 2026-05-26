@@ -33,7 +33,7 @@
 <script setup>
 import { useSidebar } from '@/composables/useSidebar';
 import { ref,  computed, onMounted } from 'vue';
-import { attendantAuthService } from '@/services/attendant-auth.service';
+import { authService } from '@/services/auth.service';
 const attendantData = ref(null);
 const { sidebarCollapsed, toggleSidebar } = useSidebar();
 // Computed property para verificar se é admin
@@ -49,7 +49,7 @@ const toggleSidebars = () => {
 const isCollapsed = sidebarCollapsed;
 // Carregar dados do atendente ao montar o componente
 onMounted(() => {
-    attendantData.value = attendantAuthService.getAttendantData();
+    attendantData.value = authService.getAttendantData();
 });
 
 

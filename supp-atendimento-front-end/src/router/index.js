@@ -2,8 +2,7 @@ import { createRouter, createWebHistory } from 'vue-router';
 import DashboardView from '../views/DashboardView.vue';
 import LoginView from '../views/LoginView.vue';
 import TicketsView from '../views/TicketsView.vue';
-import AttendantLoginView from '../views/AttendantLoginView.vue'; // Adicione esta linha
-import { attendantAuthService } from '@/services/attendant-auth.service';
+import { authService } from '@/services/auth.service';
 
 const routes = [
   {
@@ -18,6 +17,10 @@ const routes = [
     component: LoginView
   },
   {
+    path: '/attendant/login',
+    redirect: '/login'
+  },
+  {
     path: '/tickets',
     name: 'tickets',
     component: TicketsView,
@@ -28,11 +31,6 @@ const routes = [
     name: 'create-ticket',
     component: () => import('@/views/CreateTicket.vue'),
     meta: { requiresAuth: true }
-  },
-  {
-    path: '/attendant/login',
-    name: 'attendant-login',
-    component: () => import('@/views/AttendantLoginView.vue')
   },
   {
     path: '/attendant/dashboard',
@@ -56,11 +54,11 @@ const routes = [
     path: '/attendant/admin/users',
     name: 'admin-users',
     component: () => import('@/views/AdminUsersView.vue'),
-    meta: { 
-        requiresAttendantAuth: true, 
-        requiresAdmin: true 
+    meta: {
+      requiresAttendantAuth: true,
+      requiresAdmin: true
     }
-}
+  }
 ];
 
 const router = createRouter({
@@ -68,42 +66,27 @@ const router = createRouter({
   routes
 });
 
-// router/index.js
+router.beforeEach((to, _from, next) => {
+  const token = authService.getToken();
 
-// No arquivo de rotas (router/index.js)
-router.beforeEach((to, from, next) => {
   if (to.matched.some(record => record.meta.requiresAttendantAuth)) {
-      // Verifica autenticação de atendente
-      const attendantToken = localStorage.getItem('attendant_token');
-      if (!attendantToken) {
-          next('/attendant/login');
-      } else {
-          // Verifica se a rota precisa de permissão de admin
-          if (to.matched.some(record => record.meta.requiresAdmin)) {
-              const attendantData = attendantAuthService.getAttendantData();
-              // Se não for admin, redireciona para o dashboard
-              if (!attendantData || attendantData.function !== 'Admin') {
-                  next('/attendant/dashboard');
-              } else {
-                  next();
-              }
-          } else {
-              next();
-          }
-      }
-  } else if (to.matched.some(record => record.meta.requiresAuth)) {
-      // Verifica autenticação de usuário comum
-      const userToken = localStorage.getItem('token');
-      if (!userToken) {
-          next('/login');
-      } else {
-          next();
-      }
-  } else {
-      next();
+    if (!token || !authService.isAttendant()) {
+      return next('/login');
+    }
+    if (to.matched.some(record => record.meta.requiresAdmin) && !authService.isAdmin()) {
+      return next('/attendant/dashboard');
+    }
+    return next();
   }
+
+  if (to.matched.some(record => record.meta.requiresAuth)) {
+    if (!token) {
+      return next('/login');
+    }
+    return next();
+  }
+
+  next();
 });
 
-// Aqui está a exportação que estava faltando
 export default router;
-

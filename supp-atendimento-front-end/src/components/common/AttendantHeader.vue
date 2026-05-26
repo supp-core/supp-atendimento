@@ -18,39 +18,27 @@
   
   <script setup>
   import { ref, onMounted } from 'vue'
-  import { useRouter } from 'vue-router'
-  import { attendantAuthService } from '@/services/attendant-auth.service'
+  import { authService } from '@/services/auth.service'
   import ProcuradoriaLogoCabecalho from '@/components/common/ProcuradoriaLogoCabecalho.vue'
-  
-  const router = useRouter()
+
   const nomeAtendente = ref('')
   const funcaoAtendente = ref('')
   const sector = ref('')
-  
+
   const fazerLogout = async () => {
       try {
-          await attendantAuthService.logout()
-          window.location.href = '/attendant/login'
-      } catch (error) {
-          console.error('Erro no logout:', error)
-          window.location.href = '/attendant/login'
+          await authService.logout()
+      } finally {
+          window.location.href = '/login'
       }
   }
-  
+
   onMounted(() => {
-    console.log('Component mounted');
-    const attendant = attendantAuthService.getAttendantData()
-    console.log('Dados recuperados:', attendant?.sector?.name);
-    
+    const attendant = authService.getAttendantData()
     if (attendant) {
         nomeAtendente.value = attendant.name
         funcaoAtendente.value = attendant.function
         sector.value = attendant.sector?.name || ''
-        console.log('Nome:', nomeAtendente.value);
-        console.log('Função:', funcaoAtendente.value);
-        console.log('Sector:', sector.value);
-    } else {
-        console.log('Nenhum dado de atendente encontrado');
     }
   })
   </script>

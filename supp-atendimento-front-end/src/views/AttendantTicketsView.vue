@@ -350,7 +350,7 @@ import AttendantHeader from '@/components/common/AttendantHeader.vue'
 import AttendantSidebar from '@/components/common/AttendantSidebar.vue'
 import AdminCreateTicket from '@/components/common/AdminCreateTicket.vue' // Importe o novo componente
 import api from '@/services/api'
-import { attendantAuthService } from '@/services/attendant-auth.service'
+import { authService } from '@/services/auth.service'
 import { mdiPencilBoxOutline } from "@mdi/js";
 
 const { sidebarCollapsed } = useSidebar()
@@ -740,14 +740,14 @@ const loadTickets = async (page = 1) => {
   loading.value = true;
   try {
     // Verificação de autenticação
-    if (!attendantAuthService.isAuthenticated()) {
+    if (!authService.isAuthenticated()) {
       console.log('Usuário não autenticado');
-      router.push('/attendant/login');
+      router.push('/login');
       return;
     }
 
     // Obter dados do atendente
-    const attendant = attendantAuthService.getAttendantData();
+    const attendant = authService.getAttendantData();
     if (!attendant || !attendant.id) {
       console.error('Dados do atendente inválidos');
       return;
@@ -806,8 +806,8 @@ const loadTickets = async (page = 1) => {
 
     // Tratamento de erro de autenticação
     if (error.response?.status === 401) {
-      attendantAuthService.logout();
-      router.push('/attendant/login');
+      authService.logout();
+      router.push('/login');
     }
   } finally {
     loading.value = false;
@@ -915,7 +915,7 @@ const loadCategoriesAndServiceTypes = async () => {
 
 // Carrega dados iniciais
 onMounted(() => {
-  attendantData.value = attendantAuthService.getAttendantData()
+  attendantData.value = authService.getAttendantData()
   loadTickets();
   loadAttendants();
   loadCategoriesview();

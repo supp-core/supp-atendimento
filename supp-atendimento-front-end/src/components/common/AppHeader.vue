@@ -13,10 +13,9 @@
 
 <script setup>
 import { ref, onMounted } from 'vue'
-import { useRouter } from 'vue-router'
 import { authService } from '@/services/auth.service'
 import ProcuradoriaLogoCabecalho from '@/components/common/ProcuradoriaLogoCabecalho.vue'
-const router = useRouter()
+
 const nomeUsuario = ref('')
 
 const fazerLogout = async () => {
@@ -30,13 +29,8 @@ const fazerLogout = async () => {
 }
 
 onMounted(() => {
-  const usuario = authService.getUser()
-    if (usuario) {
-        nomeUsuario.value = usuario.name || 'Usuário'
-    } else {
-        console.warn('Nenhum usuário encontrado no localStorage')
-        nomeUsuario.value = 'Usuário'
-    }
+  const data = authService.getAuthData()
+  nomeUsuario.value = data?.name || 'Usuário'
 })
 </script>
 
