@@ -198,7 +198,8 @@ const submitForm = async () => {
     submitData.append('title', formData.value.title);
     submitData.append('description', formData.value.description);
     submitData.append('priority', formData.value.priority);
-    submitData.append('sector_id', '15');
+    const adminSector = sectors.value.find(s => s.name === 'Admin');
+    submitData.append('sector_id', adminSector?.id ?? '');
 
     // Adicionando arquivos
     if (selectedFiles.value.length > 0) {

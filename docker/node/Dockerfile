@@ -21,4 +21,4 @@ RUN npm install -g serve
 EXPOSE 5173
 
 # Comando para servir os arquivos estáticos de produção (assumindo que o build coloca em 'dist')
-CMD ["serve", "-s", "dist", "-p", "5173"] # ou CMD ["http-server", "dist", "-p", "5173"]
+CMD ["serve", "-s", "dist", "-p", "5173"]

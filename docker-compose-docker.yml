@@ -11,9 +11,29 @@ services:
     #   - ./supp-atendimento-back-end:/var/www/html # Removido volumes
     networks:
       - prod-network
+    depends_on:
+      - database
     environment:
       - APP_ENV=prod
-      - DATABASE_URL=postgresql://postgres:P0stgre4Pgm25@supp-hml-bd.postgres.database.azure.com:5432/supp-atendimento-db
+      # Azure (comentado para dev local)
+      # - DATABASE_URL=postgresql://postgres:P0stgre4Pgm25@supp-hml-bd.postgres.database.azure.com:5432/supp-atendimento-db
+      - DATABASE_URL=postgresql://postgres:danilo@database:5432/supp-atendimento?serverVersion=16&charset=utf8
+      - MAILER_DSN=smtp://supp-mailhog:1025
+
+  # Serviço PostgreSQL (Banco de dados local para dev)
+  database:
+    image: postgres:16-alpine
+    container_name: supp-database
+    environment:
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=danilo
+      - POSTGRES_DB=supp-atendimento
+    ports:
+      - "5432:5432"
+    volumes:
+      - supp-pgdata:/var/lib/postgresql/data
+    networks:
+      - prod-network
 
   # Serviço Nginx (Webserver)
   webserver:
@@ -57,6 +77,9 @@ services:
 networks:
   prod-network:
     driver: bridge
+
+volumes:
+  supp-pgdata:
 
 ###########################################
 ############ALTERADO PARA AZURE############
