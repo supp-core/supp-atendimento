@@ -101,6 +101,8 @@ const formData = ref({
   // requester_id: 1 // Temporário - deve vir do usuário logado
 });
 
+const adminSectorId = ref(null);
+
 const feedback = ref({
   show: false,
   message: '',
@@ -154,7 +156,7 @@ const handleSubmit = async () => {
     // Adiciona o setor Admin automaticamente
     const dataToSubmit = {
       ...formData.value,
-      sector_id: 15 // ID do setor Admin
+      sector_id: 3 // ID do setor Admin
     };
 
     console.log('DaTA SUBMIt ', dataToSubmit);
@@ -198,7 +200,7 @@ const submitForm = async () => {
     submitData.append('title', formData.value.title);
     submitData.append('description', formData.value.description);
     submitData.append('priority', formData.value.priority);
-    submitData.append('sector_id', '15');
+    submitData.append('sector_id', '3');
 
     // Adicionando arquivos
     if (selectedFiles.value.length > 0) {
