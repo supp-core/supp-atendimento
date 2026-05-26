@@ -14,3 +14,5 @@
 
 /public/uploads/attachments/*
 !/public/uploads/attachments/.gitkeep
+
+.env
