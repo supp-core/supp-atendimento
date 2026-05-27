@@ -25,7 +25,7 @@ WORKDIR /var/www/html
 COPY supp-atendimento-back-end /var/www/html/
 
 # Instalar dependências Composer para PRODUÇÃO
-RUN composer install --no-dev --optimize-autoloader
+RUN APP_ENV=prod composer install --no-dev --optimize-autoloader
 
 # Configurar permissões para o usuário www-data
 RUN chown -R www-data:www-data /var/www/html \

@@ -17,6 +17,30 @@
                         <span class="text" v-show="!isCollapsed">Evoluir Atendimentos</span>
                     </router-link>
                 </li>
+                <li>
+                    <router-link to="/projects" active-class="active">
+                        <span class="icon">📁</span>
+                        <span class="text" v-show="!isCollapsed">Projetos</span>
+                    </router-link>
+                </li>
+                <li>
+                    <router-link to="/schedule" active-class="active">
+                        <span class="icon">📅</span>
+                        <span class="text" v-show="!isCollapsed">Cronograma</span>
+                    </router-link>
+                </li>
+                <li>
+                    <router-link to="/reports/productivity" active-class="active">
+                        <span class="icon">📊</span>
+                        <span class="text" v-show="!isCollapsed">Produtividade</span>
+                    </router-link>
+                </li>
+                <li>
+                    <router-link to="/reports/activity" active-class="active">
+                        <span class="icon">📋</span>
+                        <span class="text" v-show="!isCollapsed">Rel. Atividades</span>
+                    </router-link>
+                </li>
 
                  <!-- Mostrar apenas se o atendente for Admin -->
                  <li v-if="isAdmin">

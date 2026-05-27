@@ -49,6 +49,17 @@
                   <v-select v-model="searchServiceType" :items="serviceTypeOptions" item-title="title"
                     item-value="value" label="Tipo de Serviço" outlined dense @change="handleFilter"></v-select>
                 </v-col>
+                <v-col cols="12" sm="3">
+                  <v-autocomplete
+                    v-model="searchProjectId"
+                    :items="availableProjects"
+                    :item-title="p => `[${p.acronym}] ${p.name}`"
+                    item-value="id"
+                    label="Projeto"
+                    clearable
+                    outlined dense
+                  />
+                </v-col>
                 <!-- Nova linha para botões -->
                 <v-col cols="12" class="d-flex align-center mt-2">
                   <v-btn color="primary" @click="handleSearch" :loading="loading" class="me-2">
@@ -75,6 +86,7 @@
                 <tr>
                   <th class="text-left">Título</th>
                   <th class="text-left">Solicitante</th>
+                  <th class="text-left">Projeto</th>
                   <th class="text-left">Prioridade</th>
                   <th class="text-left">Status</th>
                   <th class="text-left">Data Criação</th>
@@ -85,7 +97,13 @@
               <tbody>
                 <tr v-for="ticket in sortedTickets" :key="ticket.id">
                   <td>{{ ticket.title }}</td>
-                  <td>{{ ticket.requester?.name }}</td> <!-- Nova célula -->
+                  <td>{{ ticket.requester?.name }}</td>
+                  <td>
+                    <v-chip v-if="ticket.project" size="x-small" color="blue-grey" variant="outlined">
+                      {{ ticket.project.acronym }}
+                    </v-chip>
+                    <span v-else class="text-grey">—</span>
+                  </td>
                   <td>
                     <v-chip :color="getPriorityColor(ticket.priority)"
                       :text-color="getPriorityTextColor(ticket.priority)" size="small" class="priority-chip">
@@ -426,6 +444,9 @@ const isAdmin = computed(() => {
   return attendantData.value && attendantData.value.function === 'Admin'
 })
 
+const handleSearchInput = () => {}
+const handleFilter = () => {}
+
 const resetFilters = () => {
   // Limpa todos os campos de filtro
   searchTitle.value = '';
@@ -434,6 +455,7 @@ const resetFilters = () => {
   searchPriority.value = '';
   searchCategory.value = '';
   searchServiceType.value = '';
+  searchProjectId.value = null;
 
   // Recarrega os dados sem filtros
   currentPage.value = 1;
@@ -446,6 +468,8 @@ const searchStatus = ref('');
 const searchPriority = ref('');
 const searchCategory = ref('');
 const searchServiceType = ref('');
+const searchProjectId = ref(null);
+const availableProjects = ref([]);
 
 const handleTicketCreated = (newTicket) => {
   // Adicionar o novo ticket à lista ou recarregar os dados
@@ -777,6 +801,9 @@ const loadTickets = async (page = 1) => {
     if (searchServiceType.value) {
       params.append('service_type_id', searchServiceType.value);
     }
+    if (searchProjectId.value) {
+      params.append('project_id', searchProjectId.value);
+    }
 
     // Log para debug da URL construída
     console.log('URL da requisição:', `/service/attendant/${attendant.id}?${params.toString()}`);
@@ -825,6 +852,15 @@ const loadAttendants = async () => {
     availableAttendants.value = response.data.data
   } catch (error) {
     console.error('Erro ao carregar atendentes:', error)
+  }
+}
+
+const loadProjects = async () => {
+  try {
+    const response = await api.get('/project')
+    availableProjects.value = response.data.data || []
+  } catch (error) {
+    console.error('Erro ao carregar projetos:', error)
   }
 }
 
@@ -918,9 +954,10 @@ onMounted(() => {
   attendantData.value = authService.getAttendantData()
   loadTickets();
   loadAttendants();
+  loadProjects();
   loadCategoriesview();
   loadServiceTypes();
-  loadCategoriesAndServiceTypes(); // Nova função combinada
+  loadCategoriesAndServiceTypes();
 })
 </script>
 

@@ -16,6 +16,7 @@ use App\Entity\User;
 use Symfony\Component\Security\Core\Exception\AuthenticationException;
 use Symfony\Component\PasswordHasher\Hasher\UserPasswordHasherInterface;
 use App\Entity\Attendant;
+use App\Entity\Project;
 use App\Entity\ServiceAttachment; // Adicione esta linha para importar a classe
 use Symfony\Component\HttpFoundation\BinaryFileResponse; // Também adicione esta para o download
 use Symfony\Component\HttpFoundation\File\UploadedFile;
@@ -212,6 +213,11 @@ class ServiceController extends AbstractController
                         'updated' => $service->getDateUpdate()?->format('Y-m-d H:i:s'),
                         'concluded' => $service->getDateConclusion()?->format('Y-m-d H:i:s'),
                     ],
+                    'project' => $service->getProject() ? [
+                        'id' => $service->getProject()->getId(),
+                        'name' => $service->getProject()->getName(),
+                        'acronym' => $service->getProject()->getAcronym(),
+                    ] : null,
                     'attachments' => array_map(function ($attachment) {
                         return [
                             'id' => $attachment->getId(),
@@ -260,6 +266,7 @@ class ServiceController extends AbstractController
                 'requester_id' => $user,
                 'category_id' => $request->request->get('category_id'),
                 'service_type_id' => $request->request->get('service_type_id'),
+                'project_id' => $request->request->get('project_id'),
                 'files' => $files // Pega os arquivos
             ];
 
@@ -829,6 +836,8 @@ class ServiceController extends AbstractController
             $category_id = $request->request->get('category_id');
             $service_type_id = $request->request->get('service_type_id');
 
+            $project_id = $request->request->get('project_id');
+
             $data = [
                 'title' => $title,
                 'description' => $description,
@@ -837,6 +846,7 @@ class ServiceController extends AbstractController
                 'requester_id' => $requester_id, // Usar o ID do usuário solicitante
                 'category_id' => $category_id,
                 'service_type_id' => $service_type_id,
+                'project_id' => $project_id,
                 'created_by_admin' => true,
                 'created_by_admin_id' => $created_by_admin_id, // ID do atendente admin
                 'files' => $files
@@ -894,6 +904,46 @@ class ServiceController extends AbstractController
         }
     }
 
+
+    #[Route('/{id}/project', methods: ['PATCH'])]
+    public function patchProject(int $id, Request $request): JsonResponse
+    {
+        try {
+            $service = $this->serviceManager->findById($id);
+            if (!$service) {
+                return new JsonResponse(['success' => false, 'message' => 'Service not found'], 404);
+            }
+
+            $data = json_decode($request->getContent(), true);
+            $projectId = $data['project_id'] ?? null;
+
+            if ($projectId !== null) {
+                $project = $this->entityManager->getRepository(Project::class)->find($projectId);
+                if (!$project) {
+                    return new JsonResponse(['success' => false, 'message' => 'Projeto não encontrado'], 404);
+                }
+                $service->setProject($project);
+            } else {
+                $service->setProject(null);
+            }
+
+            $this->entityManager->flush();
+
+            return new JsonResponse([
+                'success' => true,
+                'data' => [
+                    'id' => $service->getId(),
+                    'project' => $service->getProject() ? [
+                        'id' => $service->getProject()->getId(),
+                        'name' => $service->getProject()->getName(),
+                        'acronym' => $service->getProject()->getAcronym(),
+                    ] : null,
+                ]
+            ]);
+        } catch (\Exception $e) {
+            return new JsonResponse(['success' => false, 'message' => $e->getMessage()], 500);
+        }
+    }
 
     // Em ServiceController.php
     #[Route('/attachment/{id}', methods: ['GET'])]

@@ -34,6 +34,13 @@ class ServiceHistory
     #[ORM\ManyToOne]
     private ?Attendant $responsible = null;
 
+    #[ORM\Column(length: 30, options: ['default' => 'STATUS_CHANGE'])]
+    private string $type = 'STATUS_CHANGE';
+
+    #[ORM\ManyToOne]
+    #[ORM\JoinColumn(nullable: true, onDelete: 'SET NULL')]
+    private ?Attendant $attendant_evolution = null;
+
     public function getId(): ?int
     {
         return $this->id;
@@ -103,6 +110,28 @@ class ServiceHistory
     public function setResponsible(?Attendant $responsible): self
     {
         $this->responsible = $responsible;
+        return $this;
+    }
+
+    public function getType(): string
+    {
+        return $this->type;
+    }
+
+    public function setType(string $type): self
+    {
+        $this->type = $type;
+        return $this;
+    }
+
+    public function getAttendantEvolution(): ?Attendant
+    {
+        return $this->attendant_evolution;
+    }
+
+    public function setAttendantEvolution(?Attendant $attendant): self
+    {
+        $this->attendant_evolution = $attendant;
         return $this;
     }
 }

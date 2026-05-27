@@ -16,28 +16,26 @@ class ServiceRepository extends ServiceEntityRepository
         parent::__construct($registry, Service::class);
     }
 
-    //    /**
-    //     * @return Service[] Returns an array of Service objects
-    //     */
-    //    public function findByExampleField($value): array
-    //    {
-    //        return $this->createQueryBuilder('s')
-    //            ->andWhere('s.exampleField = :val')
-    //            ->setParameter('val', $value)
-    //            ->orderBy('s.id', 'ASC')
-    //            ->setMaxResults(10)
-    //            ->getQuery()
-    //            ->getResult()
-    //        ;
-    //    }
+    public function findByProject(int $projectId, array $filters = []): array
+    {
+        $qb = $this->createQueryBuilder('s')
+            ->where('s.project = :projectId')
+            ->setParameter('projectId', $projectId)
+            ->orderBy('s.date_create', 'DESC');
 
-    //    public function findOneBySomeField($value): ?Service
-    //    {
-    //        return $this->createQueryBuilder('s')
-    //            ->andWhere('s.exampleField = :val')
-    //            ->setParameter('val', $value)
-    //            ->getQuery()
-    //            ->getOneOrNullResult()
-    //        ;
-    //    }
+        if (!empty($filters['status'])) {
+            $qb->andWhere('s.status = :status')->setParameter('status', $filters['status']);
+        }
+        if (!empty($filters['priority'])) {
+            $qb->andWhere('s.priority = :priority')->setParameter('priority', $filters['priority']);
+        }
+        if (!empty($filters['date_from'])) {
+            $qb->andWhere('s.date_create >= :date_from')->setParameter('date_from', new \DateTime($filters['date_from']));
+        }
+        if (!empty($filters['date_to'])) {
+            $qb->andWhere('s.date_create <= :date_to')->setParameter('date_to', new \DateTime($filters['date_to'] . ' 23:59:59'));
+        }
+
+        return $qb->getQuery()->getResult();
+    }
 }

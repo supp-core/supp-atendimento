@@ -41,6 +41,17 @@
                   placeholder="Descreva detalhadamente o problema"></textarea>
               </div>
 
+              <!-- Projeto (opcional) -->
+              <div class="form-group">
+                <label for="project">Projeto (opcional)</label>
+                <select id="project" v-model="formData.project_id" class="form-input">
+                  <option value="">Sem projeto</option>
+                  <option v-for="p in projects" :key="p.id" :value="p.id">
+                    [{{ p.acronym }}] {{ p.name }}
+                  </option>
+                </select>
+              </div>
+
               <div class="anexos">
                 <label for="fileInput">Anexos</label>
                 <input type="file" id="fileInput" ref="fileInput" @change="handleFileSelect" multiple
@@ -93,12 +104,14 @@ const priority = ref('NORMAL');
 const selectedFiles = ref([]);
 
 
+const projects = ref([])
+
 const formData = ref({
   title: '',
   description: '',
   sector_id: '',
-  priority: 'NORMAL', // Valor padrão
-  // requester_id: 1 // Temporário - deve vir do usuário logado
+  priority: 'NORMAL',
+  project_id: '',
 });
 
 const feedback = ref({
@@ -174,8 +187,18 @@ const handleSubmit = async () => {
   }
 };
 
+const loadProjects = async () => {
+  try {
+    const response = await api.get('/project')
+    projects.value = (response.data.data || []).filter(p => p.status === 'ATIVO')
+  } catch (e) {
+    // silently ignore
+  }
+}
+
 onMounted(() => {
   loadSectors();
+  loadProjects();
 });
 
 
@@ -200,6 +223,9 @@ const submitForm = async () => {
     submitData.append('priority', formData.value.priority);
     const adminSector = sectors.value.find(s => s.name === 'Admin');
     submitData.append('sector_id', adminSector?.id ?? '');
+    if (formData.value.project_id) {
+      submitData.append('project_id', formData.value.project_id);
+    }
 
     // Adicionando arquivos
     if (selectedFiles.value.length > 0) {
