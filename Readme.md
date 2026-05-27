@@ -34,8 +34,25 @@ kubectl get ingress -n supp-atendimento
 
 
 # Deletar todos os serviços: 
-kubectl delete -f kubernetes/backend-deployment.yaml -n supp-atendimento
-kubectl delete -f kubernetes/mailhog-deployment.yaml -n supp-atendimento
-kubectl delete -f kubernetes/webserver-deployment.yaml -n supp-atendimento
-kubectl delete -f kubernetes/webserver-service.yaml -n supp-atendimento
-kubectl delete -f kubernetes/ingress.yaml -n supp-atendimento
+kubectl delete -f kubernetes/backend-deployment.yaml -n helpdesk
+kubectl delete -f kubernetes/mailhog-deployment.yaml -n helpdesk
+kubectl delete -f kubernetes/webserver-deployment.yaml -n helpdesk
+kubectl delete -f kubernetes/webserver-service.yaml -n helpdesk
+kubectl delete -f kubernetes/ingress.yaml -n helpdesk
+
+
+  ┌─────┬──────────────────────────────┬─────────────────────────────┬───────────────────────┬────────┐
+  │ id  │             nome             │            email            │        função         │ setor  │
+  ├─────┼──────────────────────────────┼─────────────────────────────┼───────────────────────┼────────┤
+  │ 3   │ Rafael Assumpcao de Oliveira │ rafael.assumpcao@pbh.gov.br │ Admin                 │ Admin  │
+  ├─────┼──────────────────────────────┼─────────────────────────────┼───────────────────────┼────────┤
+  │ 4   │ Lucas Almeida                │ lucas.almeida@pbh.gov.br    │ Programador Backend   │ Dev    │
+  ├─────┼──────────────────────────────┼─────────────────────────────┼───────────────────────┼────────┤
+  │ 5   │ Mariana Silva                │ mariana.silva@pbh.gov.br    │ Programador DevOps    │ DevOps │
+  ├─────┼──────────────────────────────┼─────────────────────────────┼───────────────────────┼────────┤
+  │ 6   │ Pedro Henrique Costa         │ pedro.costa@pbh.gov.br      │ Analista de Sistemas  │ Dev    │
+  ├─────┼──────────────────────────────┼─────────────────────────────┼───────────────────────┼────────┤
+  │ 7   │ Juliana Ferreira             │ juliana.ferreira@pbh.gov.br │ Analista de Suporte   │ Infra  │
+  ├─────┼──────────────────────────────┼─────────────────────────────┼───────────────────────┼────────┤
+  │ 8   │ Bruno Cardoso                │ bruno.cardoso@pbh.gov.br    │ Arquiteto de Software │ Dev    │
+  └─────┴──────────────────────────────┴─────────────────────────────┴───────────────────────┴────────┘
