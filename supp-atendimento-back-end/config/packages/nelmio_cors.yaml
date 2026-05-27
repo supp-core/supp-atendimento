@@ -21,10 +21,12 @@ nelmio_cors:
         allow_methods: ['GET', 'OPTIONS', 'POST', 'PUT', 'PATCH', 'DELETE']
         allow_headers: ['Content-Type', 'Authorization', 'X-Requested-With'] # Adicione X-Requested-With se necessário
         expose_headers: ['Link']
+        allow_credentials: true
         max_age: 3600
     paths:
         '^/api/': # Aplica a todos os paths sob /api/
             allow_origin: ['%env(CORS_ALLOW_ORIGIN)%'] # Pode redefinir se necessário
             allow_headers: ['Content-Type', 'Authorization', 'X-Requested-With']
             allow_methods: ['GET', 'OPTIONS', 'POST', 'PUT', 'PATCH', 'DELETE']
+            allow_credentials: true
             max_age: 3600

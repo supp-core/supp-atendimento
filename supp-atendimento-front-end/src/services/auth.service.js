@@ -1,6 +1,5 @@
 import api from './api'
 
-const TOKEN_KEY = 'token'
 const TYPE_KEY = 'auth_type'
 const DATA_KEY = 'auth_data'
 
@@ -10,18 +9,15 @@ export const authService = {
             const response = await api.post('/login', { email: usuario, password: senha })
 
             const payload = response.data?.data
-            if (!response.data?.success || !payload?.token || !payload?.type) {
+            if (!response.data?.success || !payload?.type) {
                 throw new Error('Dados de autenticação inválidos')
             }
 
-            const { token, type } = payload
+            const { type } = payload
             const identityData = type === 'attendant' ? payload.attendant : payload.user
 
-            localStorage.setItem(TOKEN_KEY, token)
-            localStorage.setItem(TYPE_KEY, type)
-            localStorage.setItem(DATA_KEY, JSON.stringify(identityData))
-
-            api.defaults.headers.common['Authorization'] = `Bearer ${token}`
+            sessionStorage.setItem(TYPE_KEY, type)
+            sessionStorage.setItem(DATA_KEY, JSON.stringify(identityData))
 
             return { type, data: identityData }
         } catch (error) {
@@ -32,12 +28,7 @@ export const authService = {
 
     async logout() {
         try {
-            const token = this.getToken()
-            if (token) {
-                await api.post('/logout', {}, {
-                    headers: { 'Authorization': `Bearer ${token}` }
-                })
-            }
+            await api.post('/logout')
         } catch {
             // logout falho no servidor não deve impedir limpeza local
         } finally {
@@ -46,23 +37,17 @@ export const authService = {
     },
 
     clearSession() {
-        localStorage.removeItem(TOKEN_KEY)
-        localStorage.removeItem(TYPE_KEY)
-        localStorage.removeItem(DATA_KEY)
-        delete api.defaults.headers.common['Authorization']
-    },
-
-    getToken() {
-        return localStorage.getItem(TOKEN_KEY)
+        sessionStorage.removeItem(TYPE_KEY)
+        sessionStorage.removeItem(DATA_KEY)
     },
 
     getAuthType() {
-        return localStorage.getItem(TYPE_KEY)
+        return sessionStorage.getItem(TYPE_KEY)
     },
 
     getAuthData() {
         try {
-            const raw = localStorage.getItem(DATA_KEY)
+            const raw = sessionStorage.getItem(DATA_KEY)
             return raw ? JSON.parse(raw) : null
         } catch {
             return null
@@ -70,7 +55,7 @@ export const authService = {
     },
 
     isAuthenticated() {
-        return !!this.getToken()
+        return !!this.getAuthType()
     },
 
     isAttendant() {
