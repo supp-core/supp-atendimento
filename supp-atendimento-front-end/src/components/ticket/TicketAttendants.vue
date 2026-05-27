@@ -4,7 +4,7 @@
       <span class="text-subtitle-1 font-weight-medium">Equipe da Demanda</span>
       <v-spacer />
       <v-btn v-if="canManage" size="small" color="primary" prepend-icon="mdi-account-plus" @click="addDialog = true">
-        Adicionar Atendente
+        Adicionar Atendentes
       </v-btn>
     </div>
 
@@ -31,24 +31,29 @@
       </v-chip>
     </div>
 
-    <!-- Dialog para adicionar atendente -->
-    <v-dialog v-model="addDialog" max-width="400">
+    <!-- Dialog para adicionar atendentes -->
+    <v-dialog v-model="addDialog" max-width="480">
       <v-card>
-        <v-card-title>Adicionar Atendente</v-card-title>
+        <v-card-title>Adicionar Atendentes</v-card-title>
         <v-card-text>
           <v-autocomplete
-            v-model="selectedAttendantId"
+            v-model="selectedAttendantIds"
             :items="availableAttendants"
             item-title="name"
             item-value="id"
-            label="Selecionar atendente"
+            label="Selecionar atendentes"
+            multiple
+            chips
+            closable-chips
           />
           <v-alert v-if="addError" type="error" class="mt-2">{{ addError }}</v-alert>
         </v-card-text>
         <v-card-actions>
           <v-spacer />
-          <v-btn @click="addDialog = false">Cancelar</v-btn>
-          <v-btn color="primary" :loading="adding" @click="addAttendant">Adicionar</v-btn>
+          <v-btn @click="addDialog = false; selectedAttendantIds = []; addError = null">Cancelar</v-btn>
+          <v-btn color="primary" :loading="adding" :disabled="!selectedAttendantIds.length" @click="addAttendants">
+            Adicionar
+          </v-btn>
         </v-card-actions>
       </v-card>
     </v-dialog>
@@ -67,7 +72,7 @@ const props = defineProps({
 const attendants = ref([])
 const loading = ref(false)
 const addDialog = ref(false)
-const selectedAttendantId = ref(null)
+const selectedAttendantIds = ref([])
 const adding = ref(false)
 const addError = ref(null)
 const allAttendants = ref([])
@@ -105,17 +110,19 @@ async function loadAllAttendants() {
   }
 }
 
-async function addAttendant() {
-  if (!selectedAttendantId.value) return
+async function addAttendants() {
+  if (!selectedAttendantIds.value.length) return
   addError.value = null
   adding.value = true
   try {
-    await api.post(`/service/${props.serviceId}/attendants`, {
-      attendant_id: selectedAttendantId.value,
-    })
+    await Promise.all(
+      selectedAttendantIds.value.map(id =>
+        api.post(`/service/${props.serviceId}/attendants`, { attendant_id: id })
+      )
+    )
     await loadAttendants()
     addDialog.value = false
-    selectedAttendantId.value = null
+    selectedAttendantIds.value = []
   } catch (e) {
     addError.value = e.response?.data?.message || e.message
   } finally {

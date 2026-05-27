@@ -46,6 +46,20 @@
                 label="Tipo de Atendimento*" required variant="outlined" density="comfortable"></v-select>
             </v-col>
 
+            <!-- Projeto — visível apenas quando categoria for "Sistemas" -->
+            <v-col cols="12" v-if="categories.find(c => Number(c.id) === Number(formData.category_id))?.name?.toLowerCase() === 'sistemas'">
+              <v-autocomplete
+                v-model="formData.project_id"
+                :items="projects"
+                :item-title="p => `[${p.acronym}] ${p.name}`"
+                item-value="id"
+                label="Projeto"
+                variant="outlined"
+                density="comfortable"
+                clearable
+              ></v-autocomplete>
+            </v-col>
+
             <!-- Descrição -->
             <v-col cols="12">
               <v-textarea v-model="formData.description" label="Descrição do Atendimento*"
@@ -57,7 +71,7 @@
             <v-col cols="12">
               <v-file-input v-model="formData.files" label="Anexos (opcional)" multiple prepend-icon="mdi-paperclip"
                 show-size truncate-length="15" accept=".pdf,.docx,.jpg,.jpeg,.png,.gif" :rules="[
-                  files => !files.length || files.every(file => file.size < 10000000) || 'O tamanho do arquivo deve ser menor que 10MB'
+                  files => !files?.length || files.every(file => file.size < 10000000) || 'O tamanho do arquivo deve ser menor que 10MB'
                 ]" variant="outlined" density="comfortable"></v-file-input>
             </v-col>
           </v-row>
@@ -99,6 +113,11 @@ const users = ref([]);
 const sectors = ref([]);
 const categories = ref([]);
 const serviceTypes = ref([]);
+const projects = ref([]);
+
+watch(() => formData.value.category_id, () => {
+  formData.value.project_id = null;
+});
 
 // Opciones de prioridad
 const priorityOptions = [
@@ -117,8 +136,8 @@ const formData = ref({
   requester_id: null,
   category_id: null,
   service_type_id: null,
+  project_id: null,
   files: []
- 
 });
 
 // Observa cambios en la propiedad modelValue para actualizar el diálogo
@@ -190,6 +209,16 @@ const loadServiceTypes = async () => {
   }
 };
 
+const loadProjects = async () => {
+  try {
+    const response = await api.get('/project');
+    projects.value = (response.data.data || []).filter(p => p.status === 'ATIVO');
+  } catch (error) {
+    console.error('Erro ao carregar projetos:', error);
+  }
+};
+
+
 // Cerrar el diálogo y resetear el formulario
 const closeDialog = () => {
   showDialog.value = false;
@@ -222,8 +251,10 @@ const submitForm = async () => {
     submitData.append('service_type_id', formData.value.service_type_id);
     submitData.append('requester_id', formData.value.requester_id);
     submitData.append('created_by_admin_id', attendant.id);
- 
     submitData.append('created_by_admin', 'true');
+    if (formData.value.project_id) {
+      submitData.append('project_id', formData.value.project_id);
+    }
 
     // Adicionar arquivos apenas se existirem
     if (formData.value.files && formData.value.files.length > 0) {
@@ -272,12 +303,12 @@ const submitForm = async () => {
   }
 };
 
-// Cargar datos al montar el componente
 onMounted(() => {
   loadUsers();
   loadSectors();
   loadCategories();
   loadServiceTypes();
+  loadProjects();
 });
 </script>
 
