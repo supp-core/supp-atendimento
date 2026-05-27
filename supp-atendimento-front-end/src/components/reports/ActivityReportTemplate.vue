@@ -9,7 +9,7 @@
       </div>
       <div class="meta-row">
         <span class="meta-label">Período:</span>
-        <span class="meta-value">{{ formatDate(report.date_from) }} a {{ formatDate(report.date_to) }}</span>
+        <span class="meta-value">{{ formatDate(report.period?.from) }} a {{ formatDate(report.period?.to) }}</span>
       </div>
       <div v-if="report.project" class="meta-row">
         <span class="meta-label">Projeto:</span>
@@ -30,10 +30,10 @@
       <tbody>
         <tr v-for="(activity, i) in report.activities" :key="i">
           <td class="col-date">{{ formatDate(activity.date) }}</td>
-          <td class="col-ticket">#{{ activity.service_id }} — {{ activity.title }}</td>
+          <td class="col-ticket">#{{ activity.service_id }} — {{ activity.service_title }}</td>
           <td class="col-type">{{ activity.service_type || '—' }}</td>
           <td class="col-category">{{ activity.category || '—' }}</td>
-          <td class="col-activity">{{ activity.comment }}</td>
+          <td class="col-activity">{{ activity.description }}</td>
         </tr>
         <tr v-if="!report.activities?.length">
           <td colspan="5" class="empty-row">Nenhuma atividade registrada no período.</td>

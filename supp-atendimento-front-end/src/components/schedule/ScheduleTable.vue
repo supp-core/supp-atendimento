@@ -18,7 +18,7 @@
     >
       <template #item.date_start="{ item }">{{ formatDate(item.date_start) }}</template>
       <template #item.date_conclusion="{ item }">
-        <v-chip v-if="!item.date_conclusion && item.status === 'EM ANDAMENTO'" size="small" color="orange">
+        <v-chip v-if="!item.date_conclusion && isInProgress(item.status)" size="small" color="orange">
           Em andamento
         </v-chip>
         <v-chip v-else-if="!item.date_conclusion" size="small" color="blue-grey">
@@ -27,7 +27,7 @@
         <span v-else>{{ formatDate(item.date_conclusion) }}</span>
       </template>
       <template #item.status="{ item }">
-        <v-chip :color="statusColor(item.status)" size="small">{{ item.status }}</v-chip>
+        <v-chip :color="statusColor(item.status)" size="small">{{ translateStatus(item.status) }}</v-chip>
       </template>
       <template #item.observation="{ item }">
         <v-tooltip :text="item.observation" location="top">
@@ -38,30 +38,6 @@
       </template>
       <template #item.priority="{ item }">
         <v-chip :color="priorityColor(item.priority)" size="x-small">{{ item.priority }}</v-chip>
-      </template>
-      <template #tbody>
-        <tr
-          v-for="item in items"
-          :key="item.id"
-          :style="rowStyle(item.status)"
-        >
-          <td>{{ item.id }}</td>
-          <td>{{ item.title }}</td>
-          <td>{{ formatDate(item.date_start) }}</td>
-          <td>
-            <v-chip v-if="!item.date_conclusion && item.status === 'EM ANDAMENTO'" size="small" color="orange">Em andamento</v-chip>
-            <span v-else-if="item.date_conclusion">{{ formatDate(item.date_conclusion) }}</span>
-            <span v-else class="text-grey">Não iniciado</span>
-          </td>
-          <td><v-chip :color="statusColor(item.status)" size="small">{{ item.status }}</v-chip></td>
-          <td class="observation-cell">
-            <v-tooltip :text="item.observation" location="top">
-              <template #activator="{ props }">
-                <span v-bind="props">{{ truncate(item.observation, 60) }}</span>
-              </template>
-            </v-tooltip>
-          </td>
-        </tr>
       </template>
     </v-data-table>
   </v-card>
@@ -83,20 +59,27 @@ const headers = [
   { title: 'Observação', key: 'observation', sortable: false },
 ]
 
-function statusColor(s) {
-  return { 'ABERTO': 'blue', 'EM ANDAMENTO': 'orange', 'CONCLUIDO': 'green', 'CANCELADO': 'grey' }[s] || 'grey'
+const STATUS_LABEL = {
+  NOVO: 'Novo', NEW: 'Novo',
+  ABERTO: 'Aberto', OPEN: 'Aberto',
+  IN_PROGRESS: 'Em Andamento', 'EM ANDAMENTO': 'Em Andamento',
+  RESOLVED: 'Resolvido',
+  CONCLUDED: 'Concluído', CONCLUIDO: 'Concluído',
+  CANCELADO: 'Cancelado',
 }
+const STATUS_COLOR = {
+  NOVO: 'blue-grey', NEW: 'blue-grey',
+  ABERTO: 'blue', OPEN: 'blue',
+  IN_PROGRESS: 'orange', 'EM ANDAMENTO': 'orange',
+  RESOLVED: 'teal',
+  CONCLUDED: 'green', CONCLUIDO: 'green',
+  CANCELADO: 'grey',
+}
+function translateStatus(s) { return STATUS_LABEL[s] ?? s }
+function statusColor(s) { return STATUS_COLOR[s] ?? 'grey' }
+function isInProgress(s) { return s === 'IN_PROGRESS' || s === 'EM ANDAMENTO' }
 function priorityColor(p) {
   return { URGENTE: 'red', ALTA: 'orange', NORMAL: 'blue', BAIXA: 'grey' }[p] || 'grey'
-}
-function rowStyle(status) {
-  const styles = {
-    'ABERTO': '',
-    'EM ANDAMENTO': 'background-color:#FFFDE7',
-    'CONCLUIDO': 'background-color:#E8F5E9',
-    'CANCELADO': 'background-color:#FAFAFA',
-  }
-  return styles[status] || ''
 }
 function formatDate(d) {
   if (!d) return ''

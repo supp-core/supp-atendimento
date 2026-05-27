@@ -25,10 +25,11 @@ class ActivityReportService
             ->createQueryBuilder('sh')
             ->join('sh.service', 's')
             ->where('sh.responsible = :attendant')
-            ->andWhere('sh.type = :type')
+            ->andWhere('sh.comment IS NOT NULL')
+            ->andWhere('sh.comment != :empty')
             ->andWhere('sh.date_history BETWEEN :from AND :to')
             ->setParameter('attendant', $attendant)
-            ->setParameter('type', 'EVOLUTION')
+            ->setParameter('empty', '')
             ->setParameter('from', \DateTime::createFromImmutable($from))
             ->setParameter('to', \DateTime::createFromImmutable($to))
             ->orderBy('sh.date_history', 'ASC');
