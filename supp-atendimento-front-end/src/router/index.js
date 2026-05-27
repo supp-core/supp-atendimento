@@ -47,7 +47,7 @@ const routes = [
   {
     path: '/tickets/:id',
     name: 'ticket-details',
-    component: () => import('@/views/TicketsView.vue'),
+    component: () => import('@/views/TicketDetailsView.vue'),
     props: true
   },
   {
@@ -58,6 +58,37 @@ const routes = [
       requiresAttendantAuth: true,
       requiresAdmin: true
     }
+  },
+  {
+    path: '/projects',
+    name: 'projects',
+    component: () => import('@/views/projects/ProjectList.vue'),
+    meta: { requiresAttendantAuth: true }
+  },
+  {
+    path: '/projects/:id',
+    name: 'project-detail',
+    component: () => import('@/views/projects/ProjectDetail.vue'),
+    meta: { requiresAttendantAuth: true },
+    props: true
+  },
+  {
+    path: '/schedule',
+    name: 'schedule',
+    component: () => import('@/views/schedule/ScheduleView.vue'),
+    meta: { requiresAttendantAuth: true }
+  },
+  {
+    path: '/reports/productivity',
+    name: 'productivity-report',
+    component: () => import('@/views/reports/ProductivityReport.vue'),
+    meta: { requiresAttendantAuth: true }
+  },
+  {
+    path: '/reports/activity',
+    name: 'activity-report',
+    component: () => import('@/views/reports/ActivityReport.vue'),
+    meta: { requiresAttendantAuth: true }
   }
 ];
 

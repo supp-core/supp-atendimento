@@ -95,6 +95,11 @@ class Service
     #[ORM\JoinColumn(nullable: true)]
     private ?ServiceType $serviceType = null;
 
+    // Relacionamento com Project (RF-002)
+    #[ORM\ManyToOne]
+    #[ORM\JoinColumn(nullable: true, onDelete: 'SET NULL')]
+    private ?Project $project = null;
+
     public function __construct()
     {
         $this->attachments = new ArrayCollection();
@@ -355,6 +360,17 @@ class Service
     public function setServiceType(?ServiceType $serviceType): static
     {
         $this->serviceType = $serviceType;
+        return $this;
+    }
+
+    public function getProject(): ?Project
+    {
+        return $this->project;
+    }
+
+    public function setProject(?Project $project): static
+    {
+        $this->project = $project;
         return $this;
     }
 }

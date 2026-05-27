@@ -5,6 +5,7 @@ namespace App\Service;
 use App\Entity\Service;
 use App\Entity\Attendant;
 use App\Entity\Category;
+use App\Entity\Project;
 use App\Entity\ServiceType;
 use App\Entity\ServiceHistory;
 use App\Entity\ServiceAttachment;
@@ -99,6 +100,14 @@ class ServiceManager
 
         $priority = $data['priority'] ?? Service::PRIORITY_NORMAL;
         $service->setPriority($priority);
+
+        // Vincular projeto se fornecido (RF-002)
+        if (!empty($data['project_id'])) {
+            $project = $this->entityManager->getRepository(Project::class)->find($data['project_id']);
+            if ($project) {
+                $service->setProject($project);
+            }
+        }
 
         // Configurações para tickets criados por admin
         if ($createdByAdmin && !empty($data['created_by_admin_id'])) {
