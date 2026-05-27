@@ -331,8 +331,17 @@
           <v-card>
             <v-card-title>Transferir Atendimento</v-card-title>
             <v-card-text>
-              <v-select v-model="transferDialog.newAttendantId" :items="availableAttendants" item-title="name"
-                item-value="id" label="Novo Responsável" required></v-select>
+              <v-autocomplete
+                v-model="transferDialog.newAttendantIds"
+                :items="availableAttendants"
+                item-title="name"
+                item-value="id"
+                label="Responsáveis"
+                multiple
+                chips
+                closable-chips
+                required
+              ></v-autocomplete>
               <v-textarea v-model="transferDialog.comment" label="Motivo da Transferência" required
                 rows="3"></v-textarea>
             </v-card-text>
@@ -498,7 +507,7 @@ const openCreateDialog = () => {
 const transferDialog = ref({
   show: false,
   ticket: null,
-  newAttendantId: null,
+  newAttendantIds: [],
   comment: '',
   loading: false
 })
@@ -701,7 +710,7 @@ const openTransferDialog = (ticket) => {
   transferDialog.value = {
     show: true,
     ticket,
-    newAttendantId: null,
+    newAttendantIds: [],
     comment: '',
     loading: false
   }
@@ -741,10 +750,12 @@ const evolveTicket = async () => {
 const transferTicket = async () => {
   transferDialog.value.loading = true
   try {
-    await api.put(`/service/${transferDialog.value.ticket.id}/transfer`, {
-      attendant_id: transferDialog.value.newAttendantId,
-      comment: transferDialog.value.comment
-    })
+    const serviceId = transferDialog.value.ticket.id
+    await Promise.allSettled(
+      transferDialog.value.newAttendantIds.map(attendantId =>
+        api.post(`/service/${serviceId}/attendants`, { attendant_id: attendantId })
+      )
+    )
     await loadTickets()
     transferDialog.value.show = false
   } catch (error) {
