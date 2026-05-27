@@ -67,10 +67,10 @@ const router = createRouter({
 });
 
 router.beforeEach((to, _from, next) => {
-  const token = authService.getToken();
+  const authenticated = authService.isAuthenticated();
 
   if (to.matched.some(record => record.meta.requiresAttendantAuth)) {
-    if (!token || !authService.isAttendant()) {
+    if (!authenticated || !authService.isAttendant()) {
       return next('/login');
     }
     if (to.matched.some(record => record.meta.requiresAdmin) && !authService.isAdmin()) {
@@ -80,7 +80,7 @@ router.beforeEach((to, _from, next) => {
   }
 
   if (to.matched.some(record => record.meta.requiresAuth)) {
-    if (!token) {
+    if (!authenticated) {
       return next('/login');
     }
     return next();

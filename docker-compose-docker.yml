@@ -35,32 +35,16 @@ services:
     networks:
       - prod-network
 
-  # Serviço Nginx (Webserver)
-  webserver:
+  # Serviço Frontend (Vue SPA + proxy /api → backend)
+  frontend:
     build:
       context: .
       dockerfile: ./docker/nginx/Dockerfile
-    container_name: prod-webserver
+    container_name: supp-frontend
     ports:
       - "8080:80"
     depends_on:
       - backend
-    # volumes: # Removido volumes
-    #   - ./supp-atendimento-back-end:/var/www/html # Removido volumes
-    networks:
-      - prod-network
-
-  # Serviço Node.js para o Frontend Vue.js
-  frontend:
-    build:
-      context: .
-      dockerfile: ./docker/node/Dockerfile
-    container_name: prod-frontend # Alterado nome para identificar como produção
-    ports:
-      - "5173:5173" # Alterado para porta 80 para frontend em produção (ou ajuste conforme necessário)
-    # volumes: # Removido volumes
-    #   - ./supp-atendimento-front-end:/app # Removido volumes
-    # command: sh -c "npm install && npm run dev" # Removido comando de desenvolvimento
     networks:
       - prod-network
   
