@@ -59,7 +59,34 @@ class AppFixtures extends Fixture
             ->setUser($user);
             
         $manager->persist($attendant);
-        
+
+        // Atendentes operacionais — um por função/perfil técnico
+        $atendentesSeed = [
+            ['Lucas Almeida',         'lucas.almeida@pbh.gov.br',         'Programador Backend',   1, 'AVAILABLE'], // Dev
+            ['Mariana Silva',         'mariana.silva@pbh.gov.br',         'Programador DevOps',    3, 'AVAILABLE'], // DevOps
+            ['Pedro Henrique Costa',  'pedro.costa@pbh.gov.br',           'Analista de Sistemas',  1, 'BUSY'],      // Dev
+            ['Juliana Ferreira',      'juliana.ferreira@pbh.gov.br',      'Analista de Suporte',   0, 'AVAILABLE'], // Infra
+            ['Bruno Cardoso',         'bruno.cardoso@pbh.gov.br',         'Arquiteto de Software', 1, 'OFFLINE'],   // Dev
+        ];
+
+        foreach ($atendentesSeed as [$nome, $email, $funcao, $setorIdx, $status]) {
+            $u = new User();
+            $u->setName($nome)
+                ->setEmail($email)
+                ->setRoles(['ROLE_USER', 'ROLE_ATTENDANT'])
+                ->setIsAttendant(true);
+            $u->setPassword($this->passwordHasher->hashPassword($u, 'teste123'));
+            $manager->persist($u);
+
+            $a = new Attendant();
+            $a->setName($nome)
+                ->setFunction($funcao)
+                ->setStatus($status)
+                ->setSector($sectors[$setorIdx])
+                ->setUser($u);
+            $manager->persist($a);
+        }
+
         // Persiste todas as alterações no banco
         $manager->flush();
     }
