@@ -1,41 +1,41 @@
 
 # Para realizar Build do Projeto:
-docker build -t suppregistry.azurecr.io/helpdesk/supp-backend-kubernetes:1.0.1 -f ./docker/php/Dockerfile .
-docker build -t suppregistry.azurecr.io/helpdesk/supp-webserver-kubernetes:1.0.1 -f ./docker/nginx/Dockerfile .
+docker build -t suppregistry.azurecr.io/supp-atendimento/supp-backend-kubernetes:1.0.1 -f ./docker/php/Dockerfile .
+docker build -t suppregistry.azurecr.io/supp-atendimento/supp-webserver-kubernetes:1.0.1 -f ./docker/nginx/Dockerfile .
 
 # Enviar as imagems para azure:
-docker push suppregistry.azurecr.io/helpdesk/supp-backend-kubernetes:1.0.1
-docker push suppregistry.azurecr.io/helpdesk/supp-webserver-kubernetes:1.0.1
+docker push suppregistry.azurecr.io/supp-atendimento/supp-backend-kubernetes:1.0.1
+docker push suppregistry.azurecr.io/supp-atendimento/supp-webserver-kubernetes:1.0.1
 
 
-# Criar namespace do helpdesk:
-kubectl create namespace helpdesk
+# Criar namespace do supp-atendimento:
+kubectl create namespace supp-atendimento
 
 # Executar para kubernetes:
-kubectl apply -f kubernetes/backend-deployment.yaml -n helpdesk && sleep 10 && \
-kubectl apply -f kubernetes/backend-service.yaml -n helpdesk && sleep 10 && \
-kubectl apply -f kubernetes/mailhog-deployment.yaml -n helpdesk && sleep 10 && \
-kubectl apply -f kubernetes/webserver-deployment.yaml -n helpdesk && sleep 10 && \
-kubectl apply -f kubernetes/webserver-service.yaml -n helpdesk
+kubectl apply -f kubernetes/backend-deployment.yaml -n supp-atendimento && sleep 10 && \
+kubectl apply -f kubernetes/backend-service.yaml -n supp-atendimento && sleep 10 && \
+kubectl apply -f kubernetes/mailhog-deployment.yaml -n supp-atendimento && sleep 10 && \
+kubectl apply -f kubernetes/webserver-deployment.yaml -n supp-atendimento && sleep 10 && \
+kubectl apply -f kubernetes/webserver-service.yaml -n supp-atendimento
 
 # Certificado TLS PGMBH
 kubectl create secret tls supp-pgmbh-tls-secret \
-  --namespace helpdesk \
+  --namespace supp-atendimento \
   --cert=certificado-supp/supp-pgmbh-certificado.crt \
   --key=certificado-supp/supp-pgmbh-chave.key
 secret/supp-pgmbh-tls-secret created
 
-# Ingress para criação do Host de acesso helpdesk.pgmbh.org
-kubectl apply -f kubernetes/ingress.yaml -n helpdesk
+# Ingress para criação do Host de acesso supp-atendimento.pgmbh.org
+kubectl apply -f kubernetes/ingress.yaml -n supp-atendimento
 
 # Verificar os pods:
-kubectl get pods -n helpdesk
-kubectl get ingress -n helpdesk
+kubectl get pods -n supp-atendimento
+kubectl get ingress -n supp-atendimento
 
 
 # Deletar todos os serviços: 
-kubectl delete -f kubernetes/backend-deployment.yaml -n helpdesk
-kubectl delete -f kubernetes/mailhog-deployment.yaml -n helpdesk
-kubectl delete -f kubernetes/webserver-deployment.yaml -n helpdesk
-kubectl delete -f kubernetes/webserver-service.yaml -n helpdesk
-kubectl delete -f kubernetes/ingress.yaml -n helpdesk
+kubectl delete -f kubernetes/backend-deployment.yaml -n supp-atendimento
+kubectl delete -f kubernetes/mailhog-deployment.yaml -n supp-atendimento
+kubectl delete -f kubernetes/webserver-deployment.yaml -n supp-atendimento
+kubectl delete -f kubernetes/webserver-service.yaml -n supp-atendimento
+kubectl delete -f kubernetes/ingress.yaml -n supp-atendimento

@@ -1,18 +1,16 @@
 apiVersion: v1
 kind: Service
 metadata:
-  namespace: helpdesk
-  annotations:
-    kompose.cmd: kompose convert
-    kompose.version: 1.35.0 (9532ceef3)
-  labels:
-    io.kompose.service: webserver
   name: webserver
+  namespace: supp-atendimento
+  labels:
+    app: webserver
 spec:
-  ports:
-    - name: "80"
-      port: 80
-      targetPort: 80
   type: ClusterIP
   selector:
-    io.kompose.service: webserver
+    app: webserver
+  ports:
+    - name: http
+      protocol: TCP
+      port: 80
+      targetPort: 80

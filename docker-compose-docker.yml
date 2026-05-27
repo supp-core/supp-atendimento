@@ -15,9 +15,6 @@ services:
       - database
     environment:
       - APP_ENV=prod
-      # Azure (comentado para dev local)
-      # - DATABASE_URL=postgresql://postgres:P0stgre4Pgm25@supp-hml-bd.postgres.database.azure.com:5432/supp-atendimento-db
-      - DATABASE_URL=postgresql://postgres:danilo@database:5432/supp-atendimento?serverVersion=16&charset=utf8
       - MAILER_DSN=smtp://supp-mailhog:1025
 
   # Serviço PostgreSQL (Banco de dados local para dev)

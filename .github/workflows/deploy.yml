@@ -8,8 +8,8 @@ on:
 
 env:
   REGISTRY: suppregistry.azurecr.io
-  BACKEND_IMAGE_NAME: helpdesk/supp-backend-kubernetes
-  WEBSERVER_IMAGE_NAME: helpdesk/supp-webserver-kubernetes
+  BACKEND_IMAGE_NAME: supp-atendimento/supp-backend-kubernetes
+  WEBSERVER_IMAGE_NAME: supp-atendimento/supp-webserver-kubernetes
   IMAGE_TAG: v1.0.${{ github.run_number }}
 
 jobs:
@@ -87,8 +87,8 @@ jobs:
 
       - name: Aplicar deployments no AKS
         run: |
-          kubectl apply -f kubernetes/backend-deployment.yaml -n helpdesk
-          kubectl apply -f kubernetes/backend-service.yaml -n helpdesk
-          kubectl apply -f kubernetes/webserver-deployment.yaml -n helpdesk
-          kubectl apply -f kubernetes/webserver-service.yaml -n helpdesk
-          kubectl apply -f kubernetes/ingress.yaml -n helpdesk
+          kubectl apply -f kubernetes/backend-deployment.yaml -n supp-atendimento
+          kubectl apply -f kubernetes/backend-service.yaml -n supp-atendimento
+          kubectl apply -f kubernetes/webserver-deployment.yaml -n supp-atendimento
+          kubectl apply -f kubernetes/webserver-service.yaml -n supp-atendimento
+          kubectl apply -f kubernetes/ingress.yaml -n supp-atendimento

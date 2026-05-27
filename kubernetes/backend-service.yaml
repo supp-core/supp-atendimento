@@ -2,11 +2,15 @@ apiVersion: v1
 kind: Service
 metadata:
   name: backend
-  namespace: helpdesk
+  namespace: supp-atendimento
+  labels:
+    app: backend
 spec:
+  type: ClusterIP
   selector:
-    io.kompose.service: backend
+    app: backend
   ports:
-    - protocol: TCP
+    - name: fastcgi
+      protocol: TCP
       port: 9000
       targetPort: 9000

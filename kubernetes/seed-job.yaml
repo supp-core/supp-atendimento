@@ -1,0 +1,43 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: seed-fixtures
+  namespace: supp-atendimento
+  labels:
+    job-type: seed
+spec:
+  # Job some sozinho do cluster 5 min depois de terminar (sucesso ou falha)
+  ttlSecondsAfterFinished: 300
+  # Se falhar, tenta 1x mais e desiste
+  backoffLimit: 1
+  template:
+    spec:
+      restartPolicy: Never
+      containers:
+        - name: seed
+          image: suppregistry.azurecr.io/supp-atendimento/backend:1.0.0
+          command: ["/bin/sh", "-c"]
+          args:
+            - |
+              set -e
+              echo "==> Copiando .env.prod"
+              cp /env-prod/.env.prod /var/www/html/.env.prod
+              echo "==> Instalando dev dependencies (fixtures bundle)"
+              composer install --no-interaction --working-dir=/var/www/html
+              echo "==> Carregando fixtures (--append: nao apaga dados existentes)"
+              env APP_ENV=dev php /var/www/html/bin/console doctrine:fixtures:load --no-interaction --append
+              echo "==> Seed finalizado com sucesso"
+          volumeMounts:
+            - name: env-prod
+              mountPath: /env-prod
+              readOnly: true
+            - name: jwt-keys
+              mountPath: /var/www/html/config/jwt
+              readOnly: true
+      volumes:
+        - name: env-prod
+          secret:
+            secretName: supp-atendimento-env
+        - name: jwt-keys
+          secret:
+            secretName: supp-atendimento-jwt
