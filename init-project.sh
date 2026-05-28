@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # Nome do arquivo docker-compose de produção (ajuste se necessário)
-COMPOSE_FILE="docker-compose-docker.yml"
+COMPOSE_FILE="docker-compose.yml"
 
 # Mensagem inicial
 echo "Iniciando a construção e inicialização do projeto em ambiente de PRODUÇÃO..."

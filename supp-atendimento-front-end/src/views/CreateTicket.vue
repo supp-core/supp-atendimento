@@ -15,30 +15,29 @@
 
           <div class="form-card">
 
-            <form @submit.prevent="submitForm" ref="form" enctype="multipart/form-data">
-              <!-- Título do Chamado -->
+            <form @submit.prevent="handleSubmit" ref="form" enctype="multipart/form-data">
+              <!-- Número do Ticket -->
               <div class="form-group">
-                <label for="title">Título do Chamado*</label>
-                <input id="title" v-model="formData.title" type="text" class="form-input" required
-                  placeholder="Digite o título do chamado">
+                <div class="auto-title">{{ nextTicketTitle }}</div>
               </div>
+
+              <!-- Campo de categoria -->
+              <div class="form-group">
+                <label for="category">Categoria*</label>
+                <select id="category" v-model="formData.category_id" class="form-input" required>
+                  <option value="">Selecione uma categoria</option>
+                  <option v-for="category in categories" :key="category.id" :value="category.id">
+                    {{ category.name }}
+                  </option>
+                </select>
+              </div>
+
 
               <!-- Descrição -->
               <div class="form-group">
                 <label for="description">Descrição*</label>
                 <textarea id="description" v-model="formData.description" class="form-input" rows="5" required
-                  placeholder="Descreva detalhadamente o problema"></textarea>
-              </div>
-
-              <!-- Projeto (opcional) -->
-              <div class="form-group">
-                <label for="project">Projeto (opcional)</label>
-                <select id="project" v-model="formData.project_id" class="form-input">
-                  <option value="">Sem projeto</option>
-                  <option v-for="p in projects" :key="p.id" :value="p.id">
-                    [{{ p.acronym }}] {{ p.name }}
-                  </option>
-                </select>
+                  placeholder="Descreva detalhadamente o problema. No caso de planilhas, informe por favor qual planilha ou cole o link da mesma."></textarea>
               </div>
 
               <div class="anexos">
@@ -79,6 +78,7 @@
 import { ref, onMounted } from 'vue';
 import { useRouter } from 'vue-router';
 import { useSidebar } from '@/composables/useSidebar';
+import { authService } from '@/services/auth.service';
 import AppHeader from '@/components/common/AppHeader.vue';
 import AppSidebar from '@/components/common/AppSidebar.vue';
 import api from '@/services/api';
@@ -86,19 +86,18 @@ import api from '@/services/api';
 
 const router = useRouter();
 const { sidebarCollapsed } = useSidebar();
+const form = ref(null);
 const loading = ref(false);
 const sectors = ref([]);
+const categories = ref([]);
+const serviceTypes = ref([]);
 const selectedFiles = ref([]);
-
-
-const projects = ref([])
+const nextTicketTitle = ref('Carregando...');
 
 const formData = ref({
-  title: '',
   description: '',
-  sector_id: '',
-  priority: 'NORMAL',
-  project_id: '',
+  category_id: '',
+  priority: 'NORMAL', // Valor padrão
 });
 
 const feedback = ref({
@@ -119,6 +118,25 @@ const loadSectors = async () => {
   }
 };
 
+const loadCategories = async () => {
+  try {
+    const response = await api.get('/categories');
+    categories.value = response.data.data;
+  } catch (error) {
+    showFeedback('Erro ao carregar categorias', 'error');
+  }
+};
+
+const loadServiceTypes = async () => {
+  try {
+    const response = await api.get('/service-types');
+    serviceTypes.value = response.data.data;
+  } catch (error) {
+    console.error('Erro ao carregar tipos de serviço:', error);
+    showFeedback('Erro ao carregar tipos de serviço', 'error');
+  }
+};
+
 const handleFileSelect = (event) => {
   const files = event.target.files;
   for (let i = 0; i < files.length; i++) {
@@ -130,6 +148,55 @@ const removeFile = (index) => {
   selectedFiles.value.splice(index, 1);
 };
 
+const loadNextTicketNumber = async () => {
+  try {
+    // Busca os tickets do usuário para obter IDs reais do banco
+    const response = await api.get('/service/my-tickets?per_page=1000');
+    
+    // Se retornou dados, calcula próximo ID baseado no maior ID existente
+    if (response.data && response.data.data && Array.isArray(response.data.data) && response.data.data.length > 0) {
+      const allIds = response.data.data.map(ticket => parseInt(ticket.id)).filter(id => !isNaN(id));
+      if (allIds.length > 0) {
+        const maxId = Math.max(...allIds);
+        const nextNumber = maxId + 1;
+        nextTicketTitle.value = `${nextNumber}`;
+        console.log(`Próximo ticket baseado no banco: ${nextNumber} (maior ID atual: ${maxId})`);
+        return;
+      }
+    }
+    
+    // Se chegou aqui, não há tickets ainda (banco vazio)
+    nextTicketTitle.value = `1`;
+    console.log('Banco vazio, iniciando com 1');
+    
+  } catch (error) {
+    // 404 significa que não há tickets ainda - é o estado inicial normal
+    if (error.response?.status === 404) {
+      nextTicketTitle.value = `1`;
+      console.log('404 = banco vazio, iniciando com 1');
+    } else {
+      console.error('Erro ao buscar tickets:', error);
+      // Para outros erros, tentar uma segunda abordagem
+      try {
+        // Tenta uma busca mais simples sem filtros
+        const fallbackResponse = await api.get('/service/my-tickets');
+        if (fallbackResponse.data?.data?.length > 0) {
+          const allIds = fallbackResponse.data.data.map(ticket => parseInt(ticket.id)).filter(id => !isNaN(id));
+          if (allIds.length > 0) {
+            const maxId = Math.max(...allIds);
+            nextTicketTitle.value = `${maxId + 1}`;
+            return;
+          }
+        }
+        // Se não retornou dados, assume primeiro ticket
+        nextTicketTitle.value = `1`;
+      } catch (fallbackError) {
+        console.error('Erro no fallback, assumindo 1:', fallbackError);
+        nextTicketTitle.value = `1`;
+      }
+    }
+  }
+};
 
 const showFeedback = (message, type = 'success') => {
   feedback.value = {
@@ -142,55 +209,104 @@ const showFeedback = (message, type = 'success') => {
   }, 3000);
 };
 
-const loadProjects = async () => {
-  try {
-    const response = await api.get('/project')
-    projects.value = (response.data.data || []).filter(p => p.status === 'ATIVO')
-  } catch (e) {
-    // silently ignore
+const handleSubmit = async () => {
+  if (!formData.value.description || !formData.value.category_id) {
+    showFeedback('Por favor, preencha todos os campos obrigatórios', 'error');
+    return;
   }
-}
+
+  loading.value = true;
+
+  try {
+    // Pega o usuário logado
+    const userData = authService.getUser();
+    if (!userData || !userData.id) {
+      showFeedback('Erro: usuário não autenticado', 'error');
+      return;
+    }
+
+    // Busca o setor "Suporte" pelo nome
+    let suporteSectorId = 15; // Fallback
+    if (sectors.value && sectors.value.length > 0) {
+      const suporteSector = sectors.value.find(sector => 
+        sector.name && sector.name.toLowerCase().includes('suporte')
+      );
+      if (suporteSector) {
+        suporteSectorId = suporteSector.id;
+        console.log(`Setor "Suporte" encontrado com ID: ${suporteSectorId}`);
+      } else {
+        // Se não encontrar "Suporte", usa o primeiro disponível
+        suporteSectorId = sectors.value[0].id;
+        console.log(`Setor "Suporte" não encontrado, usando o primeiro: ${suporteSectorId}`);
+      }
+    }
+
+    // Busca o service type "Triagem" pelo nome
+    let triagemServiceTypeId = 1; // Fallback
+    if (serviceTypes.value && serviceTypes.value.length > 0) {
+      const triagemType = serviceTypes.value.find(st => 
+        st.name && st.name.toLowerCase().includes('triagem')
+      );
+      if (triagemType) {
+        triagemServiceTypeId = triagemType.id;
+        console.log(`Service type "Triagem" encontrado com ID: ${triagemServiceTypeId}`);
+      } else {
+        // Se não encontrar "Triagem", usa o primeiro disponível
+        triagemServiceTypeId = serviceTypes.value[0].id;
+        console.log(`Service type "Triagem" não encontrado, usando o primeiro: ${triagemServiceTypeId}`);
+      }
+    }
+
+    // Cria FormData em vez de JSON object (igual ao AdminCreateTicket)
+    const submitData = new FormData();
+    
+    // Adiciona campos básicos
+    submitData.append('title', nextTicketTitle.value);
+    submitData.append('description', formData.value.description);
+    submitData.append('priority', formData.value.priority);
+    submitData.append('category_id', formData.value.category_id);
+    submitData.append('sector_id', suporteSectorId);
+    submitData.append('requester_id', userData.id);
+    submitData.append('service_type_id', triagemServiceTypeId);
+    submitData.append('created_by_admin', 'false');
+
+    // Log para debug
+    console.log('FormData sendo enviado:');
+    for (let pair of submitData.entries()) {
+      console.log(pair[0] + ': ' + pair[1]);
+    }
+
+    const response = await api.post('/service', submitData, {
+      headers: {
+        'Content-Type': 'multipart/form-data'
+      }
+    });
+
+    if (response.data.success) {
+      showFeedback('Atendimento criado com sucesso!');
+      setTimeout(() => {
+        router.push('/tickets');
+      }, 1500);
+    }
+  } catch (error) {
+    showFeedback(error.response?.data?.message || 'Erro ao criar atendimento', 'error');
+  } finally {
+    loading.value = false;
+  }
+};
 
 onMounted(() => {
   loadSectors();
-  loadProjects();
+  loadCategories();
+  loadServiceTypes();
+  loadNextTicketNumber();
 });
 
 
 
 
-const submitForm = async () => {
-  try {
-    loading.value = true;
-
-    const submitData = new FormData();
-    submitData.append('title', formData.value.title);
-    submitData.append('description', formData.value.description);
-    submitData.append('priority', 'NORMAL');
-    const adminSector = sectors.value.find(s => s.name === 'Admin');
-    submitData.append('sector_id', adminSector?.id ?? '');
-    if (formData.value.project_id) {
-      submitData.append('project_id', formData.value.project_id);
-    }
-    selectedFiles.value.forEach(file => {
-      submitData.append('files[]', file);
-    });
-
-    await api.post('/service', submitData, {
-      headers: { 'Content-Type': 'multipart/form-data' }
-    });
-
-    showFeedback('Atendimento criado com sucesso!');
-    formData.value.title = '';
-    formData.value.description = '';
-    formData.value.project_id = '';
-    selectedFiles.value = [];
-    setTimeout(() => router.push('/tickets'), 2000);
-  } catch (error) {
-    showFeedback(error.response?.data?.message || 'Erro ao criar o atendimento. Por favor, tente novamente.', 'error');
-  } finally {
-    loading.value = false;
-  }
+const handleFileUpload = (event) => {
+  files.value = event.target.files;
 };
 
 
@@ -293,6 +409,23 @@ const cancelar = () => {
   font-size: 1rem;
 }
 
+.auto-title {
+  background: #f8f9fa;
+  border: 1px solid #e9ecef;
+  border-radius: 4px;
+  padding: 12px;
+  font-size: 1rem;
+  font-weight: 500;
+  color: #1a237e;
+  margin-bottom: 4px;
+}
+
+.title-note {
+  color: #666;
+  font-style: italic;
+  font-size: 0.875rem;
+}
+
 .form-input:focus {
   outline: none;
   border-color: #1a237e;
@@ -361,3 +494,55 @@ textarea.form-input {
 }
 </style>
 
+
+<script>
+export default {
+  data() {
+    return {
+      selectedFiles: [],
+      // ... outros dados
+    }
+  },
+  methods: {
+
+    handleFileDrop(event) {
+      this.addFiles(event.dataTransfer.files)
+    },
+    addFiles(fileList) {
+      const maxSize = 10 * 1024 * 1024 // 10MB
+
+      Array.from(fileList).forEach(file => {
+        if (file.size <= maxSize) {
+          this.selectedFiles.push(file)
+        } else {
+          this.$notify({
+            type: 'error',
+            message: `Arquivo ${file.name} excede o tamanho máximo permitido`
+          })
+        }
+      })
+    },
+
+    async handleSubmit() {
+      const formData = new FormData()
+
+      // Adicionar dados do ticket
+      formData.append('title', this.title)
+      formData.append('description', this.description)
+      formData.append('priority', 'NORMAL')
+
+      // Adicionar arquivos
+      this.selectedFiles.forEach((file, index) => {
+        formData.append(`attachments[${index}]`, file)
+      })
+
+      try {
+        await this.createTicket(formData)
+        // ... continua
+      } catch (error) {
+        // ... tratamento de erro
+      }
+    }
+  }
+}
+</script>

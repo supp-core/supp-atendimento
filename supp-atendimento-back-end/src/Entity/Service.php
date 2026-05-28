@@ -66,6 +66,9 @@ class Service
     #[ORM\Column(type: Types::DATETIME_MUTABLE, nullable: true)]
     private ?\DateTimeInterface $date_conclusion = null;
 
+    #[ORM\Column(type: Types::DATETIME_MUTABLE, nullable: true)]
+    private ?\DateTimeInterface $deadline = null;
+
 
     #[ORM\OneToMany(mappedBy: 'service', targetEntity: ServiceHistory::class, orphanRemoval: true)]
     private Collection $histories;
@@ -371,6 +374,17 @@ class Service
     public function setProject(?Project $project): static
     {
         $this->project = $project;
+        return $this;
+    }
+
+    public function getDeadline(): ?\DateTimeInterface
+    {
+        return $this->deadline;
+    }
+
+    public function setDeadline(?\DateTimeInterface $deadline): static
+    {
+        $this->deadline = $deadline;
         return $this;
     }
 }

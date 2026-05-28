@@ -39,7 +39,7 @@
             <div class="metadata-item">
               <v-icon size="small" class="mr-1">mdi-domain</v-icon>
               <span class="metadata-label">Setor:</span>
-              {{ ticket.responsible.sector?.name ?? ticket.sector.name }}
+              {{ ticket?.responsible?.sector?.name ?? ticket?.sector?.name }}
             </div>
           </v-col>
 
@@ -71,13 +71,6 @@
               </v-chip>
             </div>
           </v-col>
-          <v-col cols="6">
-            <div class="metadata-item">
-              <v-icon size="small" class="mr-1">mdi-account</v-icon>
-              <span class="metadata-label">Responsável:</span>
-              {{ ticket?.responsible?.name || 'Não atribuído' }}
-            </div>
-          </v-col>
         </v-row>
       </v-card-text>
 
@@ -105,7 +98,7 @@
                 <v-chip :color="getStatusColor(history.status_prev)" size="x-small" text-color="white">
                   {{ translateStatus(history.status_prev) }}
                 </v-chip>
-                <v-icon>mdi-arrow-right</v-icon>
+                <span class="mx-2">→</span>
                 <v-chip :color="getStatusColor(history.status_post)" size="x-small" text-color="white">
                   {{ translateStatus(history.status_post) }}
                 </v-chip>
@@ -152,6 +145,25 @@
 
       <!-- Ações -->
       <v-card-actions class="pa-4">
+        <v-btn 
+          v-if="ticket?.status === 'RESOLVED'"
+          color="primary" 
+          variant="outlined" 
+          @click="reopenTicket"
+          :loading="reopening"
+          class="me-2"
+        >
+          🔄 Reabrir Ticket
+        </v-btn>
+        <v-btn 
+          v-if="ticket?.status === 'RESOLVED'"
+          color="success" 
+          variant="outlined" 
+          @click="concludeTicket"
+          :loading="concluding"
+        >
+          ✅ Marcar como Concluído
+        </v-btn>
         <v-spacer></v-spacer>
         <v-btn color="grey-darken-1" variant="text" @click="closeDialog">
           Fechar
@@ -166,6 +178,7 @@ import { ref, watch } from 'vue'
 import { format } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
 import { ticketsService } from '@/services/tickets.service';
+import api from '@/services/api';
 
 const props = defineProps({
   modelValue: Boolean,
@@ -173,10 +186,12 @@ const props = defineProps({
 })
 
 
-const emit = defineEmits(['update:modelValue'])
+const emit = defineEmits(['update:modelValue', 'ticket-reopened'])
 
 const dialogVisible = ref(props.modelValue)
 const loading = ref(false) // Adicionado estado de loading
+const reopening = ref(false) // Estado para o botão de reabrir
+const concluding = ref(false) // Estado para o botão de marcar como concluído
 
 // Feedback para notificações
 const feedback = ref({
@@ -209,6 +224,8 @@ const getStatusColor = (status) => {
     'OPEN': 'blue',
     'IN_PROGRESS': 'orange',
     'RESOLVED': 'green',
+    'CANCELADO': 'red',
+    'RETORNO': 'cyan',
     'CONCLUDED': 'purple'
   }
   return colors[status] || 'grey'
@@ -220,6 +237,8 @@ const translateStatus = (status) => {
     'OPEN': 'Aberto',
     'IN_PROGRESS': 'Em Andamento',
     'RESOLVED': 'Resolvido',
+    'CANCELADO': 'Cancelado',
+    'RETORNO': 'Retorno',
     'CONCLUDED': 'Concluído'
   }
   return translations[status] || status
@@ -234,6 +253,80 @@ const formatDate = (dateString) => {
 
 const closeDialog = () => {
   dialogVisible.value = false
+}
+
+const reopenTicket = async () => {
+  try {
+    reopening.value = true;
+    
+    // Faz a chamada para reabrir o ticket (mudando status para IN_PROGRESS)
+    const response = await api.put(`/service/${props.ticket.id}/status`, {
+      status: 'IN_PROGRESS',
+      comment: 'Ticket reaberto'
+    });
+    
+    if (response.data.success) {
+      feedback.value = {
+        show: true,
+        message: 'Ticket reaberto com sucesso!',
+        type: 'success'
+      };
+      
+      // Emite evento para atualizar a lista
+      emit('ticket-reopened');
+      
+      // Fecha o modal após 1 segundo
+      setTimeout(() => {
+        closeDialog();
+      }, 1000);
+    }
+  } catch (error) {
+    console.error('Erro ao reabrir ticket:', error);
+    feedback.value = {
+      show: true,
+      message: 'Erro ao reabrir o ticket',
+      type: 'error'
+    };
+  } finally {
+    reopening.value = false;
+  }
+}
+
+const concludeTicket = async () => {
+  try {
+    concluding.value = true;
+    
+    // Faz a chamada para marcar o ticket como concluído
+    const response = await api.put(`/service/${props.ticket.id}/status`, {
+      status: 'CONCLUDED',
+      comment: 'Ticket marcado como concluído manualmente'
+    });
+    
+    if (response.data.success) {
+      feedback.value = {
+        show: true,
+        message: 'Ticket marcado como concluído com sucesso!',
+        type: 'success'
+      };
+      
+      // Emite evento para atualizar a lista
+      emit('ticket-reopened');
+      
+      // Fecha o modal após 1 segundo
+      setTimeout(() => {
+        closeDialog();
+      }, 1000);
+    }
+  } catch (error) {
+    console.error('Erro ao concluir ticket:', error);
+    feedback.value = {
+      show: true,
+      message: 'Erro ao marcar o ticket como concluído',
+      type: 'error'
+    };
+  } finally {
+    concluding.value = false;
+  }
 }
 
 const downloadAttachment = async (attachment) => {

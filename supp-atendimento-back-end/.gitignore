@@ -2,6 +2,8 @@
 #/.env.local
 /.env.local.php
 /.env.*.local
+.env
+.env.prod
 /config/secrets/prod/prod.decrypt.private.php
 /public/bundles/
 /var/
@@ -15,5 +17,4 @@
 /public/uploads/attachments/*
 !/public/uploads/attachments/.gitkeep
 
-.env
 .env.local

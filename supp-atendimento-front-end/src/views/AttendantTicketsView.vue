@@ -7,7 +7,7 @@
         <div class="tickets-page">
           <div class="d-flex justify-space-between align-center mb-4">
             <h2 class="text-h5 font-weight-medium">Meus Atendimentos</h2>
-            <v-btn v-if="isAdmin" color="primary" prepend-icon="mdi-plus" @click="openCreateDialog">
+            <v-btn v-if="isAdmin" color="primary" @click="openCreateDialog" class="btn-centered btn-centered-text">
               Criar Chamado para Usuário
             </v-btn>
 
@@ -17,59 +17,86 @@
           <v-card class="mb-4">
             <v-card-text>
               <v-row>
-                <!-- Campo de pesquisa por título -->
-                <v-col cols="12" sm="3">
-                  <v-text-field v-model="searchTitle" label="Pesquisar por Título" outlined dense
-                    @input="handleSearchInput"></v-text-field>
-                </v-col>
-
                 <!-- Campo de pesquisa por solicitante -->
                 <v-col cols="12" sm="3">
-                  <v-text-field v-model="searchRequester" label="Pesquisar por Solicitante" outlined dense
+                  <v-text-field v-model="searchRequester" label="Pesquisar por solicitante" outlined dense
                     @input="handleSearchInput"></v-text-field>
                 </v-col>
 
                 <!-- Filtro de Status -->
                 <v-col cols="12" sm="3">
                   <v-select v-model="searchStatus" :items="statusOptions" label="Status" outlined dense
-                    @change="handleFilter"></v-select>
+                    @change="handleSearch"></v-select>
                 </v-col>
 
                 <!-- Filtro de Prioridade -->
                 <v-col cols="12" sm="3">
                   <v-select v-model="searchPriority" :items="priorityOptions" label="Prioridade" outlined dense
-                    @change="handleFilter"></v-select>
+                    @change="handleSearch"></v-select>
                 </v-col>
                 <v-col cols="12" sm="3">
                   <v-select v-model="searchCategory" :items="categoryOptions" item-title="title" item-value="value"
-                    label="Categoria" outlined dense @change="handleFilter"></v-select>
+                    label="Categoria" outlined dense @change="handleSearch"></v-select>
                 </v-col>
 
                 <v-col cols="12" sm="3">
                   <v-select v-model="searchServiceType" :items="serviceTypeOptions" item-title="title"
-                    item-value="value" label="Tipo de Serviço" outlined dense @change="handleFilter"></v-select>
+                    item-value="value" label="Tipo de Serviço" outlined dense @change="handleSearch"></v-select>
                 </v-col>
+
+                <!-- Filtro de Período -->
                 <v-col cols="12" sm="3">
-                  <v-autocomplete
-                    v-model="searchProjectId"
-                    :items="availableProjects"
-                    :item-title="p => `[${p.acronym}] ${p.name}`"
-                    item-value="id"
-                    label="Projeto"
-                    clearable
-                    outlined dense
-                  />
+                  <div class="date-compact">
+                    <div class="date-label mb-1">Período</div>
+                    <div class="date-inputs">
+                      <v-menu v-model="startDateMenu" :close-on-content-click="false" min-width="auto">
+                        <template v-slot:activator="{ props }">
+                          <v-text-field v-model="formattedStartDate" dense hide-details placeholder="De"
+                            prepend-inner-icon="mdi-calendar" readonly v-bind="props" variant="outlined"
+                            class="date-input"></v-text-field>
+                        </template>
+                        <v-date-picker v-model="startDate" @update:model-value="startDateMenu = false; handleSearch()" locale="pt-BR"></v-date-picker>
+                      </v-menu>
+
+                      <v-menu v-model="endDateMenu" :close-on-content-click="false" min-width="auto">
+                        <template v-slot:activator="{ props }">
+                          <v-text-field v-model="formattedEndDate" dense hide-details placeholder="Até"
+                            prepend-inner-icon="mdi-calendar" readonly v-bind="props" variant="outlined"
+                            class="date-input"></v-text-field>
+                        </template>
+                        <v-date-picker v-model="endDate" @update:model-value="endDateMenu = false; handleSearch()" locale="pt-BR"></v-date-picker>
+                      </v-menu>
+                    </div>
+                  </div>
                 </v-col>
                 <!-- Nova linha para botões -->
                 <v-col cols="12" class="d-flex align-center mt-2">
-                  <v-btn color="primary" @click="handleSearch" :loading="loading" class="me-2">
-                    <v-icon start>mdi-magnify</v-icon>
+                  <v-btn color="primary" @click="handleSearch" :loading="loading" class="me-2 btn-centered">
                     Pesquisar
                   </v-btn>
 
-                  <v-btn variant="outlined" @click="resetFilters" :disabled="loading">
-                    <v-icon start>mdi-refresh</v-icon>
+                  <v-btn variant="outlined" @click="resetFilters" :disabled="loading" class="me-2 btn-centered">
                     Limpar
+                  </v-btn>
+
+                  <v-btn 
+                    color="black" 
+                    :variant="showCompleted ? 'flat' : 'outlined'"
+                    @click="toggleCompleted" 
+                    :disabled="loading" 
+                    class="btn-centered"
+                    :title="showCompleted ? 'Ocultar Concluídos' : 'Exibir Concluídos'"
+                  >
+                    <svg v-if="showCompleted" width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" class="me-2">
+                      <path d="M12 4.5C5.5 4.5 2 12 2 12s3.5 7.5 10 7.5S22 12 22 12s-3.5-7.5-10-7.5z" fill="currentColor"/>
+                      <circle cx="12" cy="12" r="3" fill="white"/>
+                      <line x1="2" y1="2" x2="22" y2="22" stroke="currentColor" stroke-width="2"/>
+                    </svg>
+                    <svg v-else width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" class="me-2">
+                      <path d="M12 4.5C5.5 4.5 2 12 2 12s3.5 7.5 10 7.5S22 12 22 12s-3.5-7.5-10-7.5z" fill="currentColor"/>
+                      <circle cx="12" cy="12" r="3" fill="white"/>
+                    </svg>
+                    {{ showCompleted ? 'Ocultar Concluídos' : 'Exibir Concluídos' }}
                   </v-btn>
                 </v-col>
               </v-row>
@@ -84,12 +111,13 @@
             <v-table hover>
               <thead>
                 <tr>
-                  <th class="text-left">Título</th>
+                  <th class="text-left">Número</th>
                   <th class="text-left">Solicitante</th>
-                  <th class="text-left">Projeto</th>
                   <th class="text-left">Prioridade</th>
                   <th class="text-left">Status</th>
+                  <th class="text-left">Setor</th>
                   <th class="text-left">Data Criação</th>
+                  <th class="text-left">Prazo</th>
                   <th class="text-left">Data Conclusão</th>
                   <th class="text-center">Ações</th>
                 </tr>
@@ -97,13 +125,7 @@
               <tbody>
                 <tr v-for="ticket in sortedTickets" :key="ticket.id">
                   <td>{{ ticket.title }}</td>
-                  <td>{{ ticket.requester?.name }}</td>
-                  <td>
-                    <v-chip v-if="ticket.project" size="x-small" color="blue-grey" variant="outlined">
-                      {{ ticket.project.acronym }}
-                    </v-chip>
-                    <span v-else class="text-grey">—</span>
-                  </td>
+                  <td>{{ ticket.requester?.name }}</td> <!-- Nova célula -->
                   <td>
                     <v-chip :color="getPriorityColor(ticket.priority)"
                       :text-color="getPriorityTextColor(ticket.priority)" size="small" class="priority-chip">
@@ -115,18 +137,25 @@
                       {{ translateStatus(ticket.status) }}
                     </v-chip>
                   </td>
+                  <td>{{ ticket.sector?.name }}</td>
                   <td>{{ formatDate(ticket.dates.created) }}</td>
+                  <td :class="getDeadlineClass(ticket.dates.deadline)">{{ formatDate(ticket.dates.deadline) }}</td>
                   <td>{{ ticket.dates.concluded ? formatDate(ticket.dates.concluded) : '-' }}</td>
                   <td class="text-center">
-                    <v-btn :prepend-icon="mdiPencilBoxOutline" size="small" color="primary" class="mr-2"
-                      @click="openEvolveDialog(ticket)" :disabled="ticket.status === 'CONCLUDED'">
-                      Evoluir
+                    <v-btn size="small" color="primary" class="mr-2 btn-centered-text action-btn"
+                      @click="openEvolveDialog(ticket)" :disabled="ticket.status === 'CONCLUDED' || ticket.status === 'RESOLVED'">
+                      ✏️ Evoluir
                     </v-btn>
 
 
-                    <v-btn :prepend-icon="mdi - pencil - box - outline" size="small" color="primary" class="mr-2"
-                      @click="openTransferDialog(ticket)" :disabled="ticket.status === 'CONCLUDED'">
-                      Transferir
+                    <v-btn size="small" color="primary" class="mr-2 btn-centered-text action-btn"
+                      @click="openTransferDialog(ticket)" :disabled="ticket.status === 'CONCLUDED' || ticket.status === 'RESOLVED'">
+                      ↗️ Transferir
+                    </v-btn>
+
+                    <v-btn size="small" color="info" class="btn-centered-text action-btn"
+                      @click="openHistoryDialog(ticket)">
+                      📋 Ver Histórico
                     </v-btn>
 
                   </td>
@@ -136,7 +165,7 @@
 
             <div class="pagination-wrapper">
               <div class="pagination-info">
-                Mostrando {{ meta.per_page }} de {{ meta.total }} registros
+                Mostrando {{ tickets.length }} de {{ meta.total }} registros
               </div>
               <div class="pagination-controls">
                 <!-- Botão Anterior -->
@@ -212,65 +241,62 @@
               </div>
 
 
-              <!-- Dentro do v-card-text do evolveDialog -->
-              <div class="admin-fields mt-4 mb-4">
-                <div class="section-title d-flex align-center mb-2">
-                  <v-icon icon="mdi-tune" class="mr-2"></v-icon>
-                  <span>Campos administrativos</span>
-                </div>
+      
+<!-- Dentro do v-card-text do evolveDialog -->
+<div class="admin-fields mt-4 mb-4">
+  <div class="section-title d-flex align-center mb-2">
+    <v-icon icon="mdi-tune" class="mr-2"></v-icon>
+    <span>Campos administrativos</span>
+  </div>
 
-                <v-row>
-                  <!-- Para administradores: comboboxes -->
-                  <template v-if="isAdmin">
-                    <v-col cols="12" md="6">
-                      <v-select v-model="evolveDialog.category_id" :items="categories" item-title="name" item-value="id"
-                        label="Categoria" :disabled="evolveDialog.loading"></v-select>
-                    </v-col>
+  <v-row>
+    <!-- BLOCO PARA ADMINISTRADORES -->
+    <template v-if="isAdmin">
+      <v-col cols="12" md="6">
+        <v-select v-model="evolveDialog.category_id" :items="categories" item-title="name" item-value="id"
+          label="Categoria" :disabled="evolveDialog.loading"></v-select>
+      </v-col>
 
-                    <v-col cols="12" md="6">
-                      <v-select v-model="evolveDialog.service_type_id" :items="serviceTypes" item-title="name"
-                        item-value="id" label="Tipo de Atendimento" :disabled="evolveDialog.loading"></v-select>
-                    </v-col>
+      <v-col cols="12" md="6">
+        <v-select v-model="evolveDialog.service_type_id" :items="serviceTypes" item-title="name"
+          item-value="id" label="Tipo de Atendimento" :disabled="evolveDialog.loading"></v-select>
+      </v-col>
 
-                    <v-col cols="12" md="6">
-                      <v-select v-model="evolveDialog.priority"
-                        :items="[{ title: 'Baixa', value: 'BAIXA' }, { title: 'Normal', value: 'NORMAL' }, { title: 'Alta', value: 'ALTA' }, { title: 'Urgente', value: 'URGENTE' }]"
-                        item-title="title" item-value="value"
-                        label="Prioridade" :disabled="evolveDialog.loading"></v-select>
-                    </v-col>
 
-                    <v-col cols="12" md="6" v-if="isCategorySistemas">
-                      <v-autocomplete
-                        v-model="evolveDialog.project_id"
-                        :items="availableProjects.filter(p => p.status === 'ATIVO')"
-                        :item-title="p => `[${p.acronym}] ${p.name}`"
-                        item-value="id"
-                        label="Sistema"
-                        :disabled="evolveDialog.loading"
-                        clearable
-                      ></v-autocomplete>
-                    </v-col>
-                  </template>
+      <!-- CORREÇÃO: Mova o campo Prazo para DENTRO do v-if, em sua própria coluna -->
+      <v-col cols="12" md="6">
+        <v-menu v-model="evolveDialog.deadlineMenu" :close-on-content-click="false" min-width="auto">
+          <template v-slot:activator="{ props }">
+            <v-text-field v-model="evolveDialog.formattedDeadline" label="Prazo" prepend-inner-icon="mdi-calendar"
+              readonly v-bind="props" variant="outlined" density="comfortable"
+              hint="Se não informado, será definido automaticamente 5 dias a partir da criação"
+              class="prazo-field-left-align"></v-text-field>
+          </template>
+          <v-date-picker v-model="evolveDialog.deadline" @update:model-value="evolveDialog.deadlineMenu = false" locale="pt-BR"></v-date-picker>
+        </v-menu>
+      </v-col>
+    </template>
 
-                  <!-- Para atendentes comuns: apenas labels -->
-                  <template v-else>
-                    <v-col cols="12" md="6">
-                      <div class="field-label">Categoria:</div>
-                      <div class="field-value">
-                        {{ getCategoryName(evolveDialog.ticket?.category?.id) || 'Não definida' }}
-                      </div>
-                    </v-col>
+    <!-- BLOCO PARA ATENDENTES COMUNS (AGORA ESTÁ CORRETAMENTE LIGADO AO V-IF) -->
+    <template v-else>
+      <v-col cols="12" md="6">
+        <div class="field-label">Categoria:</div>
+        <div class="field-value">
+          {{ getCategoryName(evolveDialog.ticket?.category?.id) || 'Não definida' }}
+        </div>
+      </v-col>
 
-                    <v-col cols="12" md="6">
-                      <div class="field-label">Tipo de Atendimento:</div>
-                      <div class="field-value">
-                        {{ getServiceTypeName(evolveDialog.ticket?.serviceType?.id) || 'Não definido' }}
-                      </div>
-                    </v-col>
-                  </template>
-                </v-row>
-              </div>
+      <v-col cols="12" md="6">
+        <div class="field-label">Tipo de Atendimento:</div>
+        <div class="field-value">
+          {{ getServiceTypeName(evolveDialog.ticket?.serviceType?.id) || 'Não definido' }}
+        </div>
+      </v-col>
+    </template>
+  </v-row>
+</div>
 
+    
               <!-- Formulário de nova evolução -->
               <div class="new-update-form mb-6">
                 <v-select v-model="evolveDialog.newStatus" :items="availableStatuses" item-title="text"
@@ -278,6 +304,8 @@
 
                 <v-textarea v-model="evolveDialog.comment" label="Comentário" required rows="3"
                   class="mb-4"></v-textarea>
+
+
               </div>
 
 
@@ -324,9 +352,15 @@
                   </div>
 
                   <div class="timeline-content ml-11">
-                    <v-chip size="small" :color="getStatusColor(history.status_post)" class="mb-2">
-                      {{ translateStatus(history.status_post) }}
-                    </v-chip>
+                    <div class="d-flex align-center gap-2 mb-2">
+                      <v-chip size="small" :color="getStatusColor(history.status_prev)">
+                        {{ translateStatus(history.status_prev) }}
+                      </v-chip>
+                      <span class="mx-2">→</span>
+                      <v-chip size="small" :color="getStatusColor(history.status_post)">
+                        {{ translateStatus(history.status_post) }}
+                      </v-chip>
+                    </div>
                     <p class="text-body-2 mb-0">{{ history.comment }}</p>
                   </div>
                 </div>
@@ -348,19 +382,10 @@
         <!-- Modal para Transferência do Ticket -->
         <v-dialog v-model="transferDialog.show" max-width="500px">
           <v-card>
-            <v-card-title>Transferir Atendimento</v-card-title>
+            <v-card-title>Transferir Atendimento para Outro Setor</v-card-title>
             <v-card-text>
-              <v-autocomplete
-                v-model="transferDialog.newAttendantIds"
-                :items="availableAttendants"
-                item-title="name"
-                item-value="id"
-                label="Responsáveis"
-                multiple
-                chips
-                closable-chips
-                required
-              ></v-autocomplete>
+              <v-select v-model="transferDialog.selectedSectorId" :items="sectors" item-title="name"
+                item-value="id" label="Setor de Destino" required></v-select>
               <v-textarea v-model="transferDialog.comment" label="Motivo da Transferência" required
                 rows="3"></v-textarea>
             </v-card-text>
@@ -376,6 +401,8 @@
           </v-card>
         </v-dialog>
 
+        <!-- Modal de Detalhes do Ticket (igual ao do usuário) -->
+        <TicketDetailsModal v-model="showHistoryModal" :ticket="selectedTicket" @ticket-reopened="handleTicketReopened" />
 
         <AdminCreateTicket v-model="createDialog" @created="handleTicketCreated" />
 
@@ -388,13 +415,14 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed, onMounted, watch } from 'vue'
 import { format } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
 import { useSidebar } from '@/composables/useSidebar'
 import AttendantHeader from '@/components/common/AttendantHeader.vue'
 import AttendantSidebar from '@/components/common/AttendantSidebar.vue'
 import AdminCreateTicket from '@/components/common/AdminCreateTicket.vue' // Importe o novo componente
+import TicketDetailsModal from '@/components/tickets/TicketDetailsModal.vue'
 import api from '@/services/api'
 import { authService } from '@/services/auth.service'
 import { mdiPencilBoxOutline } from "@mdi/js";
@@ -445,6 +473,15 @@ const getServiceTypeName = (serviceTypeId) => {
 
 
 // Função principal de pesquisa
+// Adicione um debounce para o campo de pesquisa por solicitante
+let searchTimeout;
+const handleSearchInput = () => {
+  clearTimeout(searchTimeout);
+  searchTimeout = setTimeout(() => {
+    handleSearch();
+  }, 500); // Aguarda 500ms após o usuário parar de digitar
+};
+
 const handleSearch = async () => {
   try {
     // Reseta para a primeira página antes de pesquisar
@@ -469,11 +506,8 @@ const categories = ref([]);
 const serviceTypes = ref([]);
 
 const isAdmin = computed(() => {
-  return attendantData.value && attendantData.value.function === 'Admin'
+  return attendantData.value && attendantData.value.sector && attendantData.value.sector.name === 'Diretoria'
 })
-
-const handleSearchInput = () => {}
-const handleFilter = () => {}
 
 const resetFilters = () => {
   // Limpa todos os campos de filtro
@@ -483,9 +517,17 @@ const resetFilters = () => {
   searchPriority.value = '';
   searchCategory.value = '';
   searchServiceType.value = '';
-  searchProjectId.value = null;
+  startDate.value = null;
+  endDate.value = null;
 
   // Recarrega os dados sem filtros
+  currentPage.value = 1;
+  loadTickets(1);
+};
+
+const toggleCompleted = () => {
+  showCompleted.value = !showCompleted.value;
+  // Recarrega os dados com o novo filtro
   currentPage.value = 1;
   loadTickets(1);
 };
@@ -496,8 +538,15 @@ const searchStatus = ref('');
 const searchPriority = ref('');
 const searchCategory = ref('');
 const searchServiceType = ref('');
-const searchProjectId = ref(null);
-const availableProjects = ref([]);
+const showCompleted = ref(true);
+
+// Estado para os menus de data
+const startDateMenu = ref(false);
+const endDateMenu = ref(false);
+
+// Valores das datas
+const startDate = ref(null);
+const endDate = ref(null);
 
 const handleTicketCreated = (newTicket) => {
   // Adicionar o novo ticket à lista ou recarregar os dados
@@ -510,21 +559,16 @@ const handleTicketCreated = (newTicket) => {
 const evolveDialog = ref({
   show: false,
   ticket: {
-    attachments: []
-  },
+    attachments: [] // Inicialização explícita
+  }, 
   newStatus: '',
   comment: '',
   category_id: null,
   service_type_id: null,
-  priority: null,
-  project_id: null,
+  deadline: null,
+  deadlineMenu: false,
+  formattedDeadline: '',
   loading: false
-})
-
-const isCategorySistemas = computed(() => {
-  if (!evolveDialog.value.category_id) return false
-  const cat = categories.value.find(c => c.id === evolveDialog.value.category_id)
-  return cat?.name?.toLowerCase() === 'sistemas'
 })
 
 const openCreateDialog = () => {
@@ -535,17 +579,22 @@ const openCreateDialog = () => {
 const transferDialog = ref({
   show: false,
   ticket: null,
-  newAttendantIds: [],
+  selectedSectorId: null,
   comment: '',
   loading: false
 })
 
+const showHistoryModal = ref(false)
+const selectedTicket = ref(null)
+
 // Depois (em português com mapeamento)
 const availableStatuses = [
-  { text: 'Aberto', value: 'OPEN' },
-  { text: 'Em Andamento', value: 'IN_PROGRESS' },
-  { text: 'Resolvido', value: 'RESOLVED' },
-  { text: 'Concluído', value: 'CONCLUDED' }
+  { text: 'ABERTO', value: 'OPEN' },
+  { text: 'EM ANDAMENTO', value: 'IN_PROGRESS' },
+  { text: 'RESOLVIDO', value: 'RESOLVED' },
+  { text: 'CANCELADO', value: 'CANCELADO' },
+  { text: 'RETORNO', value: 'RETORNO' },
+  { text: 'CONCLUÍDO', value: 'CONCLUDED' }
 ]
 
 // Adicione estes computed properties para formatar as opções dos selects
@@ -572,6 +621,29 @@ const serviceTypeOptions = computed(() => {
   ];
 });
 
+// Formatação para exibição das datas
+const formattedStartDate = computed(() => {
+  if (!startDate.value) return '';
+  if (startDate.value instanceof Date) {
+    return format(startDate.value, 'dd/MM/yyyy', { locale: ptBR });
+  }
+  if (typeof startDate.value === 'string') {
+    return format(new Date(startDate.value), 'dd/MM/yyyy', { locale: ptBR });
+  }
+  return '';
+});
+
+const formattedEndDate = computed(() => {
+  if (!endDate.value) return '';
+  if (endDate.value instanceof Date) {
+    return format(endDate.value, 'dd/MM/yyyy', { locale: ptBR });
+  }
+  if (typeof endDate.value === 'string') {
+    return format(new Date(endDate.value), 'dd/MM/yyyy', { locale: ptBR });
+  }
+  return '';
+});
+
 const currentPage = ref(1);
 
 const meta = ref({
@@ -582,8 +654,7 @@ const meta = ref({
 });
 
 
-// Lista de atendentes disponíveis (deve ser carregada do backend)
-const availableAttendants = ref([])
+const sectors = ref([])
 
 // Ordena tickets por prioridade
 const priorityOrder = {
@@ -622,6 +693,8 @@ const getStatusColor = (status) => {
     'OPEN': 'blue',
     'IN_PROGRESS': 'orange',
     'RESOLVED': 'green',
+    'CANCELADO': 'red',
+    'RETORNO': 'cyan',
     'CONCLUDED': 'purple'
   }
   return colors[status] || 'grey'
@@ -630,12 +703,14 @@ const getStatusColor = (status) => {
 const translateStatus = (status) => {
   if (!status) return '-'
   const translations = {
-    'new': 'Novo',
-    'OPEN': 'Aberto',
-    'IN_PROGRESS': 'Em Andamento',
-    'RESOLVED': 'Resolvido',
-    'CONCLUDED': 'Concluído',
-    'CLOSED': 'Fechado'
+    'new': 'NOVO',
+    'NEW': 'NOVO',
+    'OPEN': 'ABERTO',
+    'IN_PROGRESS': 'EM ANDAMENTO',
+    'RESOLVED': 'RESOLVIDO',
+    'CANCELADO': 'CANCELADO',
+    'RETORNO': 'RETORNO',
+    'CONCLUDED': 'CONCLUÍDO'
   }
   return translations[status] || status
 }
@@ -645,6 +720,44 @@ const formatDate = (dateString) => {
   return format(new Date(dateString), "dd/MM/yyyy 'às' HH:mm", {
     locale: ptBR
   })
+}
+
+const formatDeadlineForDisplay = (deadline) => {
+  if (!deadline) return '';
+  try {
+    if (deadline instanceof Date) {
+      return format(deadline, 'dd/MM/yyyy', { locale: ptBR });
+    }
+    if (typeof deadline === 'string') {
+      return format(new Date(deadline), 'dd/MM/yyyy', { locale: ptBR });
+    }
+    return '';
+  } catch (error) {
+    console.error('Erro ao formatar data do prazo:', error);
+    return '';
+  }
+}
+
+const getDeadlineClass = (deadline) => {
+  if (!deadline) return '';
+  
+  try {
+    const deadlineDate = new Date(deadline);
+    const today = new Date();
+    
+    // Remove o tempo para comparar apenas as datas
+    deadlineDate.setHours(23, 59, 59, 999);
+    today.setHours(0, 0, 0, 0);
+    
+    if (deadlineDate < today) {
+      return 'deadline-overdue';
+    }
+    
+    return '';
+  } catch (error) {
+    console.error('Erro ao verificar prazo:', error);
+    return '';
+  }
 }
 
 
@@ -678,7 +791,7 @@ const loadServiceHistory = async (serviceId) => {
       console.warn('Resposta de detalhes sem sucesso:', detailsResponse.data);
     }
   } catch (error) {
-    console.error('Erro ao carregar dados do ticket aqqqqqqqqq:', error);
+    console.error('Erro ao carregar dados do ticket:', error);
     // Não deixe o erro parar a execução - mantenha o que já temos
   }
 };
@@ -701,15 +814,16 @@ const openEvolveDialog = async (ticket) => {
       // Inicializar com os valores existentes do ticket
       category_id: ticket.category?.id || null,
       service_type_id: ticket.serviceType?.id || null,
-      priority: ticket.priority || 'NORMAL',
       loading: true
     };
 
+    // Carrega detalhes completos do ticket
     await loadServiceHistory(ticket.id);
 
     const response = await api.get(`/service/${ticket.id}`);
 
     if (response.data.success) {
+      // Importante: preservar os valores de categoria e tipo de atendimento
       const categoryId = response.data.data.category?.id || ticket.category?.id;
       const serviceTypeId = response.data.data.serviceType?.id || ticket.serviceType?.id;
 
@@ -719,10 +833,18 @@ const openEvolveDialog = async (ticket) => {
         attachments: response.data.data.attachments || []
       };
 
+      // Atualizar os valores nos campos do formulário
       evolveDialog.value.category_id = categoryId;
       evolveDialog.value.service_type_id = serviceTypeId;
-      evolveDialog.value.priority = response.data.data.priority || ticket.priority || 'NORMAL';
-      evolveDialog.value.project_id = response.data.data.project?.id || ticket.project?.id || null;
+      
+      // Configurar deadline
+      if (response.data.data.dates?.deadline) {
+        evolveDialog.value.deadline = new Date(response.data.data.dates.deadline);
+        evolveDialog.value.formattedDeadline = formatDeadlineForDisplay(evolveDialog.value.deadline);
+      } else {
+        evolveDialog.value.deadline = null;
+        evolveDialog.value.formattedDeadline = '';
+      }
     }
   } catch (error) {
     console.error('Erro ao carregar detalhes do ticket:', error);
@@ -738,53 +860,94 @@ const openTransferDialog = (ticket) => {
   transferDialog.value = {
     show: true,
     ticket,
-    newAttendantIds: [],
+    selectedSectorId: null,
     comment: '',
     loading: false
   }
 }
 
-const evolveTicket = async () => {
-  evolveDialog.value.loading = true
+const openHistoryDialog = async (ticket) => {
   try {
-    const updateData = {
+    selectedTicket.value = ticket
+    showHistoryModal.value = true
+    
+    // Carrega o histórico do ticket
+    const response = await api.get(`/service/${ticket.id}/history`);
+    
+    if (response.data.success) {
+      selectedTicket.value = {
+        ...ticket,
+        histories: response.data.data
+      };
+    }
+  } catch (error) {
+    console.error('Erro ao carregar histórico do ticket:', error);
+  }
+}
+
+const evolveTicket = async () => {
+  evolveDialog.value.loading = true;
+  try {
+    const ticketId = evolveDialog.value.ticket.id;
+
+    // 1. Prepara os dados para a atualização principal (status, comentário, etc.)
+    const mainUpdateData = {
       status: evolveDialog.value.newStatus,
-      comment: evolveDialog.value.comment
+      comment: evolveDialog.value.comment,
     };
 
     if (isAdmin.value) {
       if (evolveDialog.value.category_id) {
-        updateData.category_id = evolveDialog.value.category_id;
+        mainUpdateData.category_id = evolveDialog.value.category_id;
       }
       if (evolveDialog.value.service_type_id) {
-        updateData.service_type_id = evolveDialog.value.service_type_id;
-      }
-      if (evolveDialog.value.priority) {
-        updateData.priority = evolveDialog.value.priority;
-      }
-      if (isCategorySistemas.value && evolveDialog.value.project_id) {
-        updateData.project_id = evolveDialog.value.project_id;
+        mainUpdateData.service_type_id = evolveDialog.value.service_type_id;
       }
     }
 
-    await api.put(`/service/${evolveDialog.value.ticket.id}/status`, {
-      updateData
-    })
-    await loadTickets()
-    evolveDialog.value.show = false
+    // 2. Faz a chamada para atualizar o status e outros campos
+    console.log(`[PASSO 1] Atualizando status... PUT /api/service/${ticketId}/status`, mainUpdateData);
+    await api.put(`/service/${ticketId}/status`, mainUpdateData);
+    console.log('[PASSO 1] Status atualizado com sucesso!');
+
+
+    // 3. Verifica se o prazo (deadline) foi alterado
+    if (evolveDialog.value.deadline) {
+      let formattedDeadline = evolveDialog.value.deadline;
+      if (evolveDialog.value.deadline instanceof Date) {
+        formattedDeadline = evolveDialog.value.deadline.toISOString().split('T')[0];
+      }
+      
+      const deadlineData = { deadline: formattedDeadline };
+
+      // 4. Faz a chamada SEPARADA para o endpoint específico de deadline
+      console.log(`[PASSO 2] Atualizando o prazo... PUT /api/service/${ticketId}/deadline`, deadlineData);
+      await api.put(`/service/${ticketId}/deadline`, deadlineData);
+      console.log('[PASSO 2] Prazo atualizado com sucesso!');
+    }
+
+    await loadTickets();
+    evolveDialog.value.show = false;
+
   } catch (error) {
-    console.error('Erro ao evoluir ticket:', error)
+    console.error('Erro ao evoluir ticket:', error);
+    let errorMessage = 'Falha ao atualizar o atendimento.';
+    if (error.response) {
+      // Tenta pegar a mensagem de erro específica da API
+      errorMessage = `Erro ${error.response.status}: ${error.response.data?.message || 'Ocorreu um erro no servidor.'}`;
+      console.error('Detalhes do erro da API:', error.response.data);
+    }
+    alert(errorMessage);
   } finally {
-    evolveDialog.value.loading = false
+    evolveDialog.value.loading = false;
   }
-}
+};
 
 const transferTicket = async () => {
   transferDialog.value.loading = true
   try {
-    const serviceId = transferDialog.value.ticket.id
-    await api.put(`/service/${serviceId}/assign`, {
-      attendant_ids: transferDialog.value.newAttendantIds,
+    await api.put(`/service/${transferDialog.value.ticket.id}/transfer`, {
+      sector_id: transferDialog.value.selectedSectorId,
       comment: transferDialog.value.comment
     })
     await loadTickets()
@@ -806,7 +969,7 @@ const loadTickets = async (page = 1) => {
   loading.value = true;
   try {
     // Verificação de autenticação
-    if (!authService.isAuthenticated()) {
+    if (!authService.isAttendant()) {
       console.log('Usuário não autenticado');
       router.push('/login');
       return;
@@ -823,6 +986,8 @@ const loadTickets = async (page = 1) => {
     const params = new URLSearchParams();
     params.append('page', page.toString());
     params.append('per_page', '10');
+    params.append('sort', 'created_at');
+    params.append('order', 'desc');
 
     // Adicionar filtros somente se existirem valores
     if (searchTitle.value) {
@@ -843,8 +1008,27 @@ const loadTickets = async (page = 1) => {
     if (searchServiceType.value) {
       params.append('service_type_id', searchServiceType.value);
     }
-    if (searchProjectId.value) {
-      params.append('project_id', searchProjectId.value);
+    
+    // Adicionar filtros de data
+    if (startDate.value) {
+      let formattedStartDate = startDate.value;
+      if (startDate.value instanceof Date) {
+        formattedStartDate = startDate.value.toISOString().split('T')[0];
+      }
+      params.append('start_date', formattedStartDate);
+    }
+    
+    if (endDate.value) {
+      let formattedEndDate = endDate.value;
+      if (endDate.value instanceof Date) {
+        formattedEndDate = endDate.value.toISOString().split('T')[0];
+      }
+      params.append('end_date', formattedEndDate);
+    }
+
+    // Adicionar filtro de tickets concluídos
+    if (!showCompleted.value) {
+      params.append('exclude_status', 'CONCLUDED');
     }
 
     // Log para debug da URL construída
@@ -888,36 +1072,39 @@ const loadTickets = async (page = 1) => {
 
 
 
-const loadAttendants = async () => {
+
+const loadSectors = async () => {
   try {
-    const response = await api.get('/attendants')
-    availableAttendants.value = response.data.data
+    const response = await api.get('/sectors')
+    if (response.data.success) {
+      sectors.value = response.data.data
+    }
   } catch (error) {
-    console.error('Erro ao carregar atendentes:', error)
+    console.error('Erro ao carregar setores:', error)
   }
 }
 
-const loadProjects = async () => {
-  try {
-    const response = await api.get('/project')
-    availableProjects.value = response.data.data || []
-  } catch (error) {
-    console.error('Erro ao carregar projetos:', error)
-  }
+const handleTicketReopened = () => {
+  // Recarrega a lista de tickets para refletir a mudança
+  loadTickets(currentPage.value);
 }
 
 
 // Replace the current statusOptions with:
 const statusOptions = [
-  { title: 'Novo', value: 'new' },
+  { title: 'Todos os status', value: '' },
+  { title: 'Novo', value: 'NEW' },
   { title: 'Aberto', value: 'OPEN' },
   { title: 'Em Andamento', value: 'IN_PROGRESS' },
   { title: 'Resolvido', value: 'RESOLVED' },
+  { title: 'Cancelado', value: 'CANCELADO' },
+  { title: 'Retorno', value: 'RETORNO' },
   { title: 'Concluído', value: 'CONCLUDED' }
 ]
 
 // Replace the current priorityOptions with:
 const priorityOptions = [
+  { title: 'Todas as prioridades', value: '' },
   { title: 'Baixa', value: 'BAIXA' },
   { title: 'Normal', value: 'NORMAL' },
   { title: 'Alta', value: 'ALTA' },
@@ -991,15 +1178,19 @@ const loadCategoriesAndServiceTypes = async () => {
   }
 };
 
+// Watcher para atualizar formatação do deadline
+watch(() => evolveDialog.value.deadline, (newDeadline) => {
+  evolveDialog.value.formattedDeadline = formatDeadlineForDisplay(newDeadline);
+});
+
 // Carrega dados iniciais
 onMounted(() => {
   attendantData.value = authService.getAttendantData()
   loadTickets();
-  loadAttendants();
-  loadProjects();
+  loadSectors();
   loadCategoriesview();
   loadServiceTypes();
-  loadCategoriesAndServiceTypes();
+  loadCategoriesAndServiceTypes(); // Nova função combinada
 })
 </script>
 
@@ -1162,7 +1353,7 @@ onMounted(() => {
   font-size: 0.875rem;
   color: #666;
   font-weight: 500;
-  text-transform: none;
+  text-transform: uppercase;
   background-color: #f5f5f5;
 }
 
@@ -1303,5 +1494,139 @@ onMounted(() => {
 
 :deep(.v-list-item:last-child) {
   border-bottom: none;
+}
+
+/* Centralização do texto dos botões */
+.btn-centered {
+  text-align: center !important;
+}
+
+.btn-centered :deep(.v-btn__content) {
+  justify-content: center !important;
+  text-align: center !important;
+  width: 100% !important;
+  display: flex !important;
+}
+
+/* Centralização específica para botões com texto - SOLUÇÃO DE ESPAÇAMENTO */
+.btn-centered-text {
+  text-align: center !important;
+  padding-left: 0 !important;
+  padding-right: 0 !important;
+}
+
+.btn-centered-text :deep(.v-btn__content) {
+  justify-content: center !important;
+  align-items: center !important;
+  text-align: center !important;
+  width: 100% !important;
+  display: flex !important;
+  padding: 0 !important;
+  margin: 0 !important;
+}
+
+/* Remove margens e paddings que desalinham o texto */
+.btn-centered-text :deep(.v-btn__prepend) {
+  margin-inline-start: 0 !important;
+  margin-inline-end: 6px !important;
+  margin-left: 0 !important;
+  margin-right: 6px !important;
+}
+
+/* Força o espaçamento igual dos dois lados */
+.btn-centered-text :deep(.v-btn__content) {
+  padding-left: 8px !important;
+  padding-right: 8px !important;
+}
+
+/* Ajuste específico para botões pequenos */
+.btn-centered-text.v-btn--size-small {
+  min-width: auto !important;
+  padding: 0 8px !important;
+}
+
+.btn-centered-text.v-btn--size-small :deep(.v-btn__content) {
+  padding: 0 4px !important;
+}
+
+/* Centralização forçada para qualquer botão com essa classe */
+.btn-centered-text :deep(*) {
+  text-align: center !important;
+}
+
+/* Estilo específico para botões de ação */
+.action-btn {
+  min-width: 85px !important;
+  text-align: center !important;
+  justify-content: center !important;
+}
+
+.action-btn :deep(.v-btn__content) {
+  justify-content: center !important;
+  text-align: center !important;
+  width: 100% !important;
+  padding: 0 !important;
+  margin: 0 !important;
+}
+
+/* Força centralização absoluta */
+.action-btn :deep(.v-btn__content) {
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  gap: 4px !important;
+}
+
+/* Estilo para prazos vencidos */
+.deadline-overdue {
+  color: #d32f2f !important;
+  font-weight: 600 !important;
+}
+
+/* Estilos para filtros de data */
+.date-compact {
+  display: flex;
+  flex-direction: column;
+  height: 56px; /* Altura fixa para corresponder aos outros campos */
+  padding-top: 0; /* Remove o padding superior */
+}
+
+.date-label {
+  font-size: 12px; /* Tamanho de fonte reduzido para corresponder aos labels do Vuetify */
+  color: rgba(0, 0, 0, 0.6);
+  padding-top: 0;
+  margin-bottom: 3px; /* Espaçamento menor entre o label e os campos */
+  line-height: 12px; /* Altura da linha reduzida */
+  transform: translateY(-4px); /* Move o label 4px para cima */
+}
+
+.date-inputs {
+  display: flex;
+  gap: 8px;
+  height: 40px; /* Altura fixa para os inputs */
+}
+
+.date-input {
+  flex: 1;
+  margin-top: 0 !important; /* Remove margens automáticas */
+  margin-bottom: 0 !important;
+}
+
+/* Remover padding interno dos campos para alinhar corretamente */
+:deep(.date-input .v-field__field) {
+  padding-top: 0 !important;
+  padding-bottom: 0 !important;
+}
+
+/* Garantir que os campos de data tenham o mesmo estilo que os outros */
+:deep(.date-input .v-field__outline) {
+  --v-field-border-width: 1px !important;
+  border-width: var(--v-field-border-width) !important;
+}
+
+/* Aplicar estilo consistente aos inputs */
+:deep(.v-col) {
+  padding-top: 6px;
+  padding-bottom: 6px;
 }
 </style>

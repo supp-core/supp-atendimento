@@ -12,6 +12,7 @@ use App\Entity\ServiceAttachment;
 use App\Entity\Sector;
 use App\Entity\User;
 use DateTime;
+use DateTimeZone; // <-- ALTERAÇÃO AQUI: Importa a classe DateTimeZone
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Component\Mailer\MailerInterface;
 use Symfony\Component\Mime\Email;  // Adicione este import
@@ -21,8 +22,9 @@ use Twig\Environment;
 
 class ServiceManager
 {
-    private const VALID_STATUS = ['NEW', 'OPEN', 'IN_PROGRESS', 'RESOLVED', 'CONCLUDED', 'NOVO'];
+    private const VALID_STATUS = ['NEW', 'OPEN', 'IN_PROGRESS', 'RESOLVED', 'CANCELADO', 'RETORNO', 'CONCLUDED', 'NOVO'];
     private string $uploadDir;
+    private DateTimeZone $timezone; // <-- ALTERAÇÃO AQUI: Propriedade para o fuso horário
 
     public function __construct(
         private EntityManagerInterface $entityManager,
@@ -35,6 +37,9 @@ class ServiceManager
         if (!file_exists($this->uploadDir)) {
             mkdir($this->uploadDir, 0777, true);
         }
+
+        // <-- ALTERAÇÃO AQUI: Instancia o objeto de fuso horário no construtor
+        $this->timezone = new DateTimeZone('America/Sao_Paulo');
     }
 
     public function findById(int $id): ?Service
@@ -80,7 +85,7 @@ class ServiceManager
         $service->setSector($sector);
         $service->setRequester($requester);
         $service->setStatus('NOVO');
-        $service->setDateCreate(new DateTime());
+        $service->setDateCreate(new DateTime('now', $this->timezone));
 
         // Buscar categoria se fornecida
         if (!empty($data['category_id'])) {
@@ -90,11 +95,18 @@ class ServiceManager
             }
         }
 
-        // Buscar tipo de serviço se fornecido
-        if (!empty($data['service_type_id'])) {
+        // Sempre definir como "Triagem" para novos chamados criados por usuários
+        // Se foi criado por admin, usar o service_type_id fornecido
+        if ($createdByAdmin && !empty($data['service_type_id'])) {
             $serviceType = $this->entityManager->getRepository(ServiceType::class)->find($data['service_type_id']);
             if ($serviceType) {
                 $service->setServiceType($serviceType);
+            }
+        } else {
+            // Para chamados criados por usuários, sempre usar "Triagem"
+            $triagemServiceType = $this->entityManager->getRepository(ServiceType::class)->findOneBy(['name' => 'Triagem']);
+            if ($triagemServiceType) {
+                $service->setServiceType($triagemServiceType);
             }
         }
 
@@ -107,6 +119,18 @@ class ServiceManager
             if ($project) {
                 $service->setProject($project);
             }
+        }
+
+        // Definir prazo (deadline)
+        if ($createdByAdmin && !empty($data['deadline'])) {
+            // Se foi criado por admin e tem deadline personalizado
+            $deadline = new DateTime($data['deadline']);
+            $service->setDeadline($deadline);
+        } else {
+            // Prazo padrão de 5 dias úteis para todos os tickets
+            $deadline = new DateTime('now', $this->timezone);
+            $deadline->add(new \DateInterval('P5D')); // Adiciona 5 dias
+            $service->setDeadline($deadline);
         }
 
         // Configurações para tickets criados por admin
@@ -156,7 +180,7 @@ class ServiceManager
         $history->setService($service);
         $history->setStatusPrev('Nenhum');
         $history->setStatusPost('NEW');
-        $history->setDateHistory(new DateTime());
+        $history->setDateHistory(new DateTime('now', $this->timezone));
 
         if ($createdByAdmin && $service->getCreatedByAdminAttendant()) {
             $history->setComment('Ticket criado pelo atendente: ' . $service->getCreatedByAdminAttendant()->getName());
@@ -243,12 +267,21 @@ class ServiceManager
         }
         // Atualizar o serviço
         $service->setStatus($newStatus);
-        $service->setDateUpdate(new DateTime());
+        $service->setDateUpdate(new DateTime('now', $this->timezone));
 
-        // Se status for CONCLUDED, atualizar data de conclusão e enviar email
+        // Se status for RESOLVED, enviar email para o usuário
+        if (strtoupper($newStatus) === 'RESOLVED') {
+            $this->sendStatusUpdateEmail($service, 'RESOLVED');
+        }
+        
+        // Se status for RETORNO, enviar email para o usuário
+        if (strtoupper($newStatus) === 'RETORNO') {
+            $this->sendStatusUpdateEmail($service, 'RETORNO');
+        }
+        
+        // Se status for CONCLUDED, atualizar data de conclusão
         if (strtoupper($newStatus) === 'CONCLUDED') {
-            $service->setDateConclusion(new DateTime());
-            $this->sendStatusUpdateEmail($service);
+            $service->setDateConclusion(new DateTime('now', $this->timezone));
         }
 
         $this->entityManager->flush();
@@ -258,9 +291,10 @@ class ServiceManager
     {
         return $this->entityManager->getRepository(Attendant::class)
             ->createQueryBuilder('a')
-            ->where('a.function = :function')
+            ->join('a.sector', 's')
+            ->where('s.name = :sectorName')
             ->andWhere('a.status = :status')
-            ->setParameter('function', 'Admin')
+            ->setParameter('sectorName', 'Diretoria')
             ->setParameter('status', 'ACTIVE')
             ->setMaxResults(1)
             ->getQuery()
@@ -275,8 +309,15 @@ class ServiceManager
         $history->setService($service);
         $history->setStatusPrev($prevStatus);
         $history->setStatusPost($newStatus);
-        $history->setComment($comment);
-        $history->setDateHistory(new DateTime());
+        
+        // Se há atendente e um comentário, adicionar prefixo com nome do atendente
+        if ($attendant && !empty(trim($comment))) {
+            $history->setComment('Atendente: ' . $attendant->getName() . ' - ' . $comment);
+        } else {
+            $history->setComment($comment);
+        }
+        
+        $history->setDateHistory(new DateTime('now', $this->timezone));
 
 
         if ($attendant) {
@@ -294,7 +335,7 @@ class ServiceManager
         $this->entityManager->persist($history);
     }
 
-    private function sendStatusUpdateEmail(Service $service): void
+    private function sendStatusUpdateEmail(Service $service, string $status = 'RESOLVED'): void
     {
         $requester = $service->getRequester();
 
@@ -303,40 +344,57 @@ class ServiceManager
         }
 
         try {
+            // Definir conteúdo baseado no status
+            if ($status === 'RETORNO') {
+                $headerTitle = 'Chamado Retornado';
+                $statusMessage = 'Seu chamado foi retornado para análise!';
+                $additionalInfo = '<p><strong>Atenção:</strong> Seu chamado foi retornado para que você possa fornecer informações adicionais ou esclarecimentos. Por favor, acesse o sistema para verificar os comentários do atendente e responder conforme necessário.</p>';
+                $subject = 'Chamado #' . $service->getId() . ' - Retornado';
+                $dateLabel = 'Data do Retorno:';
+                $headerColor = '#ff9800'; // Cor laranja para retorno
+            } else { // RESOLVED
+                $headerTitle = 'Chamado Resolvido';
+                $statusMessage = 'Seu chamado foi resolvido!';
+                $additionalInfo = '<p><strong>Importante:</strong> Se você concordar com a resolução, não é necessário fazer nada. O chamado será automaticamente concluído em 5 dias úteis.</p>
+                        <p>Caso a resolução não atenda suas expectativas, você pode reabrir o chamado através do sistema de atendimento.</p>';
+                $subject = 'Chamado #' . $service->getId() . ' - Resolvido';
+                $dateLabel = 'Data de Resolução:';
+                $headerColor = '#4a90e2'; // Cor azul para resolvido
+            }
+
             // Criamos o conteúdo HTML diretamente
             $htmlContent = "
                 <html>
                 <head>
                     <style>
                         body { font-family: Arial, sans-serif; }
-                        .header { background-color: #4a90e2; color: white; padding: 20px; }
+                        .header { background-color: {$headerColor}; color: white; padding: 20px; }
                         .content { padding: 20px; }
                         .ticket-info { background-color: #f9f9f9; padding: 15px; margin: 10px 0; }
                     </style>
                 </head>
                 <body>
                     <div class='header'>
-                        <h1>Chamado Concluído</h1>
+                        <h1>{$headerTitle}</h1>
                     </div>
                     <div class='content'>
                         <p>Olá {$requester->getName()},</p>
                         
-                        <p>Seu chamado foi concluído com sucesso!</p>
+                        <p>{$statusMessage}</p>
                         
                         <div class='ticket-info'>
                             <p><strong>Número do Chamado:</strong> #{$service->getId()}</p>
                             <p><strong>Título:</strong> {$service->getTitle()}</p>
                             <p><strong>Setor:</strong> {$service->getSector()->getName()}</p>
                             <p><strong>Data de Abertura:</strong> {$service->getDateCreate()->format('d/m/Y H:i:s')}</p>
-                            <p><strong>Data de Conclusão:</strong> {$service->getDateConclusion()->format('d/m/Y H:i:s')}</p>
-                            <p><strong>Atendente Responsável:</strong> " .
-                ($service->getReponsible() ? $service->getReponsible()->getName() : 'Não atribuído') .
-                "</p>
+                            <p><strong>{$dateLabel}</strong> {$service->getDateUpdate()->format('d/m/Y H:i:s')}</p>
                         </div>
                         
-                        <p>Se você precisar de qualquer assistência adicional, não hesite em abrir um novo chamado.</p>
+                        {$additionalInfo}
                         
-                        <p>Atenciosamente,<br>Supp - Equipe de Suporte</p>
+                        <p>Se você precisar de qualquer assistência adicional, não hesite em entrar em contato.</p>
+                        
+                        <p>Atenciosamente,<br>PGMBH - Equipe de Suporte</p>
                     </div>
                 </body>
                 </html>
@@ -345,13 +403,13 @@ class ServiceManager
             $email = (new Email())
                 ->from('helpdesk@seu-dominio.com')  // Altere para seu email configurado
                 ->to($requester->getEmail())
-                ->subject('Chamado #' . $service->getId() . ' - Concluído')
+                ->subject($subject)
                 ->html($htmlContent);
 
             $this->mailer->send($email);
         } catch (\Exception $e) {
             // Registra o erro mas não interrompe o fluxo principal
-            error_log('Erro ao enviar email de conclusão do chamado #' .
+            error_log('Erro ao enviar email de atualização do chamado #' .
                 $service->getId() . ': ' . $e->getMessage());
         }
     }
@@ -393,7 +451,7 @@ class ServiceManager
 
         $queryBuilder = $this->entityManager->createQueryBuilder();
         $queryBuilder
-            ->select('s', 'sect', 'u', 'a')
+            ->select('s', 'sect', 'u')
             ->from(Service::class, 's')
             ->leftJoin('s.sector', 'sect')
             ->leftJoin('s.requester', 'u')
@@ -445,30 +503,29 @@ class ServiceManager
 
     // Em ServiceManager.php
 
-    public function transferTicket(Service $service, int $newAttendantId, string $comment): void
+    public function transferTicketToSector(Service $service, int $newSectorId, string $comment): void
     {
-        // Buscar novo atendente
-        $newAttendant = $this->entityManager->getRepository(Attendant::class)->find($newAttendantId);
+        // Buscar novo setor
+        $newSector = $this->entityManager->getRepository(Sector::class)->find($newSectorId);
 
-        if (!$newAttendant) {
-            throw new BadRequestException('New attendant not found');
+        if (!$newSector) {
+            throw new BadRequestException('New sector not found');
         }
 
-        // Registrar atendente anterior
-        $previousAttendant = $service->getReponsible();
+        // Registrar setor anterior
+        $previousSector = $service->getSector();
 
-        // Atualizar o atendente responsável
-        $service->setReponsible($newAttendant);
-        $service->setDateUpdate(new DateTime());
+        // Atualizar apenas o setor do ticket
+        $service->setSector($newSector);
+        $service->setDateUpdate(new DateTime('now', $this->timezone));
 
         // Criar histórico da transferência
         $history = new ServiceHistory();
         $history->setService($service);
         $history->setStatusPrev($service->getStatus());
         $history->setStatusPost($service->getStatus());
-        $history->setComment($comment);
-        $history->setDateHistory(new DateTime());
-        $history->setResponsible($previousAttendant);
+        $history->setComment($comment . " (Transferido de '" . $previousSector->getName() . "' para '" . $newSector->getName() . "')");
+        $history->setDateHistory(new DateTime('now', $this->timezone));
 
         $this->entityManager->persist($history);
         $this->entityManager->flush();
@@ -547,11 +604,10 @@ class ServiceManager
     public function createQueryBuilderForUserTickets($user, array $filters = [])
     {
         $queryBuilder = $this->entityManager->createQueryBuilder()
-            ->select('s', 'sect', 'u', 'a')
+            ->select('s', 'sect', 'u')
             ->from(Service::class, 's')
             ->leftJoin('s.sector', 'sect')
             ->leftJoin('s.requester', 'u')
-            ->leftJoin('s.reponsible', 'a')
             ->where('s.requester = :user')
             ->setParameter('user', $user);
 
@@ -582,6 +638,11 @@ class ServiceManager
                 ->setParameter('end_date', new \DateTime($filters['end_date'] . ' 23:59:59'));
         }
 
+        // Adicionar filtro para excluir status específico
+        if (!empty($filters['exclude_status'])) {
+            $queryBuilder->andWhere('s.status != :exclude_status')
+                ->setParameter('exclude_status', $filters['exclude_status']);
+        }
 
         // Mantemos a ordenação padrão
         $queryBuilder->orderBy('s.date_create', 'DESC');
@@ -600,5 +661,85 @@ class ServiceManager
             ->orderBy('sh.date_history', 'DESC')
             ->getQuery()
             ->getResult();
+    }
+
+    /**
+     * Auto-conclui tickets RESOLVED há mais de 5 dias
+     */
+    public function autoConcludeOldResolvedTickets(): int
+    {
+        // Data limite: 5 dias atrás
+        $limitDate = new DateTime('now', $this->timezone);
+        $limitDate->modify('-5 days');
+
+        // Buscar tickets RESOLVED há mais de 5 dias
+        $queryBuilder = $this->entityManager->createQueryBuilder();
+        $tickets = $queryBuilder
+            ->select('s')
+            ->from(Service::class, 's')
+            ->where('s.status = :status')
+            ->andWhere('s.date_update <= :limitDate')
+            ->setParameter('status', 'RESOLVED')
+            ->setParameter('limitDate', $limitDate)
+            ->getQuery()
+            ->getResult();
+
+        $concludedCount = 0;
+
+        foreach ($tickets as $ticket) {
+            try {
+                // Atualizar status para CONCLUDED
+                $ticket->setStatus('CONCLUDED');
+                $ticket->setDateConclusion(new DateTime('now', $this->timezone));
+                $ticket->setDateUpdate(new DateTime('now', $this->timezone));
+
+                // Criar histórico da auto-conclusão
+                $history = new ServiceHistory();
+                $history->setService($ticket);
+                $history->setStatusPrev('RESOLVED');
+                $history->setStatusPost('CONCLUDED');
+                $history->setComment('Ticket automaticamente concluído após 5 dias sem resposta do usuário.');
+                $history->setDateHistory(new DateTime('now', $this->timezone));
+                $history->setResponsible($ticket->getReponsible());
+
+                $this->entityManager->persist($history);
+                $concludedCount++;
+                
+            } catch (\Exception $e) {
+                // Log do erro mas continua o processo
+                error_log("Erro ao auto-concluir ticket #{$ticket->getId()}: " . $e->getMessage());
+            }
+        }
+
+        // Salvar todas as alterações
+        $this->entityManager->flush();
+
+        return $concludedCount;
+    }
+
+    /**
+     * Adiciona comentário do usuário como histórico
+     */
+    public function addUserComment(Service $service, string $comment, User $user): void
+    {
+        $currentStatus = $service->getStatus();
+        
+        // Criar histórico do comentário do usuário
+        $history = new ServiceHistory();
+        $history->setService($service);
+        $history->setStatusPrev($currentStatus);
+        $history->setStatusPost($currentStatus); // Status permanece o mesmo
+        $history->setComment('Solicitante: ' . $user->getName() . ' - ' . $comment);
+        $history->setDateHistory(new DateTime('now', $this->timezone));
+        
+        // Como é um comentário do usuário, não definimos responsável (fica null)
+        // Isso diferenciará de comentários de atendentes
+        
+        $this->entityManager->persist($history);
+        
+        // Atualizar data de modificação do service
+        $service->setDateUpdate(new DateTime('now', $this->timezone));
+        
+        $this->entityManager->flush();
     }
 }

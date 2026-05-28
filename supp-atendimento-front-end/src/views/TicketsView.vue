@@ -16,16 +16,10 @@
           <v-card class="mb-4">
             <v-card-text>
               <v-row>
-                <!-- Campo de pesquisa por título -->
-                <v-col cols="12" sm="3">
-                  <v-text-field v-model="searchName" label="Pesquisar por Nome" outlined dense
-                    @input="handleSearchInput"></v-text-field>
-                </v-col>
-
                 <!-- Campo de filtro por status -->
                 <v-col cols="12" sm="3">
                   <v-select v-model="searchStatus" :items="statusOptions" item-title="title" item-value="value"
-                    label="Status" outlined dense @change="handleFilter"></v-select>
+                    label="Status" outlined dense @update:model-value="handleFilter"></v-select>
                 </v-col>
 
                 <!-- Intervalo de datas compacto -->
@@ -57,19 +51,37 @@
                 <!-- Filtro de Prioridade -->
                 <v-col cols="12" sm="3">
                   <v-select v-model="searchPriority" :items="priorityOptions" item-title="title" item-value="value"
-                    label="Prioridade" outlined dense @change="handleFilter"></v-select>
+                    label="Prioridade" outlined dense @update:model-value="handleFilter"></v-select>
                 </v-col>
 
                 <!-- Nova linha para botões (mantida como estava) -->
                 <v-col cols="12" class="d-flex align-center mt-2">
-                  <v-btn color="primary" @click="handleFilter" :loading="loading" class="me-2">
-                    <v-icon start>mdi-magnify</v-icon>
+                  <v-btn color="primary" @click="handleFilter" :loading="loading" class="me-2 btn-centered">
                     Pesquisar
                   </v-btn>
 
-                  <v-btn variant="outlined" @click="resetFilters" :disabled="loading">
-                    <v-icon start>mdi-refresh</v-icon>
+                  <v-btn variant="outlined" @click="resetFilters" :disabled="loading" class="me-2 btn-centered">
                     Limpar
+                  </v-btn>
+
+                  <v-btn 
+                    color="black" 
+                    :variant="showCompleted ? 'flat' : 'outlined'"
+                    @click="toggleCompleted" 
+                    :disabled="loading" 
+                    class="btn-centered"
+                    :title="showCompleted ? 'Ocultar Concluídos' : 'Exibir Concluídos'"
+                  >
+                    <svg v-if="showCompleted" width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" class="me-2">
+                      <path d="M12 4.5C5.5 4.5 2 12 2 12s3.5 7.5 10 7.5S22 12 22 12s-3.5-7.5-10-7.5z" fill="currentColor"/>
+                      <circle cx="12" cy="12" r="3" fill="white"/>
+                      <line x1="2" y1="2" x2="22" y2="22" stroke="currentColor" stroke-width="2"/>
+                    </svg>
+                    <svg v-else width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" class="me-2">
+                      <path d="M12 4.5C5.5 4.5 2 12 2 12s3.5 7.5 10 7.5S22 12 22 12s-3.5-7.5-10-7.5z" fill="currentColor"/>
+                      <circle cx="12" cy="12" r="3" fill="white"/>
+                    </svg>
+                    {{ showCompleted ? 'Ocultar Concluídos' : 'Exibir Concluídos' }}
                   </v-btn>
                 </v-col>
               </v-row>
@@ -79,21 +91,20 @@
             <v-table hover>
               <thead>
                 <tr>
-                  <th class="px-4 py-3">ID</th>
-                  <th class="px-4 py-3">Título</th>
+                  
+                  <th class="px-4 py-3">Número</th>
                   <th class="text-left">Prioridade</th> <!-- Nova coluna -->
                   <th class="px-4 py-3">Status</th>
                   <th class="px-4 py-3">Setor</th>
-                  <th class="px-4 py-3">Responsável</th>
                   <th class="px-4 py-3">Data de Criação</th>
+                  <th class="px-4 py-3">Prazo</th>
+                  <th class="px-4 py-3">Data de Conclusão</th>
                   <th class="px-4 py-3">Acompanhar</th>
                 </tr>
               </thead>
               <tbody>
                 <tr v-for="ticket in tickets" :key="ticket.id">
-                  <td class="px-4 py-3">
-                    <span class="id-prefix">#</span>{{ ticket.id }}
-                  </td>
+                  
                   <td class="px-4 py-3">{{ ticket.title }}</td>
                   <td>
                     <v-chip :color="getPriorityColor(ticket.priority)"
@@ -107,19 +118,33 @@
                       {{ translateStatus(ticket.status) }}
                     </v-chip>
                   </td>
-                  <td class="px-4 py-3">{{ ticket.responsible.sector?.name ?? ticket.sector.name }}</td>
+                  <td class="px-4 py-3">{{ ticket.sector.name }}</td>
 
-                  <!-- <td class="px-4 py-3">{{ ticket.requester?.name }}</td> -->
-                  <td class="px-4 py-3">{{ ticket.responsible?.name || 'Não atribuído' }}</td>
                   <td class="px-4 py-3">{{ formatDate(ticket.dates.created) }}</td>
+                  <td class="px-4 py-3" :class="getDeadlineClass(ticket.dates.deadline)">{{ formatDate(ticket.dates.deadline) }}</td>
+                  <td class="px-4 py-3">{{ ticket.dates.concluded ? formatDate(ticket.dates.concluded) : '-' }}</td>
                   <td class="px-4 py-3">
                     <div class="d-flex gap-2">
-                      <v-btn variant="text" density="comfortable" size="small" @click="openTicketDetails(ticket)"
-                        class="action-button" title="Acompanhar Ticket">
-                        <span class="icon-text">📄</span>
-
+                      <!-- Visualizar histórico -->
+                      <v-btn 
+                        size="small" 
+                        color="info" 
+                        class="btn-centered-text action-btn"
+                        @click="openTicketDetails(ticket)"
+                      >
+                        📋 Ver Histórico
                       </v-btn>
-
+                      
+                      <!-- Registrar comentário - apenas para status não concluídos -->
+                      <v-btn 
+                        v-if="ticket.status !== 'CONCLUDED'"
+                        size="small" 
+                        color="success" 
+                        class="btn-centered-text action-btn"
+                        @click="openCommentDialog(ticket)"
+                      >
+                        💬 Registrar comentário
+                      </v-btn>
                     </div>
                   </td>
                 </tr>
@@ -129,7 +154,7 @@
 
             <div class="pagination-wrapper">
               <div class="pagination-info">
-                Mostrando {{ meta.per_page }} de {{ meta.total }} registros
+                Mostrando {{ tickets.length }} de {{ meta.total }} registros
               </div>
               <div class="pagination-controls">
                 <!-- Botão Anterior -->
@@ -159,8 +184,58 @@
     </div>
   </div>
 
-  <!-- Adicione o componente do modal ao final do template, antes do fechamento da última div -->
-  <TicketDetailsModal v-model="showDetailsModal" :ticket="selectedTicket" />
+  <!-- Modais -->
+  <TicketDetailsModal v-model="showDetailsModal" :ticket="selectedTicket" @ticket-reopened="handleTicketReopened" />
+  
+  <!-- Modal de Comentário -->
+  <v-dialog v-model="commentDialog.show" max-width="600px">
+    <v-card>
+      <v-card-title class="text-h5">
+        Registrar Comentário
+        <v-chip v-if="commentDialog.ticket" color="primary" variant="outlined" size="small" class="ml-2">
+          #{{ commentDialog.ticket.id }}
+        </v-chip>
+      </v-card-title>
+      
+      <v-card-text>
+        <div v-if="commentDialog.ticket" class="mb-4 pa-3 bg-grey-lighten-4 rounded">
+          <strong>{{ commentDialog.ticket.title }}</strong>
+          <br>
+          <small class="text-grey-darken-1">Status: {{ translateStatus(commentDialog.ticket.status) }}</small>
+        </div>
+        
+        <v-textarea
+          v-model="commentDialog.comment"
+          label="Digite seu comentário"
+          placeholder="Descreva suas observações, dúvidas ou informações adicionais sobre este ticket..."
+          rows="4"
+          variant="outlined"
+          :rules="[v => !!v || 'Comentário é obrigatório']"
+        ></v-textarea>
+      </v-card-text>
+
+      <v-card-actions>
+        <v-spacer></v-spacer>
+        <v-btn 
+          color="grey-darken-1" 
+          variant="text" 
+          @click="closeCommentDialog"
+          :disabled="commentDialog.loading"
+        >
+          Cancelar
+        </v-btn>
+        <v-btn 
+          color="primary" 
+          variant="flat"
+          @click="submitComment"
+          :loading="commentDialog.loading"
+          :disabled="!commentDialog.comment?.trim()"
+        >
+          Enviar Comentário
+        </v-btn>
+      </v-card-actions>
+    </v-card>
+  </v-dialog>
 </template>
 
 <script setup>
@@ -230,7 +305,7 @@ const formattedEndDate = computed(() => {
   }
 });
 
-// Adicione também um tratamento mais robusto na função watch
+// Watch para mudanças nas datas
 watch([startDate, endDate], () => {
   if (startDate.value || endDate.value) {
     console.log('Datas selecionadas:', { startDate: startDate.value, endDate: endDate.value });
@@ -238,15 +313,17 @@ watch([startDate, endDate], () => {
   }
 });
 
-watch([startDate, endDate], () => {
-  if (startDate.value || endDate.value) {
-    handleFilter();
-  }
-});
-
 
 const selectedTicket = ref(null)
 const showDetailsModal = ref(false)
+
+// Estado para o modal de comentário
+const commentDialog = ref({
+  show: false,
+  ticket: null,
+  comment: '',
+  loading: false
+})
 
 // Função para carregar os dados do usuário
 const carregarDadosUsuario = () => {
@@ -281,6 +358,8 @@ const getStatusColor = (status) => {
     'OPEN': 'blue',
     'IN_PROGRESS': 'orange',
     'RESOLVED': 'green',
+    'CANCELADO': 'red',
+    'RETORNO': 'cyan',
     'CONCLUDED': 'purple'
   }
   return colors[status] || 'grey'
@@ -328,33 +407,27 @@ const dateRange = ref({ startDate: null, endDate: null });
 
 const searchPriority = ref('');
 const dateMenu = ref(false);
+const showCompleted = ref(true);
 
 const statusOptions = [
-  { title: 'Novo', value: 'new' },
+  { title: 'Todos os status', value: '' },
+  { title: 'Novo', value: 'NEW' },
   { title: 'Aberto', value: 'OPEN' },
   { title: 'Em Andamento', value: 'IN_PROGRESS' },
   { title: 'Resolvido', value: 'RESOLVED' },
+  { title: 'Cancelado', value: 'CANCELADO' },
+  { title: 'Retorno', value: 'RETORNO' },
   { title: 'Concluído', value: 'CONCLUDED' }
 ];
 const priorityOptions = [
+  { title: 'Todas as prioridades', value: '' },
   { title: 'Baixa', value: 'BAIXA' },
   { title: 'Normal', value: 'NORMAL' },
   { title: 'Alta', value: 'ALTA' },
   { title: 'Urgente', value: 'URGENTE' }
 ];
 
-const applyFilters = () => {
-  filteredTickets.value = tickets.value.filter(ticket => {
-    const matchesName = ticket.title.toLowerCase().includes(searchName.value.toLowerCase());
-    const matchesStatus = searchStatus.value ? ticket.status === searchStatus.value : true;
-    const matchesPriority = searchPriority.value ? ticket.priority === searchPriority.value : true;
-    const matchesDateRange = searchDateRange.value.length === 2 ?
-      new Date(ticket.dates.created) >= new Date(searchDateRange.value[0]) &&
-      new Date(ticket.dates.created) <= new Date(searchDateRange.value[1]) : true;
-
-    return matchesName && matchesStatus && matchesPriority && matchesDateRange;
-  });
-};
+// Função removida - filtros agora são aplicados no backend via loadTickets()
 
 
 
@@ -367,6 +440,13 @@ const resetFilters = () => {
   endDate.value = null;
 
   // Recarrega os dados
+  currentPage.value = 1;
+  loadTickets(1);
+};
+
+const toggleCompleted = () => {
+  showCompleted.value = !showCompleted.value;
+  // Recarrega os dados com o novo filtro
   currentPage.value = 1;
   loadTickets(1);
 };
@@ -384,12 +464,14 @@ const handleDateRangeChange = () => {
 
 const translateStatus = (status) => {
   const translations = {
-    'new': 'Novo',
-    'OPEN': 'Aberto',
-    'IN_PROGRESS': 'Em Andamento',
-    'RESOLVED': 'Resolvido',
-    'CLOSED': 'Fechado',
-    'CONCLUDED': 'Concluído'
+    'new': 'NOVO',
+    'NEW': 'NOVO',
+    'OPEN': 'ABERTO',
+    'IN_PROGRESS': 'EM ANDAMENTO',
+    'RESOLVED': 'RESOLVIDO',
+    'CANCELADO': 'CANCELADO',
+    'RETORNO': 'RETORNO',
+    'CONCLUDED': 'CONCLUÍDO'
   };
   return translations[status] || status;
 };
@@ -403,6 +485,28 @@ const formatDate = (dateString) => {
   });
 };
 
+const getDeadlineClass = (deadline) => {
+  if (!deadline) return '';
+  
+  try {
+    const deadlineDate = new Date(deadline);
+    const today = new Date();
+    
+    // Remove o tempo para comparar apenas as datas
+    deadlineDate.setHours(23, 59, 59, 999);
+    today.setHours(0, 0, 0, 0);
+    
+    if (deadlineDate < today) {
+      return 'deadline-overdue';
+    }
+    
+    return '';
+  } catch (error) {
+    console.error('Erro ao verificar prazo:', error);
+    return '';
+  }
+};
+
 const loadTickets = async (page = 1) => {
   loading.value = true;
   try {
@@ -414,7 +518,9 @@ const loadTickets = async (page = 1) => {
 
     // Construir os parâmetros de filtro
     const params = new URLSearchParams({
-      page: page.toString()
+      page: page.toString(),
+      sort: 'created_at',
+      order: 'desc'
     });
     // Adicionar filtros apenas se tiverem valor
     if (searchName.value) {
@@ -424,6 +530,7 @@ const loadTickets = async (page = 1) => {
       params.append('status', searchStatus.value);
     }
     if (searchPriority.value) {
+      console.log('Filtro de prioridade aplicado:', searchPriority.value);
       params.append('priority', searchPriority.value);
     }
 
@@ -446,12 +553,21 @@ const loadTickets = async (page = 1) => {
       params.append('end_date', formattedEndDate);
     }
 
-    const response = await api.get(`/service/my-tickets?${params.toString()}`);
+    // Adicionar filtro de tickets concluídos
+    if (!showCompleted.value) {
+      params.append('exclude_status', 'CONCLUDED');
+    }
 
+    const url = `/service/my-tickets?${params.toString()}`;
+    console.log('URL da requisição:', url);
+    console.log('Parâmetros enviados:', Object.fromEntries(params));
+    
+    const response = await api.get(url);
 
     if (response.data.success) {
       tickets.value = response.data.data;
       meta.value = response.data.meta;
+      console.log('Tickets carregados:', tickets.value.length);
     } else {
       tickets.value = [];
     }
@@ -468,21 +584,38 @@ const loadTickets = async (page = 1) => {
   }
 };
 
-// Função para acionar a pesquisa
+// Função para acionar a pesquisa com debounce
+let filterTimeout;
 const handleFilter = async () => {
   try {
-    // Reseta para a primeira página
-    currentPage.value = 1;
+    // Limpa timeout anterior
+    clearTimeout(filterTimeout);
+    
+    // Aguarda um pouco para o valor ser definido
+    filterTimeout = setTimeout(async () => {
+      console.log('Executando filtro com valores:', {
+        status: searchStatus.value,
+        priority: searchPriority.value,
+        startDate: startDate.value,
+        endDate: endDate.value
+      });
+      
+      // Reseta para a primeira página
+      currentPage.value = 1;
 
-    // Inicia o carregamento
-    loading.value = true;
+      // Inicia o carregamento
+      loading.value = true;
 
-    // Carrega os tickets com os filtros
-    await loadTickets(1);
+      try {
+        // Carrega os tickets com os filtros
+        await loadTickets(1);
+      } finally {
+        loading.value = false;
+      }
+    }, 300); // 300ms de delay
 
   } catch (error) {
     console.error('Erro ao filtrar tickets:', error);
-  } finally {
     loading.value = false;
   }
 };
@@ -499,6 +632,57 @@ const handleSearchInput = () => {
 const createTicket = () => router.push('/tickets/create');
 const viewTicket = (id) => router.push(`/tickets/${id}`);
 const editTicket = (id) => router.push(`/tickets/${id}/edit`);
+
+const handleTicketReopened = () => {
+  // Recarrega a lista de tickets para refletir a mudança
+  loadTickets(currentPage.value);
+};
+
+// Funções para o modal de comentário
+const openCommentDialog = (ticket) => {
+  commentDialog.value = {
+    show: true,
+    ticket: ticket,
+    comment: '',
+    loading: false
+  };
+};
+
+const closeCommentDialog = () => {
+  commentDialog.value = {
+    show: false,
+    ticket: null,
+    comment: '',
+    loading: false
+  };
+};
+
+const submitComment = async () => {
+  try {
+    commentDialog.value.loading = true;
+    
+    // Chamada para a API para registrar o comentário
+    const response = await api.post(`/service/${commentDialog.value.ticket.id}/comment`, {
+      comment: commentDialog.value.comment.trim()
+    });
+    
+    if (response.data.success) {
+      // Feedback de sucesso
+      alert('Comentário registrado com sucesso!');
+      
+      // Fecha o modal
+      closeCommentDialog();
+      
+      // Recarrega a lista para refletir mudanças
+      loadTickets(currentPage.value);
+    }
+  } catch (error) {
+    console.error('Erro ao registrar comentário:', error);
+    alert('Erro ao registrar comentário. Tente novamente.');
+  } finally {
+    commentDialog.value.loading = false;
+  }
+};
 
 onMounted(() => {
   carregarDadosUsuario(); // Carrega os dados do usuário quando o componente é montado
@@ -541,7 +725,7 @@ onMounted(() => {
 
 /* Adicione estes novos estilos */
 .v-btn {
-  text-transform: none !important;
+  text-transform: uppercase !important;
   font-weight: 500 !important;
 }
 
@@ -614,7 +798,7 @@ onMounted(() => {
   font-size: 0.875rem;
   color: #666;
   font-weight: 500;
-  text-transform: none;
+  text-transform: uppercase;
   background-color: #f5f5f5;
 }
 
@@ -691,7 +875,7 @@ onMounted(() => {
   border-radius: 20px !important;
   font-weight: 500 !important;
   letter-spacing: 0.0892857143em !important;
-  text-transform: none !important;
+  text-transform: uppercase !important;
   transition: background-color 0.2s ease-in-out !important;
   cursor: pointer !important;
   /* Adiciona a maozinha em todos os botões */
@@ -773,5 +957,23 @@ onMounted(() => {
 }
 
 /* Corrige o alinhamento do container do período */
+
+/* Centralização do texto dos botões */
+.btn-centered {
+  text-align: center !important;
+}
+
+.btn-centered :deep(.v-btn__content) {
+  justify-content: center !important;
+  text-align: center !important;
+  width: 100% !important;
+  display: flex !important;
+}
+
+/* Estilo para prazos vencidos */
+.deadline-overdue {
+  color: #d32f2f !important;
+  font-weight: 600 !important;
+}
 
 </style>

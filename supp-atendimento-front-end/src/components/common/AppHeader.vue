@@ -1,7 +1,9 @@
 <template>
   <header class="header">
     <div class="logo">
-      <ProcuradoriaLogoCabecalho :width="140" :height="40" color="#1a237e" />    </div>
+      <ProcuradoriaLogoCabecalho :width="140" :height="40" color="#1a237e" />    
+    </div>
+      <span class="portal-text">PORTAL DO USUÁRIO</span>
     <div class="user-actions">
       <span class="username">{{ nomeUsuario }}</span>
       <button @click="fazerLogout" class="logout-button">
@@ -48,6 +50,17 @@ onMounted(() => {
     align-items: center;
     box-shadow: 0 2px 4px rgba(0,0,0,0.1);
     z-index: 1000;
+}
+
+.logo {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+}
+
+.portal-text {
+      font-weight: 500;
+      color: #1a237e;
 }
 
 .user-actions {

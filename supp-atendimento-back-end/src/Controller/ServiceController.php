@@ -20,7 +20,7 @@ use App\Entity\Project;
 use App\Entity\ServiceAttachment; // Adicione esta linha para importar a classe
 use Symfony\Component\HttpFoundation\BinaryFileResponse; // Também adicione esta para o download
 use Symfony\Component\HttpFoundation\File\UploadedFile;
-use function Symfony\Component\DependencyInjection\Loader\Configurator\service;
+
 
 #[Route('/api/service')]
 class ServiceController extends AbstractController
@@ -55,13 +55,15 @@ class ServiceController extends AbstractController
 
             $startDate = $request->query->get('start_date');
             $endDate = $request->query->get('end_date');
+            $excludeStatus = $request->query->get('exclude_status');
 
             $filters = [
                 'title' => $request->query->get('title'),
                 'status' => $request->query->get('status'),
                 'priority' => $request->query->get('priority'),
                 'start_date' => $startDate,
-                'end_date' => $endDate
+                'end_date' => $endDate,
+                'exclude_status' => $excludeStatus
             ];
 
             // Removemos filtros vazios
@@ -124,20 +126,12 @@ class ServiceController extends AbstractController
                         'name' => $service->getRequester()?->getName(),
                         'email' => $service->getRequester()?->getEmail(),
                     ],
-                    'responsible' => [
-                        'id' => $service->getReponsible()?->getId(),
-                        'name' => $service->getReponsible()?->getName(),
-                        'function' => $service->getReponsible()?->getFunction(),
-                        'sector' => [
-                            'id' => $service->getReponsible()?->getSector()?->getId(),
-                            'name' => $service->getReponsible()?->getSector()?->getName()
-                        ]
-                    ],
 
                     'dates' => [
                         'created' => $service->getDateCreate()?->format('Y-m-d H:i:s'),
                         'updated' => $service->getDateUpdate()?->format('Y-m-d H:i:s'),
                         'concluded' => $service->getDateConclusion()?->format('Y-m-d H:i:s'),
+                        'deadline' => $service->getDeadline()?->format('Y-m-d H:i:s'),
                     ],
                 ];
             }, $services);
@@ -203,15 +197,11 @@ class ServiceController extends AbstractController
                         'name' => $service->getRequester()?->getName(),
                         'email' => $service->getRequester()?->getEmail(),
                     ],
-                    'responsible' => [
-                        'id' => $service->getReponsible()?->getId(),
-                        'name' => $service->getReponsible()?->getName(),
-                        'function' => $service->getReponsible()?->getFunction(),
-                    ],
                     'dates' => [
                         'created' => $service->getDateCreate()?->format('Y-m-d H:i:s'),
                         'updated' => $service->getDateUpdate()?->format('Y-m-d H:i:s'),
                         'concluded' => $service->getDateConclusion()?->format('Y-m-d H:i:s'),
+                        'deadline' => $service->getDeadline()?->format('Y-m-d H:i:s'),
                     ],
                     'project' => $service->getProject() ? [
                         'id' => $service->getProject()->getId(),
@@ -350,15 +340,11 @@ class ServiceController extends AbstractController
                         'name' => $service->getRequester()?->getName(),
                         'email' => $service->getRequester()?->getEmail(),
                     ],
-                    'responsible' => [
-                        'id' => $service->getReponsible()?->getId(),
-                        'name' => $service->getReponsible()?->getName(),
-                        'function' => $service->getReponsible()?->getFunction(),
-                    ],
                     'dates' => [
                         'created' => $service->getDateCreate()?->format('Y-m-d H:i:s'),
                         'updated' => $service->getDateUpdate()?->format('Y-m-d H:i:s'),
                         'concluded' => $service->getDateConclusion()?->format('Y-m-d H:i:s'),
+                        'deadline' => $service->getDeadline()?->format('Y-m-d H:i:s'),
                     ],
                 ];
             }, $services);
@@ -387,6 +373,7 @@ class ServiceController extends AbstractController
             $priority = $request->query->get('priority');
             $categoryId = $request->query->get('category_id');
             $serviceTypeId = $request->query->get('service_type_id');
+            $excludeStatus = $request->query->get('exclude_status');
 
             // Parâmetros de paginação
             $page = $request->query->get('page', 1);
@@ -440,6 +427,11 @@ class ServiceController extends AbstractController
 
                 // Filtro por tipo de serviço
                 if ($serviceTypeId && (!$service->getServiceType() || $service->getServiceType()->getId() != $serviceTypeId)) {
+                    $keepService = false;
+                }
+
+                // Filtro para excluir status específico
+                if ($excludeStatus && $service->getStatus() === $excludeStatus) {
                     $keepService = false;
                 }
 
@@ -504,6 +496,7 @@ class ServiceController extends AbstractController
                         'created' => $service->getDateCreate()?->format('Y-m-d H:i:s'),
                         'updated' => $service->getDateUpdate()?->format('Y-m-d H:i:s'),
                         'concluded' => $service->getDateConclusion()?->format('Y-m-d H:i:s'),
+                        'deadline' => $service->getDeadline()?->format('Y-m-d H:i:s'),
                     ],
                 ];
             }, $paginatedServices);
@@ -599,20 +592,12 @@ class ServiceController extends AbstractController
                         'updated' => $service->getDateUpdate()->format('Y-m-d H:i:s'),
                         'concluded' => $service->getDateConclusion()?->format('Y-m-d H:i:s')
                     ],
-                    'responsible' => [
-                        'id' => $service->getReponsible()?->getId(),
-                        'name' => $service->getReponsible()?->getName()
-                    ],
                     'history' => array_map(function ($history) {
                         return [
                             'date' => $history->getDateHistory()->format('Y-m-d H:i:s'),
                             'status_prev' => $history->getStatusPrev(),
                             'status_post' => $history->getStatusPost(),
                             'comment' => $history->getComment(),
-                            'responsible' => [
-                                'id' => $history->getResponsible()?->getId(),
-                                'name' => $history->getResponsible()?->getName()
-                            ]
                         ];
                     }, $service->getHistories()->toArray())
                 ]
@@ -634,14 +619,14 @@ class ServiceController extends AbstractController
     // Em ServiceController.php
 
     #[Route('/{id}/transfer', methods: ['PUT'])]
-    public function transferToAttendant(int $id, Request $request): JsonResponse
+    public function transferToSector(int $id, Request $request): JsonResponse
     {
         try {
             $data = json_decode($request->getContent(), true);
 
             // Validação dos dados
-            if (!isset($data['attendant_id']) || !isset($data['comment'])) {
-                throw new BadRequestException('Attendant ID and comment are required');
+            if (!isset($data['sector_id']) || !isset($data['comment'])) {
+                throw new BadRequestException('Sector ID and comment are required');
             }
 
             // Buscar o serviço
@@ -654,10 +639,10 @@ class ServiceController extends AbstractController
                 ], 404);
             }
 
-            // Transferir o ticket
-            $this->serviceManager->transferTicket(
+            // Transferir o ticket para o novo setor
+            $this->serviceManager->transferTicketToSector(
                 service: $service,
-                newAttendantId: $data['attendant_id'],
+                newSectorId: $data['sector_id'],
                 comment: $data['comment']
             );
 
@@ -668,10 +653,9 @@ class ServiceController extends AbstractController
                     'id' => $service->getId(),
                     'title' => $service->getTitle(),
                     'status' => $service->getStatus(),
-                    'responsible' => [
-                        'id' => $service->getReponsible()?->getId(),
-                        'name' => $service->getReponsible()?->getName(),
-                        'function' => $service->getReponsible()?->getFunction()
+                    'sector' => [
+                        'id' => $service->getSector()->getId(),
+                        'name' => $service->getSector()->getName()
                     ],
                     'dates' => [
                         'created' => $service->getDateCreate()->format('Y-m-d H:i:s'),
@@ -682,11 +666,7 @@ class ServiceController extends AbstractController
                             'date' => $history->getDateHistory()->format('Y-m-d H:i:s'),
                             'status_prev' => $history->getStatusPrev(),
                             'status_post' => $history->getStatusPost(),
-                            'comment' => $history->getComment(),
-                            'responsible' => [
-                                'id' => $history->getResponsible()?->getId(),
-                                'name' => $history->getResponsible()?->getName()
-                            ]
+                            'comment' => $history->getComment()
                         ];
                     }, $service->getHistories()->toArray())
                 ]
@@ -762,11 +742,6 @@ class ServiceController extends AbstractController
                     'status_prev' => $history->getStatusPrev(),
                     'status_post' => $history->getStatusPost(),
                     'comment' => $history->getComment(),
-                    'responsible' => [
-                        'id' => $history->getResponsible()?->getId(),
-                        'name' => $history->getResponsible()?->getName(),
-                        'function' => $history->getResponsible()?->getFunction()
-                    ],
                     'service' => [
                         'id' => $history->getService()->getId(),
                         'title' => $history->getService()->getTitle()
@@ -786,6 +761,61 @@ class ServiceController extends AbstractController
         }
     }
 
+    #[Route('/{id}/comment', methods: ['POST'])]
+    public function addUserComment(int $id, Request $request): JsonResponse
+    {
+        try {
+            $user = $this->getUser();
+            
+            if (!$user) {
+                return new JsonResponse([
+                    'success' => false,
+                    'message' => 'User not authenticated'
+                ], 401);
+            }
+
+            $service = $this->serviceManager->findById($id);
+            
+            if (!$service) {
+                return new JsonResponse([
+                    'success' => false,
+                    'message' => 'Service not found'
+                ], 404);
+            }
+            
+            // Verificar se o usuário é o solicitante do ticket
+            if ($service->getRequester()->getId() !== $user->getId()) {
+                return new JsonResponse([
+                    'success' => false,
+                    'message' => 'Access denied. You can only comment on your own tickets.'
+                ], 403);
+            }
+            
+            $data = json_decode($request->getContent(), true);
+            $comment = $data['comment'] ?? '';
+            
+            if (empty(trim($comment))) {
+                return new JsonResponse([
+                    'success' => false,
+                    'message' => 'Comment cannot be empty'
+                ], 400);
+            }
+            
+            // Usar o ServiceManager para adicionar o comentário como um histórico
+            $this->serviceManager->addUserComment($service, trim($comment), $user);
+            
+            return new JsonResponse([
+                'success' => true,
+                'message' => 'Comment added successfully'
+            ]);
+            
+        } catch (\Exception $e) {
+            return new JsonResponse([
+                'success' => false,
+                'message' => 'Error adding comment: ' . $e->getMessage()
+            ], 500);
+        }
+    }
 
     #[Route('/admin/create', methods: ['POST'])]
     public function createByAdmin(Request $request): JsonResponse
@@ -978,6 +1008,58 @@ class ServiceController extends AbstractController
             return new JsonResponse([
                 'success' => false,
                 'message' => 'Erro ao baixar anexo: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+
+    #[Route('/{id}/deadline', methods: ['PUT'])]
+    public function updateDeadline(int $id, Request $request): JsonResponse
+    {
+        try {
+            $data = json_decode($request->getContent(), true);
+
+            if (!isset($data['deadline'])) {
+                throw new BadRequestException('Deadline is required');
+            }
+
+            $service = $this->serviceManager->findById($id);
+
+            if (!$service) {
+                return new JsonResponse([
+                    'success' => false,
+                    'message' => 'Service not found'
+                ], 404);
+            }
+
+            // Atualizar o prazo
+            $deadline = new \DateTime($data['deadline']);
+            $service->setDeadline($deadline);
+            $service->setDateUpdate(new \DateTime());
+
+            $this->entityManager->flush();
+
+            return new JsonResponse([
+                'success' => true,
+                'data' => [
+                    'id' => $service->getId(),
+                    'title' => $service->getTitle(),
+                    'deadline' => $service->getDeadline()->format('Y-m-d H:i:s'),
+                    'dates' => [
+                        'created' => $service->getDateCreate()->format('Y-m-d H:i:s'),
+                        'updated' => $service->getDateUpdate()->format('Y-m-d H:i:s'),
+                        'deadline' => $service->getDeadline()->format('Y-m-d H:i:s'),
+                    ]
+                ]
+            ]);
+        } catch (BadRequestException $e) {
+            return new JsonResponse([
+                'success' => false,
+                'message' => $e->getMessage()
+            ], 400);
+        } catch (\Exception $e) {
+            return new JsonResponse([
+                'success' => false,
+                'message' => 'Internal server error: ' . $e->getMessage()
             ], 500);
         }
     }

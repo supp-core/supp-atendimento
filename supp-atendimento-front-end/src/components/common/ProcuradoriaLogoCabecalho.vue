@@ -9,18 +9,17 @@
       >
         <rect width="600" height="200" fill="none"/>
         <text 
-          x="300" 
+          x="200" 
           y="115" 
           font-family="Palatino, 'Times New Roman', serif" 
-          font-size="60" 
+          font-size="75" 
           font-weight="bold" 
           text-anchor="middle" 
           :fill="color"
         >
-          PGM/PBH
+          PGM/BH - HELP DESK
         </text>
-        <line x1="150" y1="150" x2="450" y2="150" :stroke="color" stroke-width="3"/>
-        <line x1="150" y1="70" x2="450" y2="70" :stroke="color" stroke-width="3"/>
+
       </svg>
     </div>
   </template>
@@ -51,7 +50,7 @@
   }
   
   .logo-svg {
-    width: 100%;
+    width: 200%;
     height: 100%;
   }
   </style>

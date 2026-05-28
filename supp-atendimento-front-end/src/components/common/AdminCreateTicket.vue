@@ -9,19 +9,21 @@
         <v-form ref="form" @submit.prevent="submitForm">
           <!-- Campos do formulário -->
           <v-row>
+            <!-- Número do Ticket -->
+            <v-col cols="12">
+              <v-card variant="outlined" class="auto-title-card">
+                <v-card-text>
+                  <div class="text-h6 text-primary">{{ nextTicketTitle }}</div>
+                </v-card-text>
+              </v-card>
+            </v-col>
+
             <!-- Seleção de Usuário -->
             <v-col cols="12">
               <v-autocomplete v-model="formData.requester_id" :items="users" item-title="name" item-value="id"
                 item-subtitle="email" label="Selecione o Usuário*" :loading="loadingUsers"
                 :rules="[v => !!v || 'Usuário é obrigatório']" required variant="outlined"
                 density="comfortable"></v-autocomplete>
-            </v-col>
-
-            <!-- Título do Chamado -->
-            <v-col cols="12">
-              <v-text-field v-model="formData.title" label="Título do Chamado*"
-                :rules="[v => !!v || 'Título é obrigatório']" required variant="outlined"
-                density="comfortable"></v-text-field>
             </v-col>
 
             <!-- Prioridade e Setor na mesma linha -->
@@ -60,6 +62,18 @@
               ></v-autocomplete>
             </v-col>
 
+            <!-- Campo de Prazo -->
+            <v-col cols="12" md="6">
+              <v-menu v-model="deadlineMenu" :close-on-content-click="false" min-width="auto">
+                <template v-slot:activator="{ props }">
+                  <v-text-field v-model="formattedDeadline" label="Prazo (opcional)" prepend-inner-icon="mdi-calendar"
+                    readonly v-bind="props" variant="outlined" density="comfortable"
+                    hint="Se não informado, será definido automaticamente 5 dias a partir da criação"></v-text-field>
+                </template>
+                <v-date-picker v-model="formData.deadline" @update:model-value="deadlineMenu = false" locale="pt-BR"></v-date-picker>
+              </v-menu>
+            </v-col>
+
             <!-- Descrição -->
             <v-col cols="12">
               <v-textarea v-model="formData.description" label="Descrição do Atendimento*"
@@ -94,7 +108,9 @@
 </template>
 
 <script setup>
-import { ref, onMounted, watch } from 'vue';
+import { ref, onMounted, watch, computed } from 'vue';
+import { format } from 'date-fns';
+import { ptBR } from 'date-fns/locale';
 import api from '@/services/api';
 import { authService } from '@/services/auth.service'
 
@@ -109,6 +125,7 @@ const form = ref(null);
 const loading = ref(false);
 const loadingUsers = ref(false);
 const loadingSectors = ref(false);
+const deadlineMenu = ref(false);
 const users = ref([]);
 const sectors = ref([]);
 const categories = ref([]);
@@ -128,8 +145,8 @@ const priorityOptions = [
 ];
 
 // Datos del formulario
+const nextTicketTitle = ref('Carregando...');
 const formData = ref({
-  title: '',
   description: '',
   priority: 'NORMAL',
   sector_id: null,
@@ -137,7 +154,28 @@ const formData = ref({
   category_id: null,
   service_type_id: null,
   project_id: null,
+  deadline: null,
   files: []
+});
+
+// Formatação da data para exibição
+const formattedDeadline = computed(() => {
+  if (!formData.value.deadline) return '';
+  
+  try {
+    if (formData.value.deadline instanceof Date) {
+      return format(formData.value.deadline, 'dd/MM/yyyy', { locale: ptBR });
+    }
+    
+    if (typeof formData.value.deadline === 'string') {
+      return format(new Date(formData.value.deadline), 'dd/MM/yyyy', { locale: ptBR });
+    }
+    
+    return '';
+  } catch (error) {
+    console.error('Erro ao formatar data do prazo:', error);
+    return '';
+  }
 });
 
 // Observa cambios en la propiedad modelValue para actualizar el diálogo
@@ -177,6 +215,11 @@ const loadSectors = async () => {
     const response = await api.get('/sectors');
     if (response.data.success) {
       sectors.value = response.data.data;
+      // Definir Diretoria como setor padrão
+      const diretoriaSetor = sectors.value.find(sector => sector.name === 'Diretoria');
+      if (diretoriaSetor) {
+        formData.value.sector_id = diretoriaSetor.id;
+      }
     }
   } catch (error) {
     console.error('Error al cargar sectores:', error);
@@ -225,6 +268,8 @@ const closeDialog = () => {
   if (form.value) {
     form.value.reset();
   }
+  // Recarregar próximo número do ticket
+  loadNextTicketNumber();
 };
 
 // Enviar el formulario
@@ -242,11 +287,16 @@ const submitForm = async () => {
     const submitData = new FormData();
     const attendant = authService.getAttendantData();
 
+    // Encontrar ID do setor Diretoria
+    const diretoriaSetor = sectors.value.find(sector => sector.name === 'Diretoria');
+    const defaultSectorId = diretoriaSetor ? diretoriaSetor.id : formData.value.sector_id;
+
     // Adicionar campos básicos
-    submitData.append('title', formData.value.title);
+    submitData.append('title', nextTicketTitle.value);
     submitData.append('description', formData.value.description);
     submitData.append('priority', formData.value.priority);
-    submitData.append('sector_id', formData.value.sector_id);
+    // Todos os chamados vão para Diretoria por padrão
+    submitData.append('sector_id', defaultSectorId);
     submitData.append('category_id', formData.value.category_id);
     submitData.append('service_type_id', formData.value.service_type_id);
     submitData.append('requester_id', formData.value.requester_id);
@@ -254,6 +304,15 @@ const submitForm = async () => {
     submitData.append('created_by_admin', 'true');
     if (formData.value.project_id) {
       submitData.append('project_id', formData.value.project_id);
+    }
+
+    // Adicionar deadline se foi definido
+    if (formData.value.deadline) {
+      let formattedDeadlineValue = formData.value.deadline;
+      if (formData.value.deadline instanceof Date) {
+        formattedDeadlineValue = formData.value.deadline.toISOString().split('T')[0];
+      }
+      submitData.append('deadline', formattedDeadlineValue);
     }
 
     // Adicionar arquivos apenas se existirem
@@ -303,12 +362,71 @@ const submitForm = async () => {
   }
 };
 
+const loadNextTicketNumber = async () => {
+  try {
+    // Atendentes têm acesso a todos os tickets via endpoint específico
+    const attendant = authService.getAttendantData();
+    
+    if (attendant && attendant.id) {
+      // Busca tickets do atendente para obter IDs reais do banco
+      const response = await api.get(`/service/attendant/${attendant.id}?per_page=1000`);
+      
+      // Se retornou dados, calcula próximo ID baseado no maior ID existente
+      if (response.data && response.data.data && Array.isArray(response.data.data) && response.data.data.length > 0) {
+        const allIds = response.data.data.map(ticket => parseInt(ticket.id)).filter(id => !isNaN(id));
+        if (allIds.length > 0) {
+          const maxId = Math.max(...allIds);
+          const nextNumber = maxId + 1;
+          nextTicketTitle.value = `${nextNumber}`;
+          console.log(`Próximo ticket baseado no banco: ${nextNumber} (maior ID atual: ${maxId})`);
+          return;
+        }
+      }
+    }
+    
+    // Se chegou aqui, tenta endpoint alternativo ou não há tickets ainda
+    try {
+      // Tenta buscar usando endpoint geral (pode ter diferentes permissões)
+      const fallbackResponse = await api.get('/service?per_page=1000');
+      if (fallbackResponse.data?.data?.length > 0) {
+        const allIds = fallbackResponse.data.data.map(ticket => parseInt(ticket.id)).filter(id => !isNaN(id));
+        if (allIds.length > 0) {
+          const maxId = Math.max(...allIds);
+          nextTicketTitle.value = `${maxId + 1}`;
+          console.log(`Próximo ticket via endpoint geral: ${maxId + 1}`);
+          return;
+        }
+      }
+    } catch (serviceError) {
+      console.log('Endpoint /service não acessível, continuando...');
+    }
+    
+    // Se chegou aqui, não há tickets ainda (banco vazio)
+    nextTicketTitle.value = `1`;
+    console.log('Banco vazio, iniciando com 1');
+    
+  } catch (error) {
+    // 404 significa que não há tickets ainda - é o estado inicial normal
+    if (error.response?.status === 404) {
+      nextTicketTitle.value = `1`;
+      console.log('404 = banco vazio, iniciando com 1');
+    } else {
+      console.error('Erro ao buscar tickets:', error);
+      // Último recurso
+      nextTicketTitle.value = `1`;
+      console.log('Erro geral, assumindo 1');
+    }
+  }
+};
+
+// Cargar datos al montar el componente
 onMounted(() => {
   loadUsers();
   loadSectors();
   loadCategories();
   loadServiceTypes();
   loadProjects();
+  loadNextTicketNumber();
 });
 </script>
 
@@ -320,5 +438,10 @@ onMounted(() => {
 
 .v-card-text {
   padding-top: 20px;
+}
+
+.auto-title-card {
+  background-color: #f8f9fa;
+  border: 1px solid #e3f2fd !important;
 }
 </style>
