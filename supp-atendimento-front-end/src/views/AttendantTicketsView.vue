@@ -751,11 +751,10 @@ const transferTicket = async () => {
   transferDialog.value.loading = true
   try {
     const serviceId = transferDialog.value.ticket.id
-    await Promise.allSettled(
-      transferDialog.value.newAttendantIds.map(attendantId =>
-        api.post(`/service/${serviceId}/attendants`, { attendant_id: attendantId })
-      )
-    )
+    await api.put(`/service/${serviceId}/assign`, {
+      attendant_ids: transferDialog.value.newAttendantIds,
+      comment: transferDialog.value.comment
+    })
     await loadTickets()
     transferDialog.value.show = false
   } catch (error) {

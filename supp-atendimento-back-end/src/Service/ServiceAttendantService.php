@@ -55,6 +55,17 @@ class ServiceAttendantService
         $this->entityManager->flush();
     }
 
+    public function clearAttendants(Service $service): void
+    {
+        $entries = $this->entityManager->getRepository(ServiceAttendant::class)
+            ->findBy(['service' => $service]);
+
+        foreach ($entries as $entry) {
+            $this->entityManager->remove($entry);
+        }
+        $this->entityManager->flush();
+    }
+
     public function listAttendants(Service $service): array
     {
         return $this->entityManager->getRepository(ServiceAttendant::class)

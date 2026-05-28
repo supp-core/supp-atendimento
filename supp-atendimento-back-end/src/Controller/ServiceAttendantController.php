@@ -101,6 +101,45 @@ class ServiceAttendantController extends AbstractController
         }
     }
 
+    #[Route('/{id}/assign', methods: ['PUT'])]
+    public function assignAttendants(int $id, Request $request): JsonResponse
+    {
+        try {
+            $service = $this->serviceManager->findById($id);
+            if (!$service) {
+                return new JsonResponse(['success' => false, 'message' => 'Demanda não encontrada'], 404);
+            }
+
+            $user = $this->getUser();
+            $assignedBy = $this->entityManager->getRepository(Attendant::class)
+                ->findOneBy(['user' => $user]);
+
+            if (!$assignedBy) {
+                return new JsonResponse(['success' => false, 'message' => 'Acesso negado.'], 403);
+            }
+
+            $data = json_decode($request->getContent(), true);
+            $attendantIds = $data['attendant_ids'] ?? [];
+
+            if (empty($attendantIds)) {
+                return new JsonResponse(['success' => false, 'message' => 'attendant_ids é obrigatório.'], 400);
+            }
+
+            $service->setReponsible(null);
+            $this->serviceAttendantService->clearAttendants($service);
+
+            foreach ($attendantIds as $attendantId) {
+                $this->serviceAttendantService->addAttendant($service, (int) $attendantId, $assignedBy);
+            }
+
+            return new JsonResponse(['success' => true]);
+        } catch (\InvalidArgumentException $e) {
+            return new JsonResponse(['success' => false, 'message' => $e->getMessage()], 400);
+        } catch (\Exception $e) {
+            return new JsonResponse(['success' => false, 'message' => $e->getMessage()], 500);
+        }
+    }
+
     #[Route('/{id}/evolution', methods: ['POST'])]
     public function registerEvolution(int $id, Request $request): JsonResponse
     {

@@ -386,19 +386,37 @@ class ServiceManager
             ->leftJoin('s.sector', 'sect')
             ->leftJoin('s.requester', 'u')
             ->leftJoin('s.reponsible', 'a')
-            ->leftJoin('s.category', 'c')         // Join com categoria
-            ->leftJoin('s.serviceType', 'st');  
+            ->leftJoin('s.category', 'c')
+            ->leftJoin('s.serviceType', 'st');
 
-        // Se for admin, retorna todos os tickets
         if ($attendant->getFunction() === 'Admin') {
-
-            $queryBuilder->where('s.reponsible IS NULL OR s.reponsible = :attendantId')
-                ->setParameter('attendantId', $attendantId);
+            // Admin vê: atribuídos diretamente a ele OU sem responsável e sem service_attendant OU via service_attendant
+            $queryBuilder->where(
+                $queryBuilder->expr()->orX(
+                    $queryBuilder->expr()->eq('s.reponsible', ':attendantId'),
+                    $queryBuilder->expr()->andX(
+                        $queryBuilder->expr()->isNull('s.reponsible'),
+                        sprintf(
+                            'NOT EXISTS (SELECT sa1 FROM App\Entity\ServiceAttendant sa1 WHERE sa1.service = s)'
+                        )
+                    ),
+                    sprintf(
+                        'EXISTS (SELECT sa2 FROM App\Entity\ServiceAttendant sa2 WHERE sa2.service = s AND sa2.attendant = %d)',
+                        $attendantId
+                    )
+                )
+            )->setParameter('attendantId', $attendantId);
         } else {
-
-            // Se não for admin, retorna apenas os tickets atribuídos ao atendente
-            $queryBuilder->where('s.reponsible = :attendantId')
-                ->setParameter('attendantId', $attendantId);
+            // Atendente comum vê: atribuídos diretamente OU via service_attendant
+            $queryBuilder->where(
+                $queryBuilder->expr()->orX(
+                    $queryBuilder->expr()->eq('s.reponsible', ':attendantId'),
+                    sprintf(
+                        'EXISTS (SELECT sa FROM App\Entity\ServiceAttendant sa WHERE sa.service = s AND sa.attendant = %d)',
+                        $attendantId
+                    )
+                )
+            )->setParameter('attendantId', $attendantId);
         }
 
         $queryBuilder->orderBy('CASE s.priority 

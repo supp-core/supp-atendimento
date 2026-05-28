@@ -24,7 +24,7 @@ class ServiceAttendant
     private ?Attendant $attendant = null;
 
     #[ORM\ManyToOne]
-    #[ORM\JoinColumn(nullable: false)]
+    #[ORM\JoinColumn(name: 'assigned_by', nullable: false)]
     private ?Attendant $assigned_by = null;
 
     #[ORM\Column(type: Types::DATETIME_MUTABLE)]
