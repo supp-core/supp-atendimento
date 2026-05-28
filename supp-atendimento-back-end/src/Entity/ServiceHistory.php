@@ -38,7 +38,7 @@ class ServiceHistory
     private string $type = 'STATUS_CHANGE';
 
     #[ORM\ManyToOne]
-    #[ORM\JoinColumn(name: 'attendant_id_evolution', nullable: true, onDelete: 'SET NULL')]
+    #[ORM\JoinColumn(name: 'attendant_evolution_id', nullable: true, onDelete: 'SET NULL')]
     private ?Attendant $attendant_evolution = null;
 
     public function getId(): ?int

@@ -106,8 +106,8 @@ class AuthController extends AbstractController
             ->withValue($token)
             ->withExpires(time() + self::COOKIE_TTL)
             ->withPath('/')
-            ->withSecure($this->kernel->getEnvironment() === 'prod')
+            ->withSecure(false)
             ->withHttpOnly(true)
-            ->withSameSite(Cookie::SAMESITE_STRICT);
+            ->withSameSite(Cookie::SAMESITE_LAX);
     }
 }

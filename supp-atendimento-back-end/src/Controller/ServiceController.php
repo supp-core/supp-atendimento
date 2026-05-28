@@ -554,9 +554,10 @@ class ServiceController extends AbstractController
                 ], 404);
             }
 
-            // Captura category_id e service_type_id se existirem
             $categoryId = $updateData['category_id'] ?? null;
             $serviceTypeId = $updateData['service_type_id'] ?? null;
+            $priority = $updateData['priority'] ?? null;
+            $projectId = isset($updateData['project_id']) ? (int)$updateData['project_id'] : null;
 
 
 
@@ -575,14 +576,15 @@ class ServiceController extends AbstractController
                     ->getOneOrNullResult();
             }
 
-            // Atualiza o status do serviço e passa o atendente responsável
             $this->serviceManager->updateServiceStatus(
                 service: $service,
                 newStatus: $updateData['status'],
                 comment: $updateData['comment'],
                 attendant: $attendant,
                 categoryId: $categoryId,
-                serviceTypeId: $serviceTypeId
+                serviceTypeId: $serviceTypeId,
+                priority: $priority,
+                projectId: $projectId
             );
 
             // Prepara a resposta com os dados atualizados

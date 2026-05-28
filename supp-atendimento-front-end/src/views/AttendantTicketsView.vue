@@ -231,6 +231,25 @@
                       <v-select v-model="evolveDialog.service_type_id" :items="serviceTypes" item-title="name"
                         item-value="id" label="Tipo de Atendimento" :disabled="evolveDialog.loading"></v-select>
                     </v-col>
+
+                    <v-col cols="12" md="6">
+                      <v-select v-model="evolveDialog.priority"
+                        :items="[{ title: 'Baixa', value: 'BAIXA' }, { title: 'Normal', value: 'NORMAL' }, { title: 'Alta', value: 'ALTA' }, { title: 'Urgente', value: 'URGENTE' }]"
+                        item-title="title" item-value="value"
+                        label="Prioridade" :disabled="evolveDialog.loading"></v-select>
+                    </v-col>
+
+                    <v-col cols="12" md="6" v-if="isCategorySistemas">
+                      <v-autocomplete
+                        v-model="evolveDialog.project_id"
+                        :items="availableProjects.filter(p => p.status === 'ATIVO')"
+                        :item-title="p => `[${p.acronym}] ${p.name}`"
+                        item-value="id"
+                        label="Sistema"
+                        :disabled="evolveDialog.loading"
+                        clearable
+                      ></v-autocomplete>
+                    </v-col>
                   </template>
 
                   <!-- Para atendentes comuns: apenas labels -->
@@ -491,12 +510,21 @@ const handleTicketCreated = (newTicket) => {
 const evolveDialog = ref({
   show: false,
   ticket: {
-    attachments: [] // Inicialização explícita
-  }, newStatus: '',
+    attachments: []
+  },
+  newStatus: '',
   comment: '',
   category_id: null,
   service_type_id: null,
+  priority: null,
+  project_id: null,
   loading: false
+})
+
+const isCategorySistemas = computed(() => {
+  if (!evolveDialog.value.category_id) return false
+  const cat = categories.value.find(c => c.id === evolveDialog.value.category_id)
+  return cat?.name?.toLowerCase() === 'sistemas'
 })
 
 const openCreateDialog = () => {
@@ -673,16 +701,15 @@ const openEvolveDialog = async (ticket) => {
       // Inicializar com os valores existentes do ticket
       category_id: ticket.category?.id || null,
       service_type_id: ticket.serviceType?.id || null,
+      priority: ticket.priority || 'NORMAL',
       loading: true
     };
 
-    // Carrega detalhes completos do ticket
     await loadServiceHistory(ticket.id);
 
     const response = await api.get(`/service/${ticket.id}`);
 
     if (response.data.success) {
-      // Importante: preservar os valores de categoria e tipo de atendimento
       const categoryId = response.data.data.category?.id || ticket.category?.id;
       const serviceTypeId = response.data.data.serviceType?.id || ticket.serviceType?.id;
 
@@ -692,9 +719,10 @@ const openEvolveDialog = async (ticket) => {
         attachments: response.data.data.attachments || []
       };
 
-      // Atualizar os valores nos campos do formulário
       evolveDialog.value.category_id = categoryId;
       evolveDialog.value.service_type_id = serviceTypeId;
+      evolveDialog.value.priority = response.data.data.priority || ticket.priority || 'NORMAL';
+      evolveDialog.value.project_id = response.data.data.project?.id || ticket.project?.id || null;
     }
   } catch (error) {
     console.error('Erro ao carregar detalhes do ticket:', error);
@@ -724,14 +752,18 @@ const evolveTicket = async () => {
       comment: evolveDialog.value.comment
     };
 
-    // Adiciona campos administrativos apenas se o usuário for admin
     if (isAdmin.value) {
       if (evolveDialog.value.category_id) {
         updateData.category_id = evolveDialog.value.category_id;
       }
-
       if (evolveDialog.value.service_type_id) {
         updateData.service_type_id = evolveDialog.value.service_type_id;
+      }
+      if (evolveDialog.value.priority) {
+        updateData.priority = evolveDialog.value.priority;
+      }
+      if (isCategorySistemas.value && evolveDialog.value.project_id) {
+        updateData.project_id = evolveDialog.value.project_id;
       }
     }
 

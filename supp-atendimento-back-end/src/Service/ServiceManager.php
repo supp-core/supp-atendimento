@@ -178,7 +178,9 @@ class ServiceManager
         array $files = [],
         ?Attendant $attendant = null,
         ?int $categoryId = null,
-        ?int $serviceTypeId = null
+        ?int $serviceTypeId = null,
+        ?string $priority = null,
+        ?int $projectId = null
     ): void {
 
         //   die('parou uuuuuuuuuuuuuuuuu');
@@ -195,11 +197,21 @@ class ServiceManager
             }
         }
 
-        // Atualizar tipo de serviço se fornecido
         if ($serviceTypeId !== null) {
             $serviceType = $this->entityManager->getRepository(ServiceType::class)->find($serviceTypeId);
             if ($serviceType) {
                 $service->setServiceType($serviceType);
+            }
+        }
+
+        if ($priority !== null && in_array($priority, Service::VALID_PRIORITIES)) {
+            $service->setPriority($priority);
+        }
+
+        if ($projectId !== null) {
+            $project = $this->entityManager->getRepository(Project::class)->find($projectId);
+            if ($project) {
+                $service->setProject($project);
             }
         }
 

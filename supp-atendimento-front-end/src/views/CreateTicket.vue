@@ -23,17 +23,6 @@
                   placeholder="Digite o título do chamado">
               </div>
 
-              <!-- Novo campo de prioridade -->
-              <div class="form-group">
-                <label for="priority">Prioridade*</label>
-                <select id="priority" v-model="formData.priority" class="form-input" required>
-                  <option value="BAIXA">Baixa</option>
-                  <option value="NORMAL">Normal</option>
-                  <option value="ALTA">Alta</option>
-                  <option value="URGENTE">Urgente</option>
-                </select>
-              </div>
-
               <!-- Descrição -->
               <div class="form-group">
                 <label for="description">Descrição*</label>
@@ -97,10 +86,8 @@ import api from '@/services/api';
 
 const router = useRouter();
 const { sidebarCollapsed } = useSidebar();
-const form = ref(null);
 const loading = ref(false);
 const sectors = ref([]);
-const priority = ref('NORMAL');
 const selectedFiles = ref([]);
 
 
@@ -155,38 +142,6 @@ const showFeedback = (message, type = 'success') => {
   }, 3000);
 };
 
-const handleSubmit = async () => {
-  if (!formData.value.title || !formData.value.description) {
-    showFeedback('Por favor, preencha todos os campos obrigatórios', 'error');
-    return;
-  }
-
-  loading.value = true;
-
-  try {
-    // Adiciona o setor Admin automaticamente
-    const dataToSubmit = {
-      ...formData.value,
-      sector_id: 15 // ID do setor Admin
-    };
-
-    console.log('DaTA SUBMIt ', dataToSubmit);
-
-    const response = await api.post('/service', dataToSubmit);
-
-    if (response.data.success) {
-      showFeedback('Atendimento criado com sucesso!');
-      setTimeout(() => {
-        router.push('/tickets');
-      }, 1500);
-    }
-  } catch (error) {
-    showFeedback(error.response?.data?.message || 'Erro ao criar atendimento', 'error');
-  } finally {
-    loading.value = false;
-  }
-};
-
 const loadProjects = async () => {
   try {
     const response = await api.get('/project')
@@ -204,91 +159,35 @@ onMounted(() => {
 
 
 
-const handleFileUpload = (event) => {
-  files.value = event.target.files;
-};
-
-// Substitua a função submitForm no CreateTicket.vue com esta versão corrigida:
-
 const submitForm = async () => {
   try {
     loading.value = true;
 
-    // Criação do FormData para envio
     const submitData = new FormData();
-
-    // Adicionando campos básicos
     submitData.append('title', formData.value.title);
     submitData.append('description', formData.value.description);
-    submitData.append('priority', formData.value.priority);
+    submitData.append('priority', 'NORMAL');
     const adminSector = sectors.value.find(s => s.name === 'Admin');
     submitData.append('sector_id', adminSector?.id ?? '');
     if (formData.value.project_id) {
       submitData.append('project_id', formData.value.project_id);
     }
-
-    // Adicionando arquivos
-    if (selectedFiles.value.length > 0) {
-      selectedFiles.value.forEach((file, index) => {
-        submitData.append(`files[]`, file);
-      });
-    }
-
-    // Envio para a API
-    const response = await api.post('/service', submitData, {
-      headers: {
-        'Content-Type': 'multipart/form-data'
-      }
+    selectedFiles.value.forEach(file => {
+      submitData.append('files[]', file);
     });
 
-    // Verifica se há uma resposta concatenada (que causa o erro)
-    let processedData;
-    try {
-      // Tenta analisar a resposta diretamente
-      processedData = response.data;
-      
-      // Verifica se a resposta é uma string que contém dois JSONs concatenados
-      if (typeof response.data === 'string' && response.data.includes('}{')) {
-        const jsonParts = response.data.split('}{');
-        processedData = JSON.parse('{' + jsonParts[1]);
-      }
-      
-      // Se a resposta já é um objeto com success
-      if (response.data && response.data.success) {
-        processedData = response.data;
-      }
-    } catch (jsonError) {
-      console.error('Erro ao analisar resposta JSON:', jsonError);
-      // Fallback para exibir mensagem de sucesso mesmo com erro de parsing
-      processedData = { success: true };
-    }
+    await api.post('/service', submitData, {
+      headers: { 'Content-Type': 'multipart/form-data' }
+    });
 
-    // Sempre mostra a mensagem de sucesso e redireciona
-    feedback.value = {
-      show: true,
-      message: 'Atendimento criado com sucesso!',
-      type: 'success'
-    };
-    
-    // Limpar o formulário
+    showFeedback('Atendimento criado com sucesso!');
     formData.value.title = '';
     formData.value.description = '';
-    formData.value.priority = 'NORMAL';
+    formData.value.project_id = '';
     selectedFiles.value = [];
-    
-    // Use setTimeout com tempo suficiente para visualização
-    setTimeout(() => {
-      router.push('/tickets');
-    }, 2000);
-    
+    setTimeout(() => router.push('/tickets'), 2000);
   } catch (error) {
-    console.error('Erro ao criar ticket:', error);
-    // Mostrar mensagem de erro
-    feedback.value = {
-      show: true,
-      message: 'Erro ao criar o atendimento. Por favor, tente novamente.',
-      type: 'error'
-    };
+    showFeedback(error.response?.data?.message || 'Erro ao criar o atendimento. Por favor, tente novamente.', 'error');
   } finally {
     loading.value = false;
   }
@@ -462,55 +361,3 @@ textarea.form-input {
 }
 </style>
 
-
-<script>
-export default {
-  data() {
-    return {
-      selectedFiles: [],
-      // ... outros dados
-    }
-  },
-  methods: {
-
-    handleFileDrop(event) {
-      this.addFiles(event.dataTransfer.files)
-    },
-    addFiles(fileList) {
-      const maxSize = 10 * 1024 * 1024 // 10MB
-
-      Array.from(fileList).forEach(file => {
-        if (file.size <= maxSize) {
-          this.selectedFiles.push(file)
-        } else {
-          this.$notify({
-            type: 'error',
-            message: `Arquivo ${file.name} excede o tamanho máximo permitido`
-          })
-        }
-      })
-    },
-
-    async handleSubmit() {
-      const formData = new FormData()
-
-      // Adicionar dados do ticket
-      formData.append('title', this.title)
-      formData.append('description', this.description)
-      formData.append('priority', this.priority)
-
-      // Adicionar arquivos
-      this.selectedFiles.forEach((file, index) => {
-        formData.append(`attachments[${index}]`, file)
-      })
-
-      try {
-        await this.createTicket(formData)
-        // ... continua
-      } catch (error) {
-        // ... tratamento de erro
-      }
-    }
-  }
-}
-</script>

@@ -7,8 +7,8 @@ services:
       context: .
       dockerfile: ./docker/php/Dockerfile
     container_name: prod-backend
-    # volumes: # Removido volumes
-    #   - ./supp-atendimento-back-end:/var/www/html # Removido volumes
+    volumes:
+      - ./supp-atendimento-back-end:/var/www/html
     networks:
       - prod-network
     depends_on:
@@ -16,6 +16,7 @@ services:
     environment:
       - APP_ENV=prod
       - MAILER_DSN=smtp://supp-mailhog:1025
+      - DATABASE_URL=postgresql://postgres:danilo@database:5432/supp-atendimento?serverVersion=16&charset=utf8
 
   # Serviço PostgreSQL (Banco de dados local para dev)
   database:
