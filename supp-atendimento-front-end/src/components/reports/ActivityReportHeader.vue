@@ -5,7 +5,7 @@
     </div>
     <div class="header-text">
       <div class="institution">PREFEITURA MUNICIPAL DE BELO HORIZONTE</div>
-      <div class="department">Secretaria Municipal de Governo</div>
+      <div class="department">Procuradoria Geral do Municipal</div>
       <div class="report-title">RELATÓRIO DE ATIVIDADES</div>
     </div>
   </div>

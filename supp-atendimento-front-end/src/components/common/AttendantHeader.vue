@@ -1,114 +1,164 @@
 <template>
-    <header class="header">
-      <div class="logo">
-        <ProcuradoriaLogoCabecalho :width="140" :height="40" color="#1a237e" />
-        </div>
-        <span class="portal-text">PORTAL DO ATENDENTE</span>
-      
-      <div class="user-actions">
+  <header class="app-header">
+    <div class="header-brand">
+      <SuppLogo :width="30" :height="30" />
+      <span class="brand-name">SUPP</span>
+      <span class="brand-divider"></span>
+      <span class="brand-sub">Atendimento</span>
+    </div>
+    <div class="header-right">
+      <div class="user-chip">
+        <div class="avatar-circle">{{ userInitial }}</div>
         <div class="user-info">
-          <div class="username">{{ nomeAtendente }}</div>
-          <div class="sector-info"><strong>Setor:</strong> {{ sector }}</div>
-          <div class="function-info"><strong>Função:</strong> {{ funcaoAtendente }}</div>
+          <span class="username">{{ nomeAtendente }}</span>
+          <span class="user-meta" v-if="sector">{{ sector }}</span>
         </div>
-        <button @click="fazerLogout" class="logout-button">
-          Sair
-        </button>
       </div>
-    </header>
-  </template>
-  
-  <script setup>
-  import { ref, onMounted } from 'vue'
-  import { authService } from '@/services/auth.service'
-  import ProcuradoriaLogoCabecalho from '@/components/common/ProcuradoriaLogoCabecalho.vue'
+      <button @click="fazerLogout" class="logout-btn" title="Sair">
+        <i class="mdi mdi-logout-variant"></i>
+        <span>Sair</span>
+      </button>
+    </div>
+  </header>
+</template>
 
-  const nomeAtendente = ref('')
-  const funcaoAtendente = ref('')
-  const sector = ref('')
+<script setup>
+import { ref, computed, onMounted } from 'vue'
+import { authService } from '@/services/auth.service'
+import SuppLogo from '@/components/common/SuppLogo.vue'
 
-  const fazerLogout = async () => {
-      try {
-          await authService.logout()
-      } finally {
-          window.location.href = '/login'
-      }
-  }
+const nomeAtendente = ref('')
+const funcaoAtendente = ref('')
+const sector = ref('')
 
-  onMounted(() => {
-    const attendant = authService.getAttendantData()
-    if (attendant) {
-        nomeAtendente.value = attendant.name
-        funcaoAtendente.value = attendant.function
-        sector.value = attendant.sector?.name || ''
-    }
-  })
-  </script>
-  
-  <style scoped>
-  .header {
-      position: fixed;
-      top: 0;
-      left: 0;
-      right: 0;
-      height: 60px;
-      background: white;
-      padding: 0 20px;
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-      z-index: 1000;
+const userInitial = computed(() =>
+  nomeAtendente.value ? nomeAtendente.value.charAt(0).toUpperCase() : 'A'
+)
+
+const fazerLogout = async () => {
+  try {
+    await authService.logout()
+  } finally {
+    window.location.href = '/login'
   }
-  
-  .logo {
-      display: flex;
-      align-items: center;
-      gap: 12px;
+}
+
+onMounted(() => {
+  const attendant = authService.getAttendantData()
+  if (attendant) {
+    nomeAtendente.value = attendant.name
+    funcaoAtendente.value = attendant.function
+    sector.value = attendant.sector?.name || ''
   }
-  
-  .portal-text {
-      font-weight: 500;
-      color: #1a237e;
-  }
-  
-  .user-actions {
-      display: flex;
-      align-items: center;
-      gap: 15px;
-  }
-  
-  .user-info {
-      text-align: right;
-  }
-  
-  .username {
-      font-weight: 500;
-      color: #333;
-      margin-bottom: 2px;
-  }
-  
-  .sector-info, .function-info {
-      font-size: 0.8rem;
-      line-height: 1.2;
-      color: #666;
-  }
-  
-  .sector-info strong, .function-info strong {
-      color: #333;
-      font-weight: 500;
-  }
-  
-  .logout-button {
-      padding: 8px 16px;
-      background-color: #1a237e;
-      color: white;
-      border: none;
-      border-radius: 4px;
-      cursor: pointer;
-  }
-  
-  .logout-button:hover {
-      background-color: #0d47a1;
-  }
-  </style>
+})
+</script>
+
+<style scoped>
+.app-header {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 60px;
+  background: #ffffff;
+  border-bottom: 1px solid #e8eaf6;
+  padding: 0 24px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  z-index: 1000;
+}
+
+.header-brand {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.brand-name {
+  font-size: 1.1rem;
+  font-weight: 700;
+  color: #1a237e;
+  letter-spacing: 0.5px;
+}
+
+.brand-divider {
+  width: 1px;
+  height: 18px;
+  background: #c5cae9;
+}
+
+.brand-sub {
+  font-size: 0.85rem;
+  font-weight: 400;
+  color: #5c6bc0;
+}
+
+.header-right {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.user-chip {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.avatar-circle {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background: #1a237e;
+  color: #fff;
+  font-size: 0.875rem;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.user-info {
+  display: flex;
+  flex-direction: column;
+  line-height: 1.2;
+}
+
+.username {
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: #374151;
+}
+
+.user-meta {
+  font-size: 0.75rem;
+  color: #6b7280;
+}
+
+.logout-btn {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 14px;
+  background: transparent;
+  color: #5c6bc0;
+  border: 1px solid #c5cae9;
+  border-radius: 6px;
+  font-size: 0.8125rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.logout-btn:hover {
+  background: #e8eaf6;
+  color: #1a237e;
+  border-color: #9fa8da;
+}
+
+.logout-btn .mdi {
+  font-size: 1rem;
+}
+</style>

@@ -1,168 +1,324 @@
 <template>
-    <aside :class="['sidebar', { 'collapsed': isCollapsed }]">
-        <button class="toggle-button" @click="toggleSidebar">
-            <span class="toggle-icon">{{ isCollapsed ? '→' : '←' }}</span>
-        </button>
-        <nav>
-            <ul>
-                <li>
-                    <router-link to="/attendant/tickets" active-class="active">
-                        <span class="icon">🔧</span>
-                        <span class="text" v-show="!isCollapsed">Evoluir Atendimentos</span>
-                    </router-link>
-                </li>
-                <li>
-                    <router-link to="/projects" active-class="active">
-                        <span class="icon">📁</span>
-                        <span class="text" v-show="!isCollapsed">Projetos</span>
-                    </router-link>
-                </li>
-                <li>
-                    <router-link to="/schedule" active-class="active">
-                        <span class="icon">📅</span>
-                        <span class="text" v-show="!isCollapsed">Cronograma</span>
-                    </router-link>
-                </li>
-                <li>
-                    <router-link to="/reports/productivity" active-class="active">
-                        <span class="icon">📊</span>
-                        <span class="text" v-show="!isCollapsed">Produtividade</span>
-                    </router-link>
-                </li>
-                <li>
-                    <router-link to="/reports/activity" active-class="active">
-                        <span class="icon">📋</span>
-                        <span class="text" v-show="!isCollapsed">Rel. Atividades</span>
-                    </router-link>
-                </li>
+  <aside :class="['sidebar', { 'collapsed': isCollapsed }]">
 
-                 <!-- Mostrar apenas se o atendente for Admin -->
-                 <li v-if="isAdmin">
-                    <router-link to="/attendant/admin/users" active-class="active">
-                        <span class="icon">👥</span>
-                        <span class="text" v-show="!isCollapsed">Gerenciar Usuários</span>
-                    </router-link>
-                </li>
-                
-                <li>
-                    <router-link to="/attendant/change-password" active-class="active">
-                        <span class="icon">🔒</span>
-                        <span class="text" v-show="!isCollapsed">Alterar Senha</span>
-                    </router-link>
-                </li>
-                
-                <li>
-                    <router-link to="/attendant/dashboard" active-class="active">
-                        <span class="icon">📊</span>
-                        <span class="text" v-show="!isCollapsed">Dashboard</span>
-                    </router-link>
-                </li>
-            </ul>
-        </nav>
-    </aside>
+    <!-- Logo + toggle -->
+    <div class="sidebar-header">
+      <div class="sidebar-logo" v-show="!isCollapsed">
+        <SuppLogo :width="24" :height="24" />
+        <span class="logo-text">SUPP</span>
+      </div>
+      <button class="toggle-btn" @click="toggleSidebar" :title="isCollapsed ? 'Expandir' : 'Recolher'">
+        <i class="mdi" :class="isCollapsed ? 'mdi-menu' : 'mdi-chevron-left'"></i>
+      </button>
+    </div>
+
+    <!-- User info -->
+    <div class="sidebar-user">
+      <div class="user-avatar">{{ userInitial }}</div>
+      <div class="user-details" v-show="!isCollapsed">
+        <div class="user-name">{{ nomeAtendente }}</div>
+        <div class="user-role">{{ sector || funcaoAtendente || 'Atendente' }}</div>
+      </div>
+    </div>
+
+    <div class="sidebar-divider"></div>
+
+    <!-- Navigation -->
+    <nav class="sidebar-nav">
+
+      <p class="nav-section-label" v-show="!isCollapsed">APLICAÇÕES</p>
+      <ul>
+        <li>
+          <router-link to="/attendant/dashboard" active-class="active">
+            <i class="mdi mdi-view-dashboard-outline nav-icon"></i>
+            <span class="nav-text" v-show="!isCollapsed">Dashboard</span>
+          </router-link>
+        </li>
+        <li>
+          <router-link to="/attendant/tickets" active-class="active">
+            <i class="mdi mdi-ticket-outline nav-icon"></i>
+            <span class="nav-text" v-show="!isCollapsed">Atendimentos</span>
+          </router-link>
+        </li>
+        <li>
+          <router-link to="/projects" active-class="active">
+            <i class="mdi mdi-folder-outline nav-icon"></i>
+            <span class="nav-text" v-show="!isCollapsed">Projetos</span>
+          </router-link>
+        </li>
+        <li>
+          <router-link to="/schedule" active-class="active">
+            <i class="mdi mdi-calendar-month-outline nav-icon"></i>
+            <span class="nav-text" v-show="!isCollapsed">Cronograma</span>
+          </router-link>
+        </li>
+      </ul>
+
+      <p class="nav-section-label" v-show="!isCollapsed">MÓDULOS</p>
+      <ul>
+        <li>
+          <router-link to="/reports/productivity" active-class="active">
+            <i class="mdi mdi-chart-bar nav-icon"></i>
+            <span class="nav-text" v-show="!isCollapsed">Produtividade</span>
+          </router-link>
+        </li>
+        <li>
+          <router-link to="/reports/activity" active-class="active">
+            <i class="mdi mdi-clipboard-text-outline nav-icon"></i>
+            <span class="nav-text" v-show="!isCollapsed">Rel. Atividades</span>
+          </router-link>
+        </li>
+      </ul>
+
+      <template v-if="isAdmin">
+        <p class="nav-section-label" v-show="!isCollapsed">ADMINISTRAÇÃO</p>
+        <ul>
+          <li>
+            <router-link to="/attendant/admin/users" active-class="active">
+              <i class="mdi mdi-account-group-outline nav-icon"></i>
+              <span class="nav-text" v-show="!isCollapsed">Gerenciar Usuários</span>
+            </router-link>
+          </li>
+        </ul>
+      </template>
+
+      <p class="nav-section-label" v-show="!isCollapsed">CONTA</p>
+      <ul>
+        <li>
+          <router-link to="/attendant/change-password" active-class="active">
+            <i class="mdi mdi-lock-outline nav-icon"></i>
+            <span class="nav-text" v-show="!isCollapsed">Alterar Senha</span>
+          </router-link>
+        </li>
+      </ul>
+
+    </nav>
+  </aside>
 </template>
 
 <script setup>
-import { useSidebar } from '@/composables/useSidebar';
-import { ref,  computed, onMounted } from 'vue';
-import { authService } from '@/services/auth.service';
-const attendantData = ref(null);
-const { sidebarCollapsed, toggleSidebar } = useSidebar();
-// Computed property para verificar se é admin
-const isAdmin = computed(() => {
-    return attendantData.value && attendantData.value.function === 'Admin';
-});
+import { ref, computed, onMounted } from 'vue'
+import { useSidebar } from '@/composables/useSidebar'
+import { authService } from '@/services/auth.service'
+import SuppLogo from '@/components/common/SuppLogo.vue'
 
+const { sidebarCollapsed, toggleSidebar } = useSidebar()
+const isCollapsed = sidebarCollapsed
 
-const toggleSidebars = () => {
-    isCollapsed.value = !isCollapsed.value;
-};
+const nomeAtendente = ref('')
+const funcaoAtendente = ref('')
+const sector = ref('')
 
-const isCollapsed = sidebarCollapsed;
-// Carregar dados do atendente ao montar o componente
+const userInitial = computed(() =>
+  nomeAtendente.value ? nomeAtendente.value.charAt(0).toUpperCase() : 'A'
+)
+
+const isAdmin = computed(() =>
+  funcaoAtendente.value === 'Admin'
+)
+
 onMounted(() => {
-    attendantData.value = authService.getAttendantData();
-});
-
-
-
+  const attendant = authService.getAttendantData()
+  if (attendant) {
+    nomeAtendente.value = attendant.name
+    funcaoAtendente.value = attendant.function
+    sector.value = attendant.sector?.name || ''
+  }
+})
 </script>
 
 <style scoped>
 .sidebar {
-    position: fixed;
-    left: 0;
-    top: 60px;
-    /* Altura do header */
-    bottom: 0;
-    width: 250px;
-    background: white;
-    padding: 1rem;
-    box-shadow: 1px 0 3px rgba(0, 0, 0, 0.1);
-    transition: all 0.3s ease;
-    z-index: 100;
+  position: fixed;
+  left: 0;
+  top: 60px;
+  bottom: 0;
+  width: 250px;
+  background: #ffffff;
+  border-right: 1px solid #e8eaf6;
+  display: flex;
+  flex-direction: column;
+  transition: width 0.25s ease;
+  z-index: 100;
+  overflow: hidden;
 }
 
 .sidebar.collapsed {
-    width: 60px;
+  width: 60px;
 }
 
-.toggle-button {
-    position: absolute;
-    right: -12px;
-    top: 20px;
-    width: 24px;
-    height: 24px;
-    border-radius: 50%;
-    background: white;
-    border: 1px solid #e0e0e0;
-    cursor: pointer;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
-    z-index: 101;
+/* Header */
+.sidebar-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 14px 14px 10px;
+  flex-shrink: 0;
 }
 
-.sidebar ul {
-    list-style: none;
-    padding: 0;
-    margin: 0;
+.sidebar.collapsed .sidebar-header {
+  justify-content: center;
 }
 
-.sidebar li {
-    margin-bottom: 0.5rem;
+.sidebar-logo {
+  display: flex;
+  align-items: center;
+  gap: 8px;
 }
 
-.sidebar a {
-    display: flex;
-    align-items: center;
-    padding: 0.75rem;
-    color: #1a237e;
-    text-decoration: none;
-    border-radius: 4px;
-    transition: all 0.3s ease;
+.logo-text {
+  font-size: 1rem;
+  font-weight: 700;
+  color: #1a237e;
+  letter-spacing: 1px;
 }
 
-.sidebar a.active {
-    background-color: #e8eaf6;
+.toggle-btn {
+  width: 32px;
+  height: 32px;
+  border: none;
+  background: transparent;
+  border-radius: 6px;
+  cursor: pointer;
+  color: #5c6bc0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background 0.2s;
+  flex-shrink: 0;
 }
 
-.icon {
-    width: 24px;
-    text-align: center;
-    margin-right: 12px;
+.toggle-btn:hover {
+  background: #e8eaf6;
+  color: #1a237e;
 }
 
-.text {
-    white-space: nowrap;
-    opacity: 1;
-    transition: opacity 0.3s ease;
+.toggle-btn .mdi {
+  font-size: 1.25rem;
 }
 
-.collapsed .text {
-    opacity: 0;
-    width: 0;
-    margin: 0;
+/* User area */
+.sidebar-user {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 14px 16px;
+  flex-shrink: 0;
+}
+
+.sidebar.collapsed .sidebar-user {
+  justify-content: center;
+  padding: 10px 0 16px;
+}
+
+.user-avatar {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background: #1a237e;
+  color: #fff;
+  font-size: 1rem;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.user-details {
+  overflow: hidden;
+}
+
+.user-name {
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: #1f2937;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.user-role {
+  font-size: 0.75rem;
+  color: #6b7280;
+  margin-top: 1px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.sidebar-divider {
+  height: 1px;
+  background: #e8eaf6;
+  margin: 0 14px 8px;
+  flex-shrink: 0;
+}
+
+/* Navigation */
+.sidebar-nav {
+  flex: 1;
+  overflow-y: auto;
+  padding: 0 8px 16px;
+}
+
+.sidebar-nav ul {
+  list-style: none;
+  padding: 0;
+  margin: 0 0 8px;
+}
+
+.sidebar-nav li {
+  margin-bottom: 2px;
+}
+
+.nav-section-label {
+  font-size: 0.6875rem;
+  font-weight: 600;
+  color: #9ca3af;
+  letter-spacing: 0.8px;
+  padding: 12px 8px 4px;
+  margin: 0;
+  text-transform: uppercase;
+}
+
+.sidebar-nav a {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 9px 10px;
+  color: #374151;
+  text-decoration: none;
+  border-radius: 8px;
+  font-size: 0.875rem;
+  font-weight: 500;
+  transition: background 0.15s, color 0.15s;
+  white-space: nowrap;
+}
+
+.sidebar-nav a:hover {
+  background: #f0f4ff;
+  color: #1a237e;
+}
+
+.sidebar-nav a.active {
+  background: #1a237e;
+  color: #ffffff;
+}
+
+.sidebar.collapsed .sidebar-nav a {
+  justify-content: center;
+  padding: 10px;
+}
+
+.nav-icon {
+  font-size: 1.125rem;
+  flex-shrink: 0;
+  width: 20px;
+  text-align: center;
+}
+
+.nav-text {
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 </style>
