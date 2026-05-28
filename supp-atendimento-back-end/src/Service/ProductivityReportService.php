@@ -65,7 +65,7 @@ class ProductivityReportService
 
         $qb = $this->entityManager->getRepository(Service::class)
             ->createQueryBuilder('s')
-            ->where('s.reponsible = :attendant')
+            ->where('s.reponsible = :attendant OR EXISTS (SELECT sa FROM App\Entity\ServiceAttendant sa WHERE sa.service = s AND sa.attendant = :attendant)')
             ->andWhere('s.date_create BETWEEN :from AND :to')
             ->setParameter('attendant', $attendant)
             ->setParameter('from', $dateFrom)
@@ -108,7 +108,11 @@ class ProductivityReportService
                 case 'IN_PROGRESS':
                     $totalInProgress++;
                     break;
+                case 'CANCELADO':
+                    // cancelados não entram em nenhuma contagem de status
+                    break;
                 default:
+                    // NOVO, OPEN, RESOLVED, RETORNO
                     $totalOpen++;
             }
 

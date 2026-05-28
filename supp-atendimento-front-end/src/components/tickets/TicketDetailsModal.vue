@@ -86,7 +86,7 @@
                 <v-img src="/assets/user-avatar.png"></v-img>
               </v-avatar>
               <div>
-                <span class="font-weight-medium">{{ history.responsible?.name }}</span>
+                <span class="font-weight-medium">{{ history.responsible?.name ?? 'Sistema' }}</span>
                 <span class="text-caption ml-2 grey--text">
                   {{ formatDate(history.date) }}
                 </span>

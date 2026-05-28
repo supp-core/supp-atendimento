@@ -736,12 +736,17 @@ class ServiceController extends AbstractController
 
             // Formata a resposta
             $response = array_map(function ($history) {
+                $responsible = $history->getResponsible();
                 return [
                     'id' => $history->getId(),
                     'date' => $history->getDateHistory()->format('Y-m-d H:i:s'),
                     'status_prev' => $history->getStatusPrev(),
                     'status_post' => $history->getStatusPost(),
                     'comment' => $history->getComment(),
+                    'responsible' => $responsible ? [
+                        'id' => $responsible->getId(),
+                        'name' => $responsible->getName(),
+                    ] : null,
                     'service' => [
                         'id' => $history->getService()->getId(),
                         'title' => $history->getService()->getTitle()

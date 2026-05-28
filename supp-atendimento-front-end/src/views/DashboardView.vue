@@ -1,178 +1,280 @@
 <template>
-    <div class="dashboard">
-      <AppHeader />
-      <div class="dashboard-layout">
-        <AppSidebar />
-        <div class="dashboard-content" :style="{ marginLeft: sidebarCollapsed ? '60px' : '250px' }">
-          <div class="stats-grid">
-            <div class="stats-card">
-              <div class="card-header">
-                <h3>Total de Tickets</h3>
-                <p>Todos os seus tickets</p>
-              </div>
-              <div class="card-content tasks-content">
-                <div class="number">{{ totalTicketsCount }}</div>
-                <p class="subtitle">Total</p>
-              </div>
+  <div class="dashboard">
+    <AppHeader />
+    <div class="dashboard-layout">
+      <AppSidebar />
+      <div class="dashboard-content" :style="{ marginLeft: sidebarCollapsed ? '60px' : '250px' }">
+
+        <div class="page-header">
+          <h2>Dashboard</h2>
+          <button class="btn-primary" @click="$router.push('/tickets/create')">+ Abrir Novo Ticket</button>
+        </div>
+
+        <div class="stats-grid">
+          <div class="stats-card">
+            <div class="card-icon icon-total">📋</div>
+            <div class="card-body">
+              <div class="card-number">{{ stats.total }}</div>
+              <div class="card-label">Total de Tickets</div>
             </div>
-  
-            <div class="stats-card">
-              <div class="card-header">
-                <h3>Tickets Pendentes</h3>
-                <p>Em andamento</p>
-              </div>
-              <div class="card-content tasks-content">
-                <div class="number pending">{{ pendingTasksCount }}</div>
-                <p class="subtitle">Pendentes</p>
-              </div>
+          </div>
+          <div class="stats-card">
+            <div class="card-icon icon-new">🆕</div>
+            <div class="card-body">
+              <div class="card-number color-blue">{{ stats.by_status.NOVO }}</div>
+              <div class="card-label">Novos</div>
             </div>
-  
-            <div class="stats-card">
-              <div class="card-header">
-                <h3>Tickets Concluídos</h3>
-                <p>Finalizados</p>
-              </div>
-              <div class="card-content tasks-content">
-                <div class="number completed">{{ completedTasksCount }}</div>
-                <p class="subtitle">Concluídos</p>
-              </div>
+          </div>
+          <div class="stats-card">
+            <div class="card-icon icon-progress">⏳</div>
+            <div class="card-body">
+              <div class="card-number color-yellow">{{ stats.by_status.IN_PROGRESS }}</div>
+              <div class="card-label">Em Andamento</div>
+            </div>
+          </div>
+          <div class="stats-card">
+            <div class="card-icon icon-resolved">🔍</div>
+            <div class="card-body">
+              <div class="card-number color-purple">{{ stats.by_status.RESOLVED }}</div>
+              <div class="card-label">Resolvidos</div>
+            </div>
+          </div>
+          <div class="stats-card">
+            <div class="card-icon icon-done">✅</div>
+            <div class="card-body">
+              <div class="card-number color-green">{{ stats.by_status.CONCLUDED }}</div>
+              <div class="card-label">Concluídos</div>
             </div>
           </div>
         </div>
+
+        <div class="charts-grid">
+          <div class="chart-card">
+            <h3 class="chart-title">Distribuição por Prioridade</h3>
+            <DashboardPriorityChart v-if="statsLoaded" :by-priority="stats.by_priority" />
+          </div>
+          <div class="chart-card">
+            <h3 class="chart-title">Tickets por Status</h3>
+            <DashboardStatusChart v-if="statsLoaded" :by-status="stats.by_status" />
+          </div>
+        </div>
+
+        <div class="section-card">
+          <div class="section-header">
+            <h3>Últimos Tickets</h3>
+            <button class="btn-link" @click="$router.push('/tickets')">Ver todos →</button>
+          </div>
+          <DashboardRecentTickets :tickets="recentTickets" :is-attendant="false" />
+        </div>
+
       </div>
     </div>
-  </template>
-  
-  <script setup>
-  import { ref, onMounted } from 'vue';
-  import { useSidebar } from '@/composables/useSidebar';
-  import AppHeader from '@/components/common/AppHeader.vue';
-  import AppSidebar from '@/components/common/AppSidebar.vue';
-  import api from '@/services/api';
-  import { authService } from '@/services/auth.service';
-  
-  const { sidebarCollapsed } = useSidebar();
-  const totalTicketsCount = ref(0);
-  const pendingTasksCount = ref(0);
-  const completedTasksCount = ref(0);
+  </div>
+</template>
 
-  // Função para carregar estatísticas dos tickets
-  const loadTicketStats = async () => {
-    try {
-      if (!authService.isAuthenticated()) {
-        return;
-      }
+<script setup>
+import { ref, onMounted } from 'vue'
+import { useSidebar } from '@/composables/useSidebar'
+import AppHeader from '@/components/common/AppHeader.vue'
+import AppSidebar from '@/components/common/AppSidebar.vue'
+import DashboardPriorityChart from '@/components/dashboard/DashboardPriorityChart.vue'
+import DashboardStatusChart from '@/components/dashboard/DashboardStatusChart.vue'
+import DashboardRecentTickets from '@/components/dashboard/DashboardRecentTickets.vue'
+import api from '@/services/api'
+import { authService } from '@/services/auth.service'
 
-      // Buscar total de tickets
-      const totalResponse = await api.get('/service/my-tickets?per_page=1');
-      if (totalResponse.data.success) {
-        totalTicketsCount.value = totalResponse.data.meta.total || 0;
-      }
+const { sidebarCollapsed } = useSidebar()
 
-      // Buscar tickets pendentes (todos exceto CONCLUDED e CLOSED)
-      const pendingResponse = await api.get('/service/my-tickets?status=NEW,OPEN,IN_PROGRESS,RESOLVED,CANCELADO,RETORNO&per_page=1');
-      if (pendingResponse.data.success) {
-        pendingTasksCount.value = pendingResponse.data.meta.total || 0;
-      }
+const statsLoaded = ref(false)
+const stats = ref({
+  total: 0,
+  by_status: { NOVO: 0, OPEN: 0, IN_PROGRESS: 0, RESOLVED: 0, CONCLUDED: 0, CANCELADO: 0, RETORNO: 0 },
+  by_priority: { BAIXA: 0, NORMAL: 0, ALTA: 0, URGENTE: 0 },
+})
+const recentTickets = ref([])
 
-      // Buscar tickets concluídos
-      const completedResponse = await api.get('/service/my-tickets?status=CONCLUDED&per_page=1');
-      if (completedResponse.data.success) {
-        completedTasksCount.value = completedResponse.data.meta.total || 0;
-      }
-    } catch (error) {
-      console.error('Erro ao carregar estatísticas dos tickets:', error);
-      totalTicketsCount.value = 0;
-      pendingTasksCount.value = 0;
-      completedTasksCount.value = 0;
+const loadStats = async () => {
+  if (!authService.isAuthenticated()) return
+  try {
+    const res = await api.get('/dashboard/user-stats')
+    if (res.data.success) {
+      stats.value = res.data.data
+      statsLoaded.value = true
     }
-  };
+  } catch {
+    // silently fail — numbers stay at 0
+  }
+}
 
-  onMounted(() => {
-    loadTicketStats();
-  });
-  
-  </script>
-  
-  <style scoped>
-  /* Previous styles remain the same */
-  .dashboard {
-    min-height: 100vh;
-    background-color: #f3f4f6;
+const loadRecentTickets = async () => {
+  try {
+    const res = await api.get('/service/my-tickets?per_page=5&page=1')
+    if (res.data.success) {
+      recentTickets.value = res.data.data || []
+    }
+  } catch {
+    recentTickets.value = []
   }
-  
-  .dashboard-layout {
-    padding-top: 60px;
-    min-height: calc(100vh - 60px);
-  }
-  
-  .dashboard-content {
-    transition: margin-left 0.3s ease;
-    padding: 40px;
-  }
-  
-  .stats-grid {
-    display: grid;
-    grid-template-columns: repeat(3, 1fr);
-    gap: 40px;
-    max-width: 1200px;
-    margin: 0 auto;
-  }
-  
-  .stats-card {
-    background: white;
-    border-radius: 12px;
-    padding: 32px;
-    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-    height: 100%;
-    min-height: 250px;
-    display: flex;
-    flex-direction: column;
-  }
-  
-  .card-header {
-    margin-bottom: 24px;
-  }
-  
-  .card-header h3 {
-    font-size: 1.25rem;
-    font-weight: 500;
-    color: #1a237e;
-    margin-bottom: 8px;
-  }
-  
-  .card-header p {
-    color: #666;
-    font-size: 1rem;
-  }
-  
-  .tasks-content {
-    display: flex;
-    flex-direction: column;
-    align-items: flex-start;
-    padding: 24px 0;
-    flex-grow: 1;
-    justify-content: center;
-  }
-  
-  .number {
-    font-size: 3.5rem;
-    font-weight: 600;
-    color: #4F46E5;
-    line-height: 1;
-    margin-bottom: 16px;
-  }
-  
-  .number.pending {
-    color: #f59e0b;
-  }
-  
-  .number.completed {
-    color: #10b981;
-  }
-  
-  .subtitle {
-    color: #666;
-    font-size: 1rem;
-  }
-  </style>
+}
+
+onMounted(() => {
+  loadStats()
+  loadRecentTickets()
+})
+</script>
+
+<style scoped>
+.dashboard {
+  min-height: 100vh;
+  background-color: #f3f4f6;
+}
+
+.dashboard-layout {
+  padding-top: 60px;
+  min-height: calc(100vh - 60px);
+}
+
+.dashboard-content {
+  transition: margin-left 0.3s ease;
+  padding: 32px 40px;
+  max-width: 1400px;
+}
+
+.page-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 28px;
+}
+
+.page-header h2 {
+  font-size: 1.5rem;
+  font-weight: 600;
+  color: #1a237e;
+  margin: 0;
+}
+
+.btn-primary {
+  background: #1a237e;
+  color: #fff;
+  border: none;
+  padding: 10px 20px;
+  border-radius: 8px;
+  font-size: 0.875rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+.btn-primary:hover { background: #283593; }
+
+.stats-grid {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 16px;
+  margin-bottom: 28px;
+}
+
+@media (max-width: 1100px) {
+  .stats-grid { grid-template-columns: repeat(3, 1fr); }
+}
+
+.stats-card {
+  background: #fff;
+  border-radius: 12px;
+  padding: 20px 24px;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.08);
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.card-icon {
+  font-size: 2rem;
+  width: 48px;
+  height: 48px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 10px;
+  background: #f0f4ff;
+  flex-shrink: 0;
+}
+
+.card-body { flex: 1; }
+
+.card-number {
+  font-size: 2rem;
+  font-weight: 700;
+  color: #1f2937;
+  line-height: 1;
+}
+
+.card-label {
+  font-size: 0.8rem;
+  color: #6b7280;
+  margin-top: 4px;
+}
+
+.color-blue   { color: #4F46E5; }
+.color-yellow { color: #f59e0b; }
+.color-purple { color: #8b5cf6; }
+.color-green  { color: #10b981; }
+
+.charts-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 20px;
+  margin-bottom: 28px;
+}
+
+@media (max-width: 900px) {
+  .charts-grid { grid-template-columns: 1fr; }
+}
+
+.chart-card {
+  background: #fff;
+  border-radius: 12px;
+  padding: 24px;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.08);
+}
+
+.chart-title {
+  font-size: 1rem;
+  font-weight: 600;
+  color: #1a237e;
+  margin: 0 0 16px 0;
+}
+
+.section-card {
+  background: #fff;
+  border-radius: 12px;
+  padding: 24px;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.08);
+}
+
+.section-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 16px;
+}
+
+.section-header h3 {
+  font-size: 1rem;
+  font-weight: 600;
+  color: #1a237e;
+  margin: 0;
+}
+
+.btn-link {
+  background: none;
+  border: none;
+  color: #4F46E5;
+  font-size: 0.875rem;
+  cursor: pointer;
+  padding: 0;
+}
+
+.btn-link:hover { text-decoration: underline; }
+</style>
