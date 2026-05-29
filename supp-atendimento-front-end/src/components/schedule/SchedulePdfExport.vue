@@ -30,6 +30,18 @@ function formatDate(d) {
   return `${day}/${m}/${y}`
 }
 
+const STATUS_LABEL = {
+  NOVO: 'Novo', NEW: 'Novo',
+  ABERTO: 'Aberto', OPEN: 'Aberto',
+  IN_PROGRESS: 'Em Andamento', 'EM ANDAMENTO': 'Em Andamento',
+  RESOLVED: 'Resolvido',
+  RETORNO: 'Retorno',
+  CONCLUDED: 'Concluído', CONCLUIDO: 'Concluído',
+  CANCELADO: 'Cancelado',
+}
+function translateStatus(s) { return STATUS_LABEL[s] ?? s }
+function isInProgress(s) { return s === 'IN_PROGRESS' || s === 'EM ANDAMENTO' }
+
 function exportPdf() {
   if (!props.project) return
 
@@ -41,7 +53,7 @@ function exportPdf() {
   const rows = props.items.map(item => {
     const conclusion = item.date_conclusion
       ? formatDate(item.date_conclusion)
-      : item.status === 'EM ANDAMENTO' ? 'Em andamento' : 'Não iniciado'
+      : isInProgress(item.status) ? 'Em andamento' : 'Não iniciado'
 
     return `
       <tr>
@@ -49,7 +61,7 @@ function exportPdf() {
         <td>${item.title || ''}</td>
         <td>${formatDate(item.date_start)}</td>
         <td>${conclusion}</td>
-        <td>${item.status || ''}</td>
+        <td>${translateStatus(item.status) || ''}</td>
         <td>${(item.observation || '').substring(0, 150)}</td>
       </tr>`
   }).join('')
