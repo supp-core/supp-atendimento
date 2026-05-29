@@ -15,15 +15,17 @@ spec:
       restartPolicy: Never
       containers:
         - name: seed
-          image: suppregistry.azurecr.io/supp-atendimento/backend:1.0.0
+          image: suppregistry.azurecr.io/supp-atendimento/backend:4.0.0
           command: ["/bin/sh", "-c"]
           args:
             - |
               set -e
-              echo "==> Copiando .env.prod"
-              cp /env-prod/.env.prod /var/www/html/.env.prod
+              echo "==> Copiando secret para .env.local (prioridade max no Dotenv)"
+              cp /env-prod/.env.prod /var/www/html/.env.local
               echo "==> Instalando dev dependencies (fixtures bundle)"
               composer install --no-interaction --working-dir=/var/www/html
+              echo "==> Executando migrations"
+              env APP_ENV=dev php /var/www/html/bin/console doctrine:migrations:migrate --no-interaction --allow-no-migration
               echo "==> Carregando fixtures (--append: nao apaga dados existentes)"
               env APP_ENV=dev php /var/www/html/bin/console doctrine:fixtures:load --no-interaction --append
               echo "==> Seed finalizado com sucesso"
