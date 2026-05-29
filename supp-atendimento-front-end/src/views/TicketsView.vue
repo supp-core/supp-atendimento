@@ -42,6 +42,12 @@
                     label="Prioridade" outlined dense @update:model-value="handleFilter"></v-select>
                 </v-col>
 
+                <!-- Filtro de Sistema -->
+                <v-col cols="12" sm="3">
+                  <v-select v-model="searchProject" :items="projectOptions" item-title="title" item-value="value"
+                    label="Sistema" outlined dense @update:model-value="handleFilter"></v-select>
+                </v-col>
+
                 <!-- Nova linha para botões (mantida como estava) -->
                 <v-col cols="12" class="d-flex align-center mt-2">
                   <v-btn color="primary" @click="handleFilter" :loading="loading" class="me-2 btn-centered">
@@ -84,6 +90,7 @@
                   <th class="text-left">Prioridade</th> <!-- Nova coluna -->
                   <th class="px-4 py-3">Status</th>
                   <th class="px-4 py-3">Setor</th>
+                  <th class="px-4 py-3">Sistema</th>
                   <th class="px-4 py-3">Data de Criação</th>
                   <th class="px-4 py-3">Prazo</th>
                   <th class="px-4 py-3">Data de Conclusão</th>
@@ -107,6 +114,7 @@
                     </v-chip>
                   </td>
                   <td class="px-4 py-3">{{ ticket.sector.name }}</td>
+                  <td class="px-4 py-3">{{ ticket.project ? (ticket.project.acronym || ticket.project.name) : '-' }}</td>
 
                   <td class="px-4 py-3">{{ formatDate(ticket.dates.created) }}</td>
                   <td class="px-4 py-3" :class="getDeadlineClass(ticket.dates.deadline)">{{ formatDate(ticket.dates.deadline) }}</td>
@@ -229,7 +237,7 @@
 <script setup>
 
 import TicketDetailsModal from '@/components/tickets/TicketDetailsModal.vue'
-import { ref, onMounted, watch } from 'vue';
+import { ref, computed, onMounted, watch } from 'vue';
 import { useRouter } from 'vue-router';
 import { format, parseISO } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
@@ -346,8 +354,30 @@ const searchStatus = ref('');
 const dateRange = ref({ startDate: null, endDate: null });
 
 const searchPriority = ref('');
+const searchProject = ref('');
 const dateMenu = ref(false);
 const showCompleted = ref(true);
+
+// Sistemas (projetos) disponíveis para o filtro
+const projects = ref([]);
+const projectOptions = computed(() => [
+  { title: 'Todos os sistemas', value: '' },
+  ...projects.value.map(p => ({
+    title: p.acronym ? `${p.acronym} - ${p.name}` : p.name,
+    value: p.id
+  }))
+]);
+
+const loadProjects = async () => {
+  try {
+    const response = await api.get('/project');
+    if (response.data.success) {
+      projects.value = response.data.data;
+    }
+  } catch (error) {
+    console.error('Erro ao carregar sistemas:', error);
+  }
+};
 
 const statusOptions = [
   { title: 'Todos os status', value: '' },
@@ -376,6 +406,7 @@ const resetFilters = () => {
   searchName.value = '';
   searchStatus.value = '';
   searchPriority.value = '';
+  searchProject.value = '';
   startDate.value = null;
   endDate.value = null;
 
@@ -473,8 +504,11 @@ const loadTickets = async (page = 1) => {
       console.log('Filtro de prioridade aplicado:', searchPriority.value);
       params.append('priority', searchPriority.value);
     }
+    if (searchProject.value) {
+      params.append('project_id', searchProject.value);
+    }
 
-    
+
     if (startDate.value) {
       // Certifique-se de que a data está no formato ISO
       let formattedStartDate = startDate.value;
@@ -626,6 +660,7 @@ const submitComment = async () => {
 
 onMounted(() => {
   carregarDadosUsuario(); // Carrega os dados do usuário quando o componente é montado
+  loadProjects();
   loadTickets();
 });
 </script>
