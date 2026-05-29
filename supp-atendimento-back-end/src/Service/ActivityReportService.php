@@ -40,15 +40,23 @@ class ActivityReportService
 
         $histories = $qb->getQuery()->getResult();
 
-        $activities = array_map(function (ServiceHistory $h) {
+        $attendantName = $attendant->getName();
+        $activities = array_map(function (ServiceHistory $h) use ($attendantName) {
             $service = $h->getService();
+            $description = $h->getComment() ?? '';
+            // O nome do atendente já aparece no cabeçalho do relatório; remove o
+            // prefixo "Atendente: {nome} - " gravado no comentário para não repeti-lo.
+            $prefix = 'Atendente: ' . $attendantName . ' - ';
+            if (str_starts_with($description, $prefix)) {
+                $description = substr($description, strlen($prefix));
+            }
             return [
                 'date' => $h->getDateHistory()?->format('Y-m-d'),
                 'service_id' => $service?->getId(),
                 'service_title' => $service?->getTitle(),
                 'service_type' => $service?->getServiceType()?->getName() ?? 'Não definido',
                 'category' => $service?->getCategory()?->getName() ?? 'Não definida',
-                'description' => $h->getComment() ?? '',
+                'description' => $description,
                 'status' => $service?->getStatus(),
             ];
         }, $histories);
