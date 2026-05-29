@@ -39,6 +39,11 @@
             <v-btn color="primary" size="small" prepend-icon="mdi-plus" @click="newTicket">
               Nova Demanda neste Projeto
             </v-btn>
+            <AdminCreateTicket
+              v-model="showCreateDialog"
+              :locked-project="project"
+              @created="onDemandCreated"
+            />
           </div>
 
           <v-card>
@@ -78,15 +83,15 @@
 
 <script setup>
 import { ref, onMounted } from 'vue'
-import { useRoute, useRouter } from 'vue-router'
+import { useRoute } from 'vue-router'
 import { useProjectStore } from '@/stores/projectStore'
 import { projectService } from '@/services/project.service'
 import { useSidebar } from '@/composables/useSidebar'
 import AttendantHeader from '@/components/common/AttendantHeader.vue'
 import AttendantSidebar from '@/components/common/AttendantSidebar.vue'
+import AdminCreateTicket from '@/components/common/AdminCreateTicket.vue'
 
 const route = useRoute()
-const router = useRouter()
 const projectStore = useProjectStore()
 const { sidebarCollapsed } = useSidebar()
 
@@ -94,6 +99,7 @@ const project = ref(null)
 const services = ref([])
 const loading = ref(false)
 const filters = ref({ status: null, priority: null })
+const showCreateDialog = ref(false)
 
 const statusOptions = ['ABERTO', 'EM ANDAMENTO', 'CONCLUIDO', 'CANCELADO']
 const priorityOptions = ['BAIXA', 'NORMAL', 'ALTA', 'URGENTE']
@@ -138,7 +144,12 @@ async function loadServices() {
 }
 
 function newTicket() {
-  router.push({ path: '/attendant/tickets/create', query: { project_id: project.value.id } })
+  showCreateDialog.value = true
+}
+
+function onDemandCreated() {
+  showCreateDialog.value = false
+  loadServices()
 }
 
 onMounted(async () => {

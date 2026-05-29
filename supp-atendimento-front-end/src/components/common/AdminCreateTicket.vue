@@ -48,8 +48,8 @@
                 label="Tipo de Atendimento*" required variant="outlined" density="comfortable"></v-select>
             </v-col>
 
-            <!-- Projeto — visível apenas quando categoria for "Sistemas" -->
-            <v-col cols="12" v-if="categories.find(c => Number(c.id) === Number(formData.category_id))?.name?.toLowerCase() === 'sistemas'">
+            <!-- Projeto — sempre visível quando travado a um projeto; senão só para categoria "Sistemas" -->
+            <v-col cols="12" v-if="lockedProject || categories.find(c => Number(c.id) === Number(formData.category_id))?.name?.toLowerCase() === 'sistemas'">
               <v-autocomplete
                 v-model="formData.project_id"
                 :items="projects"
@@ -58,7 +58,8 @@
                 label="Projeto"
                 variant="outlined"
                 density="comfortable"
-                clearable
+                :clearable="!lockedProject"
+                :disabled="!!lockedProject"
               ></v-autocomplete>
             </v-col>
 
@@ -115,7 +116,8 @@ import api from '@/services/api';
 import { authService } from '@/services/auth.service'
 
 const props = defineProps({
-  modelValue: Boolean
+  modelValue: Boolean,
+  lockedProject: { type: Object, default: null }
 });
 
 const emit = defineEmits(['update:modelValue', 'created']);
@@ -133,7 +135,10 @@ const serviceTypes = ref([]);
 const projects = ref([]);
 
 watch(() => formData.value.category_id, () => {
-  formData.value.project_id = null;
+  // Mantém o projeto quando o diálogo está travado a um projeto específico
+  if (!props.lockedProject) {
+    formData.value.project_id = null;
+  }
 });
 
 // Opciones de prioridad
@@ -181,6 +186,13 @@ const formattedDeadline = computed(() => {
 // Observa cambios en la propiedad modelValue para actualizar el diálogo
 watch(() => props.modelValue, (newValue) => {
   showDialog.value = newValue;
+  // Ao abrir travado a um projeto, pré-seleciona esse projeto
+  if (newValue && props.lockedProject) {
+    if (!projects.value.some(p => p.id === props.lockedProject.id)) {
+      projects.value = [props.lockedProject, ...projects.value];
+    }
+    formData.value.project_id = props.lockedProject.id;
+  }
 });
 
 // Observa cambios en el diálogo para emitir eventos
