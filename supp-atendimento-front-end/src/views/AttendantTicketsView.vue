@@ -506,7 +506,7 @@ const categories = ref([]);
 const serviceTypes = ref([]);
 
 const isAdmin = computed(() => {
-  return attendantData.value && attendantData.value.sector && attendantData.value.sector.name === 'Diretoria'
+  return authService.isAdmin()
 })
 
 const resetFilters = () => {
