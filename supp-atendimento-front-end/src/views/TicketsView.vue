@@ -27,23 +27,11 @@
                   <div class="date-compact">
                     <div class="date-label mb-1">Período</div>
                     <div class="date-inputs">
-                      <v-menu v-model="startDateMenu" :close-on-content-click="false" min-width="auto">
-                        <template v-slot:activator="{ props }">
-                          <v-text-field v-model="formattedStartDate" dense hide-details placeholder="De"
-                            prepend-inner-icon="mdi-calendar" readonly v-bind="props" variant="outlined"
-                            class="date-input"></v-text-field>
-                        </template>
-                        <v-date-picker v-model="startDate" @update:model-value="startDateMenu = false" locale="pt-BR"></v-date-picker>
-                      </v-menu>
+                      <v-text-field v-model="startDate" type="date" density="compact" hide-details
+                        variant="outlined" class="date-input"></v-text-field>
 
-                      <v-menu v-model="endDateMenu" :close-on-content-click="false" min-width="auto">
-                        <template v-slot:activator="{ props }">
-                          <v-text-field v-model="formattedEndDate" dense hide-details placeholder="Até"
-                            prepend-inner-icon="mdi-calendar" readonly v-bind="props" variant="outlined"
-                            class="date-input"></v-text-field>
-                        </template>
-                        <v-date-picker v-model="endDate" @update:model-value="endDateMenu = false" locale="pt-BR"></v-date-picker>
-                      </v-menu>
+                      <v-text-field v-model="endDate" type="date" density="compact" hide-details
+                        variant="outlined" class="date-input"></v-text-field>
                     </div>
                   </div>
                 </v-col>
@@ -241,7 +229,7 @@
 <script setup>
 
 import TicketDetailsModal from '@/components/tickets/TicketDetailsModal.vue'
-import { ref, onMounted, computed, watch } from 'vue';
+import { ref, onMounted, watch } from 'vue';
 import { useRouter } from 'vue-router';
 import { format, parseISO } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
@@ -253,57 +241,9 @@ import { authService } from '@/services/auth.service';
 import DateRangeSelector from '@/components/common/DateRangeSelector.vue';
 
 
-// Estado para os menus de data
-const startDateMenu = ref(false);
-const endDateMenu = ref(false);
-
-// Valores das datas
+// Valores das datas (input type="date" → string "YYYY-MM-DD")
 const startDate = ref(null);
 const endDate = ref(null);
-
-// Formatação para exibição
-// Substitua as funções computed existentes por estas versões corrigidas
-const formattedStartDate = computed(() => {
-  if (!startDate.value) return '';
-
-  try {
-    // Verificar se é um objeto Date
-    if (startDate.value instanceof Date) {
-      return format(startDate.value, 'dd/MM/yyyy', { locale: ptBR });
-    }
-
-    // Verificar se é uma string ISO
-    if (typeof startDate.value === 'string') {
-      return format(new Date(startDate.value), 'dd/MM/yyyy', { locale: ptBR });
-    }
-
-    return '';
-  } catch (error) {
-    console.error('Erro ao formatar data inicial:', error);
-    return '';
-  }
-});
-
-const formattedEndDate = computed(() => {
-  if (!endDate.value) return '';
-
-  try {
-    // Verificar se é um objeto Date
-    if (endDate.value instanceof Date) {
-      return format(endDate.value, 'dd/MM/yyyy', { locale: ptBR });
-    }
-
-    // Verificar se é uma string ISO
-    if (typeof endDate.value === 'string') {
-      return format(new Date(endDate.value), 'dd/MM/yyyy', { locale: ptBR });
-    }
-
-    return '';
-  } catch (error) {
-    console.error('Erro ao formatar data final:', error);
-    return '';
-  }
-});
 
 // Watch para mudanças nas datas
 watch([startDate, endDate], () => {
@@ -938,10 +878,23 @@ onMounted(() => {
   margin-bottom: 0 !important;
 }
 
-/* Remover padding interno dos campos para alinhar corretamente */
-:deep(.date-input .v-field__field) {
+/* Trava a altura do campo para corresponder aos selects (density compact = 40px) */
+:deep(.date-input .v-field) {
+  --v-field-padding-top: 0;
+  --v-field-padding-bottom: 0;
+}
+
+:deep(.date-input .v-field__field),
+:deep(.date-input .v-field__input) {
+  min-height: 40px;
   padding-top: 0 !important;
   padding-bottom: 0 !important;
+}
+
+/* Input de data nativo ocupa toda a largura/altura sem esticar a caixa */
+:deep(.date-input input[type="date"]) {
+  height: 40px;
+  font-size: 14px;
 }
 
 /* Garantir que os campos de data tenham o mesmo estilo que os outros */

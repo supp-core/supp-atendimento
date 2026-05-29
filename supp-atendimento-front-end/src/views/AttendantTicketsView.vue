@@ -49,23 +49,11 @@
                   <div class="date-compact">
                     <div class="date-label mb-1">Período</div>
                     <div class="date-inputs">
-                      <v-menu v-model="startDateMenu" :close-on-content-click="false" min-width="auto">
-                        <template v-slot:activator="{ props }">
-                          <v-text-field v-model="formattedStartDate" dense hide-details placeholder="De"
-                            prepend-inner-icon="mdi-calendar" readonly v-bind="props" variant="outlined"
-                            class="date-input"></v-text-field>
-                        </template>
-                        <v-date-picker v-model="startDate" @update:model-value="startDateMenu = false; handleSearch()" locale="pt-BR"></v-date-picker>
-                      </v-menu>
+                      <v-text-field v-model="startDate" type="date" density="compact" hide-details
+                        variant="outlined" class="date-input" @update:model-value="handleSearch()"></v-text-field>
 
-                      <v-menu v-model="endDateMenu" :close-on-content-click="false" min-width="auto">
-                        <template v-slot:activator="{ props }">
-                          <v-text-field v-model="formattedEndDate" dense hide-details placeholder="Até"
-                            prepend-inner-icon="mdi-calendar" readonly v-bind="props" variant="outlined"
-                            class="date-input"></v-text-field>
-                        </template>
-                        <v-date-picker v-model="endDate" @update:model-value="endDateMenu = false; handleSearch()" locale="pt-BR"></v-date-picker>
-                      </v-menu>
+                      <v-text-field v-model="endDate" type="date" density="compact" hide-details
+                        variant="outlined" class="date-input" @update:model-value="handleSearch()"></v-text-field>
                     </div>
                   </div>
                 </v-col>
@@ -545,10 +533,6 @@ const searchCategory = ref('');
 const searchServiceType = ref('');
 const showCompleted = ref(true);
 
-// Estado para os menus de data
-const startDateMenu = ref(false);
-const endDateMenu = ref(false);
-
 // Valores das datas
 const startDate = ref(null);
 const endDate = ref(null);
@@ -636,29 +620,6 @@ const serviceTypeOptions = computed(() => {
       value: type.id
     }))
   ];
-});
-
-// Formatação para exibição das datas
-const formattedStartDate = computed(() => {
-  if (!startDate.value) return '';
-  if (startDate.value instanceof Date) {
-    return format(startDate.value, 'dd/MM/yyyy', { locale: ptBR });
-  }
-  if (typeof startDate.value === 'string') {
-    return format(new Date(startDate.value), 'dd/MM/yyyy', { locale: ptBR });
-  }
-  return '';
-});
-
-const formattedEndDate = computed(() => {
-  if (!endDate.value) return '';
-  if (endDate.value instanceof Date) {
-    return format(endDate.value, 'dd/MM/yyyy', { locale: ptBR });
-  }
-  if (typeof endDate.value === 'string') {
-    return format(new Date(endDate.value), 'dd/MM/yyyy', { locale: ptBR });
-  }
-  return '';
 });
 
 const currentPage = ref(1);
@@ -1673,10 +1634,23 @@ onMounted(() => {
   margin-bottom: 0 !important;
 }
 
-/* Remover padding interno dos campos para alinhar corretamente */
-:deep(.date-input .v-field__field) {
+/* Trava a altura do campo para corresponder aos selects (density compact = 40px) */
+:deep(.date-input .v-field) {
+  --v-field-padding-top: 0;
+  --v-field-padding-bottom: 0;
+}
+
+:deep(.date-input .v-field__field),
+:deep(.date-input .v-field__input) {
+  min-height: 40px;
   padding-top: 0 !important;
   padding-bottom: 0 !important;
+}
+
+/* Input de data nativo ocupa toda a largura/altura sem esticar a caixa */
+:deep(.date-input input[type="date"]) {
+  height: 40px;
+  font-size: 14px;
 }
 
 /* Garantir que os campos de data tenham o mesmo estilo que os outros */
