@@ -382,12 +382,17 @@
         <!-- Modal para Transferência do Ticket -->
         <v-dialog v-model="transferDialog.show" max-width="500px">
           <v-card>
-            <v-card-title>Transferir Atendimento para Outro Setor</v-card-title>
+            <v-card-title>Transferir Atendimento</v-card-title>
             <v-card-text>
               <v-select v-model="transferDialog.selectedSectorId" :items="sectors" item-title="name"
-                item-value="id" label="Setor de Destino" required></v-select>
+                item-value="id" label="Setor de Destino" clearable></v-select>
+              <v-autocomplete v-model="transferDialog.selectedAttendantIds" :items="attendantOptions"
+                item-title="label" item-value="id" label="Atendente(s) de Destino" multiple chips closable-chips
+                :loading="transferDialog.loadingAttendants"
+                hint="Selecione um ou vários atendentes (de qualquer setor). Deixe em branco para transferir somente o setor."
+                persistent-hint></v-autocomplete>
               <v-textarea v-model="transferDialog.comment" label="Motivo da Transferência" required
-                rows="3"></v-textarea>
+                rows="3" class="mt-3"></v-textarea>
             </v-card-text>
             <v-card-actions>
               <v-spacer></v-spacer>
@@ -580,9 +585,21 @@ const transferDialog = ref({
   show: false,
   ticket: null,
   selectedSectorId: null,
+  selectedAttendantIds: [],
   comment: '',
-  loading: false
+  loading: false,
+  loadingAttendants: false
 })
+
+const allAttendants = ref([])
+
+// Lista de atendentes para o select de transferência, com o setor no rótulo
+const attendantOptions = computed(() =>
+  allAttendants.value.map((a) => ({
+    id: a.id,
+    label: a.sector?.name ? `${a.name} (${a.sector.name})` : a.name
+  }))
+)
 
 const showHistoryModal = ref(false)
 const selectedTicket = ref(null)
@@ -861,8 +878,27 @@ const openTransferDialog = (ticket) => {
     show: true,
     ticket,
     selectedSectorId: null,
+    selectedAttendantIds: [],
     comment: '',
-    loading: false
+    loading: false,
+    loadingAttendants: false
+  }
+  if (allAttendants.value.length === 0) {
+    loadAttendants()
+  }
+}
+
+const loadAttendants = async () => {
+  transferDialog.value.loadingAttendants = true
+  try {
+    const response = await api.get('/attendants')
+    if (response.data.success) {
+      allAttendants.value = response.data.data
+    }
+  } catch (error) {
+    console.error('Erro ao carregar atendentes:', error)
+  } finally {
+    transferDialog.value.loadingAttendants = false
   }
 }
 
@@ -944,16 +980,41 @@ const evolveTicket = async () => {
 };
 
 const transferTicket = async () => {
+  const { selectedSectorId, selectedAttendantIds, comment } = transferDialog.value
+
+  if (!selectedSectorId && (!selectedAttendantIds || selectedAttendantIds.length === 0)) {
+    alert('Selecione um setor de destino e/ou um ou mais atendentes.')
+    return
+  }
+  if (!comment) {
+    alert('Informe o motivo da transferência.')
+    return
+  }
+
   transferDialog.value.loading = true
   try {
-    await api.put(`/service/${transferDialog.value.ticket.id}/transfer`, {
-      sector_id: transferDialog.value.selectedSectorId,
-      comment: transferDialog.value.comment
-    })
+    const ticketId = transferDialog.value.ticket.id
+
+    // Transfere o setor, se algum tiver sido escolhido
+    if (selectedSectorId) {
+      await api.put(`/service/${ticketId}/transfer`, {
+        sector_id: selectedSectorId,
+        comment
+      })
+    }
+
+    // Atribui o atendimento a um ou vários atendentes (de qualquer setor)
+    if (selectedAttendantIds && selectedAttendantIds.length > 0) {
+      await api.put(`/service/${ticketId}/assign`, {
+        attendant_ids: selectedAttendantIds
+      })
+    }
+
     await loadTickets()
     transferDialog.value.show = false
   } catch (error) {
     console.error('Erro ao transferir ticket:', error)
+    alert('Falha ao transferir o atendimento.')
   } finally {
     transferDialog.value.loading = false
   }
