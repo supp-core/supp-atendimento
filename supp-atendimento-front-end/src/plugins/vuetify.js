@@ -8,6 +8,11 @@ import '@mdi/font/css/materialdesignicons.css'
 export default createVuetify({
   components,
   directives,
+  defaults: {
+    VBtn: {
+      rounded: 'lg', // cantos arredondados em todos os botões
+    },
+  },
   icons: {
     defaultSet: 'mdi',
     aliases,

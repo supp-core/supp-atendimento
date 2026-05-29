@@ -130,22 +130,30 @@
                   <td :class="getDeadlineClass(ticket.dates.deadline)">{{ formatDate(ticket.dates.deadline) }}</td>
                   <td>{{ ticket.dates.concluded ? formatDate(ticket.dates.concluded) : '-' }}</td>
                   <td class="text-center">
-                    <v-btn size="small" color="primary" class="mr-2 btn-centered-text action-btn"
-                      @click="openEvolveDialog(ticket)" :disabled="ticket.status === 'CONCLUDED' || ticket.status === 'RESOLVED'">
-                      ✏️ Evoluir
-                    </v-btn>
+                    <div class="action-buttons">
+                      <v-tooltip text="Evoluir atendimento" location="top">
+                        <template #activator="{ props }">
+                          <v-btn v-bind="props" size="small" color="primary" icon="mdi-pencil"
+                            @click="openEvolveDialog(ticket)"
+                            :disabled="ticket.status === 'CONCLUDED' || ticket.status === 'RESOLVED'"></v-btn>
+                        </template>
+                      </v-tooltip>
 
+                      <v-tooltip text="Transferir atendimento" location="top">
+                        <template #activator="{ props }">
+                          <v-btn v-bind="props" size="small" color="primary" icon="mdi-account-arrow-right"
+                            @click="openTransferDialog(ticket)"
+                            :disabled="ticket.status === 'CONCLUDED' || ticket.status === 'RESOLVED'"></v-btn>
+                        </template>
+                      </v-tooltip>
 
-                    <v-btn size="small" color="primary" class="mr-2 btn-centered-text action-btn"
-                      @click="openTransferDialog(ticket)" :disabled="ticket.status === 'CONCLUDED' || ticket.status === 'RESOLVED'">
-                      ↗️ Transferir
-                    </v-btn>
-
-                    <v-btn size="small" color="info" class="btn-centered-text action-btn"
-                      @click="openHistoryDialog(ticket)">
-                      📋 Ver Histórico
-                    </v-btn>
-
+                      <v-tooltip text="Ver histórico" location="top">
+                        <template #activator="{ props }">
+                          <v-btn v-bind="props" size="small" color="info" icon="mdi-history"
+                            @click="openHistoryDialog(ticket)"></v-btn>
+                        </template>
+                      </v-tooltip>
+                    </div>
                   </td>
                 </tr>
               </tbody>
@@ -1576,11 +1584,21 @@ onMounted(() => {
   text-align: center !important;
 }
 
+/* Container dos botões de ação — quebra de linha com espaçamento uniforme */
+.action-buttons {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  justify-content: center;
+  align-items: center;
+}
+
 /* Estilo específico para botões de ação */
 .action-btn {
   min-width: 85px !important;
   text-align: center !important;
   justify-content: center !important;
+  margin: 0 !important;
 }
 
 .action-btn :deep(.v-btn__content) {

@@ -1,0 +1,12 @@
+/* Estilos globais do sistema */
+
+/* Cantos arredondados em todos os botões */
+.v-btn {
+  border-radius: 8px !important;
+}
+
+/* Mantém botões circulares (ícone/fab) como estão */
+.v-btn--icon,
+.v-btn.rounded-circle {
+  border-radius: 50% !important;
+}
