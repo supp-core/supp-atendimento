@@ -104,9 +104,9 @@
               </v-col>
             </v-row>
 
-            <v-tabs-items v-model="activeTab">
+            <v-tabs-window v-model="activeTab">
               <!-- Aba 1: Dados Básicos -->
-              <v-tab-item>
+              <v-tabs-window-item>
                 <v-row class="mt-4">
                   <v-col cols="12" md="6">
                     <v-text-field v-model="formData.name" label="Nome Completo*" required :rules="rules.name"
@@ -126,10 +126,10 @@
                       label="Tipo de Usuário*" required outlined @change="handleUserTypeChange"></v-select>
                   </v-col>
                 </v-row>
-              </v-tab-item>
+              </v-tabs-window-item>
 
               <!-- Aba 2: Dados de Atendente -->
-              <v-tab-item>
+              <v-tabs-window-item>
                 <v-row class="mt-4">
                   <v-col cols="12" md="6">
                     <v-select v-model="formData.sector_id" :items="sectors" item-title="name" item-value="id"
@@ -147,8 +147,8 @@
                     </v-alert>
                   </v-col>
                 </v-row>
-              </v-tab-item>
-            </v-tabs-items>
+              </v-tabs-window-item>
+            </v-tabs-window>
           </v-form>
         </v-card-text>
         <v-divider></v-divider>

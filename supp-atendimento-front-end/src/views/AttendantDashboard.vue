@@ -15,7 +15,7 @@
         </div>
 
         <!-- Cards base do atendente -->
-        <div :class="['stats-grid', isAdmin ? 'stats-grid-6' : 'stats-grid-4']">
+        <div :class="['stats-grid', isAdmin ? 'stats-grid-5' : 'stats-grid-4']">
           <div class="stats-card">
             <div class="card-icon">👤</div>
             <div class="card-body">
@@ -52,13 +52,6 @@
               <div class="card-body">
                 <div class="card-number color-purple">{{ stats.admin.system_total }}</div>
                 <div class="card-label">Total do Sistema</div>
-              </div>
-            </div>
-            <div class="stats-card">
-              <div class="card-icon">❗</div>
-              <div class="card-body">
-                <div class="card-number color-orange">{{ stats.admin.no_responsible }}</div>
-                <div class="card-label">Sem Responsável</div>
               </div>
             </div>
           </template>
@@ -225,13 +218,13 @@ onMounted(() => {
 }
 
 .stats-grid-4 { grid-template-columns: repeat(4, 1fr); }
-.stats-grid-6 { grid-template-columns: repeat(6, 1fr); }
+.stats-grid-5 { grid-template-columns: repeat(5, 1fr); }
 
 @media (max-width: 1200px) {
-  .stats-grid-6 { grid-template-columns: repeat(3, 1fr); }
+  .stats-grid-5 { grid-template-columns: repeat(3, 1fr); }
 }
 @media (max-width: 900px) {
-  .stats-grid-4, .stats-grid-6 { grid-template-columns: repeat(2, 1fr); }
+  .stats-grid-4, .stats-grid-5 { grid-template-columns: repeat(2, 1fr); }
 }
 
 .stats-card {
