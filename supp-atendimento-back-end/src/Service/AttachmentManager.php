@@ -56,22 +56,6 @@ class AttachmentManager
     public function uploadFile(UploadedFile $file): string
     {
         try {
-
-
-            $fileArray = [
-                "test" => $file->isFile(),
-                "originalName" => $file->getClientOriginalName(),
-                "mimeType" => $file->getClientMimeType(),
-                "error" => $file->getError(),
-                "pathName" => $file->getPathname(),
-                "fileName" => $file->getFilename()
-            ];
-
-            // Convertendo para JSON
-            $json = json_encode($fileArray, JSON_PRETTY_PRINT);
-            echo $json;
-
-            // die();
             // Verificar se o arquivo existe e pode ser lido
             if (!file_exists($file->getPathname()) || !is_readable($file->getPathname())) {
                 throw new \Exception('Arquivo temporário não existe ou não pode ser lido: ' . $file->getPathname());

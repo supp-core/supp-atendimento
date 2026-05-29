@@ -153,13 +153,18 @@ class ServiceManager
                 if ($uploadedFile instanceof UploadedFile) {
                     try {
                         if ($uploadedFile->isValid() && $this->attachmentManager->validateFile($uploadedFile)) {
+                            // Captura metadados ANTES de mover o arquivo (após move() o tmp deixa de existir)
+                            $originalFilename = $uploadedFile->getClientOriginalName();
+                            $mimeType = $uploadedFile->getMimeType();
+                            $fileSize = $uploadedFile->getSize();
+
                             $filename = $this->attachmentManager->uploadFile($uploadedFile);
                             $attachment = new ServiceAttachment();
                             $attachment->setService($service);
                             $attachment->setFilename($filename);
-                            $attachment->setOriginalFilename($uploadedFile->getClientOriginalName());
-                            $attachment->setMimeType($uploadedFile->getMimeType());
-                            $attachment->setFileSize($uploadedFile->getSize());
+                            $attachment->setOriginalFilename($originalFilename);
+                            $attachment->setMimeType($mimeType);
+                            $attachment->setFileSize($fileSize);
 
                             $this->entityManager->persist($attachment);
                             $service->addAttachment($attachment);
@@ -242,14 +247,19 @@ class ServiceManager
         if (!empty($files)) {
             foreach ($files as $file) {
                 if ($this->attachmentManager->validateFile($file)) {
+                    // Captura metadados ANTES de mover o arquivo (após move() o tmp deixa de existir)
+                    $originalFilename = $file->getClientOriginalName();
+                    $mimeType = $file->getMimeType();
+                    $fileSize = $file->getSize();
+
                     $filename = $this->attachmentManager->uploadFile($file);
 
                     $attachment = new ServiceAttachment();
                     $attachment->setService($service);
                     $attachment->setFilename($filename);
-                    $attachment->setOriginalFilename($file->getClientOriginalName());
-                    $attachment->setMimeType($file->getMimeType());
-                    $attachment->setFileSize($file->getSize());
+                    $attachment->setOriginalFilename($originalFilename);
+                    $attachment->setMimeType($mimeType);
+                    $attachment->setFileSize($fileSize);
 
                     $this->entityManager->persist($attachment);
                     $service->addAttachment($attachment);
