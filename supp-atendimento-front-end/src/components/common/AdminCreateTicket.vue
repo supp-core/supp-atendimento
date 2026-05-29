@@ -9,13 +9,11 @@
         <v-form ref="form" @submit.prevent="submitForm">
           <!-- Campos do formulário -->
           <v-row>
-            <!-- Número do Ticket -->
+            <!-- Título do Atendimento -->
             <v-col cols="12">
-              <v-card variant="outlined" class="auto-title-card">
-                <v-card-text>
-                  <div class="text-h6 text-primary">{{ nextTicketTitle }}</div>
-                </v-card-text>
-              </v-card>
+              <v-text-field v-model="formData.title" label="Título do Atendimento*"
+                :rules="[v => !!v || 'Título é obrigatório']" required variant="outlined"
+                density="comfortable" counter="150" maxlength="150"></v-text-field>
             </v-col>
 
             <!-- Seleção de Usuário -->
@@ -150,8 +148,8 @@ const priorityOptions = [
 ];
 
 // Datos del formulario
-const nextTicketTitle = ref('Carregando...');
 const formData = ref({
+  title: '',
   description: '',
   priority: 'NORMAL',
   sector_id: null,
@@ -280,8 +278,6 @@ const closeDialog = () => {
   if (form.value) {
     form.value.reset();
   }
-  // Recarregar próximo número do ticket
-  loadNextTicketNumber();
 };
 
 // Enviar el formulario
@@ -304,7 +300,7 @@ const submitForm = async () => {
     const defaultSectorId = diretoriaSetor ? diretoriaSetor.id : formData.value.sector_id;
 
     // Adicionar campos básicos
-    submitData.append('title', nextTicketTitle.value);
+    submitData.append('title', formData.value.title);
     submitData.append('description', formData.value.description);
     submitData.append('priority', formData.value.priority);
     // Todos os chamados vão para Diretoria por padrão
@@ -374,63 +370,6 @@ const submitForm = async () => {
   }
 };
 
-const loadNextTicketNumber = async () => {
-  try {
-    // Atendentes têm acesso a todos os tickets via endpoint específico
-    const attendant = authService.getAttendantData();
-    
-    if (attendant && attendant.id) {
-      // Busca tickets do atendente para obter IDs reais do banco
-      const response = await api.get(`/service/attendant/${attendant.id}?per_page=1000`);
-      
-      // Se retornou dados, calcula próximo ID baseado no maior ID existente
-      if (response.data && response.data.data && Array.isArray(response.data.data) && response.data.data.length > 0) {
-        const allIds = response.data.data.map(ticket => parseInt(ticket.id)).filter(id => !isNaN(id));
-        if (allIds.length > 0) {
-          const maxId = Math.max(...allIds);
-          const nextNumber = maxId + 1;
-          nextTicketTitle.value = `${nextNumber}`;
-          console.log(`Próximo ticket baseado no banco: ${nextNumber} (maior ID atual: ${maxId})`);
-          return;
-        }
-      }
-    }
-    
-    // Se chegou aqui, tenta endpoint alternativo ou não há tickets ainda
-    try {
-      // Tenta buscar usando endpoint geral (pode ter diferentes permissões)
-      const fallbackResponse = await api.get('/service?per_page=1000');
-      if (fallbackResponse.data?.data?.length > 0) {
-        const allIds = fallbackResponse.data.data.map(ticket => parseInt(ticket.id)).filter(id => !isNaN(id));
-        if (allIds.length > 0) {
-          const maxId = Math.max(...allIds);
-          nextTicketTitle.value = `${maxId + 1}`;
-          console.log(`Próximo ticket via endpoint geral: ${maxId + 1}`);
-          return;
-        }
-      }
-    } catch (serviceError) {
-      console.log('Endpoint /service não acessível, continuando...');
-    }
-    
-    // Se chegou aqui, não há tickets ainda (banco vazio)
-    nextTicketTitle.value = `1`;
-    console.log('Banco vazio, iniciando com 1');
-    
-  } catch (error) {
-    // 404 significa que não há tickets ainda - é o estado inicial normal
-    if (error.response?.status === 404) {
-      nextTicketTitle.value = `1`;
-      console.log('404 = banco vazio, iniciando com 1');
-    } else {
-      console.error('Erro ao buscar tickets:', error);
-      // Último recurso
-      nextTicketTitle.value = `1`;
-      console.log('Erro geral, assumindo 1');
-    }
-  }
-};
-
 // Cargar datos al montar el componente
 onMounted(() => {
   loadUsers();
@@ -438,7 +377,6 @@ onMounted(() => {
   loadCategories();
   loadServiceTypes();
   loadProjects();
-  loadNextTicketNumber();
 });
 </script>
 
@@ -450,10 +388,5 @@ onMounted(() => {
 
 .v-card-text {
   padding-top: 20px;
-}
-
-.auto-title-card {
-  background-color: #f8f9fa;
-  border: 1px solid #e3f2fd !important;
 }
 </style>
