@@ -21,6 +21,13 @@
                 <div class="auto-title">{{ nextTicketTitle }}</div>
               </div>
 
+              <!-- Título do Atendimento -->
+              <div class="form-group">
+                <label for="title">Título*</label>
+                <input id="title" v-model="formData.title" type="text" class="form-input" required
+                  placeholder="Informe um título para o atendimento" />
+              </div>
+
               <!-- Campo de categoria -->
               <div class="form-group">
                 <label for="category">Categoria*</label>
@@ -32,6 +39,17 @@
                 </select>
               </div>
 
+
+              <!-- Campo de projeto (apenas para categoria "Sistemas") -->
+              <div class="form-group" v-if="isSistemas">
+                <label for="project">Sistema*</label>
+                <select id="project" v-model="formData.project_id" class="form-input" required>
+                  <option value="">Selecione um sistema</option>
+                  <option v-for="project in projects" :key="project.id" :value="project.id">
+                    {{ project.acronym ? `[${project.acronym}] ${project.name}` : project.name }}
+                  </option>
+                </select>
+              </div>
 
               <!-- Descrição -->
               <div class="form-group">
@@ -75,7 +93,7 @@
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue';
+import { ref, computed, onMounted } from 'vue';
 import { useRouter } from 'vue-router';
 import { useSidebar } from '@/composables/useSidebar';
 import { authService } from '@/services/auth.service';
@@ -90,14 +108,25 @@ const form = ref(null);
 const loading = ref(false);
 const sectors = ref([]);
 const categories = ref([]);
+const projects = ref([]);
 const serviceTypes = ref([]);
 const selectedFiles = ref([]);
 const nextTicketTitle = ref('Carregando...');
 
 const formData = ref({
+  title: '',
   description: '',
   category_id: '',
+  project_id: '',
   priority: 'NORMAL', // Valor padrão
+});
+
+// Verdadeiro quando a categoria selecionada é "Sistemas"
+const isSistemas = computed(() => {
+  const selected = categories.value.find(
+    c => Number(c.id) === Number(formData.value.category_id)
+  );
+  return selected?.name?.toLowerCase() === 'sistemas';
 });
 
 const feedback = ref({
@@ -124,6 +153,15 @@ const loadCategories = async () => {
     categories.value = response.data.data;
   } catch (error) {
     showFeedback('Erro ao carregar categorias', 'error');
+  }
+};
+
+const loadProjects = async () => {
+  try {
+    const response = await api.get('/project');
+    projects.value = (response.data.data || []).filter(p => p.status === 'ATIVO');
+  } catch (error) {
+    console.error('Erro ao carregar projetos:', error);
   }
 };
 
@@ -210,8 +248,13 @@ const showFeedback = (message, type = 'success') => {
 };
 
 const handleSubmit = async () => {
-  if (!formData.value.description || !formData.value.category_id) {
+  if (!formData.value.title || !formData.value.description || !formData.value.category_id) {
     showFeedback('Por favor, preencha todos os campos obrigatórios', 'error');
+    return;
+  }
+
+  if (isSistemas.value && !formData.value.project_id) {
+    showFeedback('Por favor, selecione o sistema', 'error');
     return;
   }
 
@@ -261,7 +304,7 @@ const handleSubmit = async () => {
     const submitData = new FormData();
     
     // Adiciona campos básicos
-    submitData.append('title', nextTicketTitle.value);
+    submitData.append('title', formData.value.title);
     submitData.append('description', formData.value.description);
     submitData.append('priority', formData.value.priority);
     submitData.append('category_id', formData.value.category_id);
@@ -269,6 +312,18 @@ const handleSubmit = async () => {
     submitData.append('requester_id', userData.id);
     submitData.append('service_type_id', triagemServiceTypeId);
     submitData.append('created_by_admin', 'false');
+
+    // Sistema (projeto) — apenas quando a categoria é "Sistemas"
+    if (isSistemas.value && formData.value.project_id) {
+      submitData.append('project_id', formData.value.project_id);
+    }
+
+    // Anexos selecionados
+    if (selectedFiles.value && selectedFiles.value.length > 0) {
+      selectedFiles.value.forEach((file) => {
+        submitData.append('files[]', file);
+      });
+    }
 
     // Log para debug
     console.log('FormData sendo enviado:');
@@ -298,6 +353,7 @@ const handleSubmit = async () => {
 onMounted(() => {
   loadSectors();
   loadCategories();
+  loadProjects();
   loadServiceTypes();
   loadNextTicketNumber();
 });
