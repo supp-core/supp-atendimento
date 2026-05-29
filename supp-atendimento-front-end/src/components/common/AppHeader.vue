@@ -2,9 +2,9 @@
   <header class="app-header">
     <div class="header-brand">
       <SuppLogo :width="30" :height="30" />
-      <span class="brand-name">SUPP</span>
+      <span class="brand-name">PGM</span>
       <span class="brand-divider"></span>
-      <span class="brand-sub">Atendimento</span>
+      <span class="brand-sub">Atendimento PGMBH</span>
     </div>
     <div class="header-right">
       <div class="user-chip">

@@ -3,13 +3,13 @@
     :src="logoUrl"
     :width="width"
     :height="height"
-    alt="SUPP"
+    alt="PGM"
     style="object-fit: contain; display: block;"
   />
 </template>
 
 <script setup>
-import logoUrl from '@/assets/logo-supp.png'
+import logoUrl from '@/assets/brasao-pbh.png'
 
 defineProps({
   width:  { type: [Number, String], default: 96 },

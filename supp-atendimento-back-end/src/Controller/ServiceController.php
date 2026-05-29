@@ -63,7 +63,8 @@ class ServiceController extends AbstractController
                 'priority' => $request->query->get('priority'),
                 'start_date' => $startDate,
                 'end_date' => $endDate,
-                'exclude_status' => $excludeStatus
+                'exclude_status' => $excludeStatus,
+                'project_id' => $request->query->get('project_id')
             ];
 
             // Removemos filtros vazios
@@ -126,6 +127,12 @@ class ServiceController extends AbstractController
                         'name' => $service->getRequester()?->getName(),
                         'email' => $service->getRequester()?->getEmail(),
                     ],
+                    // Sistema (projeto) vinculado ao chamado
+                    'project' => $service->getProject() ? [
+                        'id' => $service->getProject()->getId(),
+                        'name' => $service->getProject()->getName(),
+                        'acronym' => $service->getProject()->getAcronym(),
+                    ] : null,
 
                     'dates' => [
                         'created' => $service->getDateCreate()?->format('Y-m-d H:i:s'),
@@ -373,6 +380,7 @@ class ServiceController extends AbstractController
             $priority = $request->query->get('priority');
             $categoryId = $request->query->get('category_id');
             $serviceTypeId = $request->query->get('service_type_id');
+            $projectId = $request->query->get('project_id');
             $excludeStatus = $request->query->get('exclude_status');
 
             // Parâmetros de paginação
@@ -427,6 +435,11 @@ class ServiceController extends AbstractController
 
                 // Filtro por tipo de serviço
                 if ($serviceTypeId && (!$service->getServiceType() || $service->getServiceType()->getId() != $serviceTypeId)) {
+                    $keepService = false;
+                }
+
+                // Filtro por sistema (projeto)
+                if ($projectId && (!$service->getProject() || $service->getProject()->getId() != $projectId)) {
                     $keepService = false;
                 }
 
@@ -491,6 +504,12 @@ class ServiceController extends AbstractController
                         'id' => $service->getServiceType()->getId(),
                         'name' => $service->getServiceType()->getName(),
                         'description' => $service->getServiceType()->getDescription()
+                    ] : null,
+                    // Sistema (projeto) vinculado ao chamado
+                    'project' => $service->getProject() ? [
+                        'id' => $service->getProject()->getId(),
+                        'name' => $service->getProject()->getName(),
+                        'acronym' => $service->getProject()->getAcronym(),
                     ] : null,
                     'dates' => [
                         'created' => $service->getDateCreate()?->format('Y-m-d H:i:s'),

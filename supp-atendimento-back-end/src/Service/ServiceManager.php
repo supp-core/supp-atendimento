@@ -654,6 +654,12 @@ class ServiceManager
                 ->setParameter('exclude_status', $filters['exclude_status']);
         }
 
+        // Filtro por sistema (projeto)
+        if (!empty($filters['project_id'])) {
+            $queryBuilder->andWhere('s.project = :project_id')
+                ->setParameter('project_id', $filters['project_id']);
+        }
+
         // Mantemos a ordenação padrão
         $queryBuilder->orderBy('s.date_create', 'DESC');
 

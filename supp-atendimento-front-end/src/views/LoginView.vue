@@ -9,7 +9,7 @@
               <!-- Cabeçalho -->
               <div class="login-header">
                 <p class="header-sub">Você está no</p>
-                <p class="header-title">SUPP Atendimento</p>
+                <p class="header-title">PGM Atendimento</p>
               </div>
 
               <!-- Corpo em duas colunas -->
@@ -18,7 +18,7 @@
                 <!-- Coluna esquerda: branding -->
                 <div class="login-brand">
                   <SuppLogo :width="110" :height="110" />
-                  <p class="brand-name">SUPP/PBH</p>
+                  <p class="brand-name">PGM/PBH</p>
                   <p class="brand-env">ATENDIMENTO</p>
                 </div>
 

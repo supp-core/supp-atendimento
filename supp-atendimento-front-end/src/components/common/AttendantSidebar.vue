@@ -5,7 +5,7 @@
     <div class="sidebar-header">
       <div class="sidebar-logo" v-show="!isCollapsed">
         <SuppLogo :width="24" :height="24" />
-        <span class="logo-text">SUPP</span>
+        <span class="logo-text">PGM</span>
       </div>
       <button class="toggle-btn" @click="toggleSidebar" :title="isCollapsed ? 'Expandir' : 'Recolher'">
         <i class="mdi" :class="isCollapsed ? 'mdi-menu' : 'mdi-chevron-left'"></i>

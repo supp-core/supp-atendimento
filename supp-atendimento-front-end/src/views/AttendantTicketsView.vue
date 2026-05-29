@@ -44,6 +44,12 @@
                     item-value="value" label="Tipo de Serviço" outlined dense @change="handleSearch"></v-select>
                 </v-col>
 
+                <!-- Filtro de Sistema -->
+                <v-col cols="12" sm="3">
+                  <v-select v-model="searchProject" :items="projectOptions" item-title="title"
+                    item-value="value" label="Sistema" outlined dense @update:model-value="handleSearch"></v-select>
+                </v-col>
+
                 <!-- Filtro de Período -->
                 <v-col cols="12" sm="3">
                   <div class="date-compact">
@@ -104,6 +110,7 @@
                   <th class="text-left">Prioridade</th>
                   <th class="text-left">Status</th>
                   <th class="text-left">Setor</th>
+                  <th class="text-left">Sistema</th>
                   <th class="text-left">Data Criação</th>
                   <th class="text-left">Prazo</th>
                   <th class="text-left">Data Conclusão</th>
@@ -126,6 +133,7 @@
                     </v-chip>
                   </td>
                   <td>{{ ticket.sector?.name }}</td>
+                  <td>{{ ticket.project ? (ticket.project.acronym || ticket.project.name) : '-' }}</td>
                   <td>{{ formatDate(ticket.dates.created) }}</td>
                   <td :class="getDeadlineClass(ticket.dates.deadline)">{{ formatDate(ticket.dates.deadline) }}</td>
                   <td>{{ ticket.dates.concluded ? formatDate(ticket.dates.concluded) : '-' }}</td>
@@ -457,6 +465,17 @@ const loadServiceTypes = async () => {
   }
 };
 
+const loadProjects = async () => {
+  try {
+    const response = await api.get('/project');
+    if (response.data.success) {
+      projects.value = response.data.data;
+    }
+  } catch (error) {
+    console.error('Erro ao carregar sistemas:', error);
+  }
+};
+
 
 // Funções auxiliares para obter nomes baseados nos IDs
 const getCategoryName = (categoryId) => {
@@ -518,6 +537,7 @@ const resetFilters = () => {
   searchPriority.value = '';
   searchCategory.value = '';
   searchServiceType.value = '';
+  searchProject.value = '';
   startDate.value = null;
   endDate.value = null;
 
@@ -539,6 +559,8 @@ const searchStatus = ref('');
 const searchPriority = ref('');
 const searchCategory = ref('');
 const searchServiceType = ref('');
+const searchProject = ref('');
+const projects = ref([]);
 const showCompleted = ref(true);
 
 // Valores das datas
@@ -626,6 +648,16 @@ const serviceTypeOptions = computed(() => {
     ...serviceTypes.value.map(type => ({
       title: type.name,
       value: type.id
+    }))
+  ];
+});
+
+const projectOptions = computed(() => {
+  return [
+    { title: 'Todos os sistemas', value: '' },
+    ...projects.value.map(p => ({
+      title: p.acronym ? `${p.acronym} - ${p.name}` : p.name,
+      value: p.id
     }))
   ];
 });
@@ -1038,7 +1070,10 @@ const loadTickets = async (page = 1) => {
     if (searchServiceType.value) {
       params.append('service_type_id', searchServiceType.value);
     }
-    
+    if (searchProject.value) {
+      params.append('project_id', searchProject.value);
+    }
+
     // Adicionar filtros de data
     if (startDate.value) {
       let formattedStartDate = startDate.value;
@@ -1220,6 +1255,7 @@ onMounted(() => {
   loadSectors();
   loadCategoriesview();
   loadServiceTypes();
+  loadProjects();
   loadCategoriesAndServiceTypes(); // Nova função combinada
 })
 </script>
